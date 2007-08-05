@@ -1,0 +1,8 @@
+AVbin
+
+Copyright 2007 Alex Holkner <Alex.Holkner@gmail.com>
+AVbin incorporates FFmpeg, http://ffmpeg.mplayerhq.hu/
+
+To install, copy libavbin.*.dylib to a path such as /usr/lib and create
+a symlink without the version number.  Or, run the included ``install.sh``
+program.
