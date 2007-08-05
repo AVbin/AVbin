@@ -1,8 +1,0 @@
-@echo Installing AVbin...
-copy avbin.dll c:\windows\system32\
-
-@echo
-@echo If there were no errors from the previous command, AVbin was installed
-@echo successfully.
-@echo
-@pause

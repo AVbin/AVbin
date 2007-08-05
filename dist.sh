@@ -61,11 +61,10 @@ dist_win32() {
     dist_common $DIR
     cp dist/$PLATFORM/avbin.dll $DIR/
     cp README.win32 $DIR/readme.txt
-    cp install.bat.win32 $DIR/install.bat
     pushd dist
-    zip -r $BASEDIR.zip $BASEDIR
+    #zip -r $BASEDIR.zip $BASEDIR
     popd
-    rm -rf $DIR
+    #rm -rf $DIR
 }
 
 dist_source() {
