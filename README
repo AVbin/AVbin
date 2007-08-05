@@ -1,0 +1,83 @@
+AVbin
+=====
+
+:Home:    http://code.google.com/p/avbin
+:Contact: Alex Holkner <Alex.Holkner@gmail.com>
+
+
+Building
+--------
+
+AVbin is designed to be used with a particular version of FFmpeg.  This
+is checked out automatically into the `ffmpeg` directory when you use the SVN
+sources of AVbin.  If you've downloaded a source archive, you'll need to get
+the appropriate version of FFmpeg::
+
+    svn checkout -r `cat ffmpeg.revision` \
+                 svn://svn.mplayerhq.hu/ffmpeg/trunk ffmpeg
+
+Use the included `build.sh` script to compile AVbin.  This takes care of
+configuring FFmpeg correctly, compiling it, then linking it with the AVbin
+sources.  The final AVbin librarise are placed in the `dist` directory.
+
+If you've just updated the FFmpeg, first run::
+
+    ./build.sh --patch ffmpeg.patch
+
+to apply some AVbin-specific patches to FFmpeg.  Then, on a 64-bit Linux
+computer run::
+
+    ./build.sh linux-x86-64 linux-x86-32
+
+or on an Intel Mac OS X computer run::
+
+    ./build.sh darwin-universal
+
+or on a 32-bit Windows run::
+
+    ./build.sh win32
+
+Run ``build.sh --help`` for more information.
+
+
+Caveats
+-------
+
+AVbin is currently supported only on the following platforms
+
+* Linux
+  - x86 (cross-compiled from x86-64)
+  - x86-64
+* Mac OS X 10.4
+  - PowerPC (32-bit only; cross-compiled from x86)
+  - x86 (32-bit only)
+* Windows XP, Vista
+  - x86 (32-bit only)
+
+The configuration scripts currently assume cross-compilation for Linux-x86-32
+and Darwin-ppc-32.  Minor changes should be needed to get these to compile on
+the target platform.  Patches for this or other platforms are welcome.
+
+
+Installation and usage
+----------------------
+
+Place the resulting avbin.so, avbin.dylib or avbin.dll in the appropriate
+system directory.
+
+The AVbin dynamic library exports all of FFmpeg's functions from libavcodec,
+libavutil and libavformat.  It also exports some higher-level functions which
+have a fixed ABI (they will not change in incompatible ways in future
+releases), documented in ``include/avbin.h``.
+
+License
+-------
+
+Due to the linkage between AVbin and FFmpeg, AVbin must be licensed under the
+LGPL or GPL.  Currently all GPL features of the FFmpeg configuration are
+disabled, permitting LGPL use.
+
+You should see the accompanying COPYING and COPYING.LESSER files for details.
+In summary, you must note the usage of FFmpeg and AVbin within the
+documentation of your application.  If you make changes to either library, you
+must include the sources of these changes within your application.

@@ -1,0 +1,56 @@
+Index: libavformat/sdp.c
+===================================================================
+--- libavformat/sdp.c	(revision 9898)
++++ libavformat/sdp.c	(working copy)
+@@ -171,6 +171,7 @@
+ #define SDP_BUFFER_SIZE 2048
+ char *avf_sdp_create(AVFormatContext *ac[], int n_files)
+ {
++#if ENABLE_RTP_MUXER
+     char *buff;
+     struct sdp_session_level s;
+     int i, j, port, ttl;
+@@ -214,4 +215,7 @@
+     }
+ 
+     return buff;
++#else
++    return NULL;
++#endif
+ }
+Index: libavcodec/Makefile
+===================================================================
+--- libavcodec/Makefile	(revision 9898)
++++ libavcodec/Makefile	(working copy)
+@@ -33,6 +33,7 @@
+ 
+ OBJS-$(CONFIG_AASC_DECODER)            += aasc.o
+ OBJS-$(CONFIG_AC3_ENCODER)             += ac3enc.o ac3tab.o ac3.o
++OBJS-$(CONFIG_AC3_DECODER)             += ac3dec.o ac3tab.o ac3.o
+ OBJS-$(CONFIG_ALAC_DECODER)            += alac.o
+ OBJS-$(CONFIG_ASV1_DECODER)            += asv1.o
+ OBJS-$(CONFIG_ASV1_ENCODER)            += asv1.o
+Index: libavcodec/allcodecs.c
+===================================================================
+--- libavcodec/allcodecs.c	(revision 9898)
++++ libavcodec/allcodecs.c	(working copy)
+@@ -166,6 +166,7 @@
+     /* audio codecs */
+     REGISTER_DECODER(MPEG4AAC, mpeg4aac);
+     REGISTER_ENCODER(AC3, ac3);
++    REGISTER_DECODER(AC3, ac3);
+     REGISTER_DECODER(ALAC, alac);
+     REGISTER_DECODER(ATRAC3, atrac3);
+     REGISTER_DECODER(COOK, cook);
+Index: libavcodec/allcodecs.h
+===================================================================
+--- libavcodec/allcodecs.h	(revision 9898)
++++ libavcodec/allcodecs.h	(working copy)
+@@ -24,6 +24,7 @@
+ #include "avcodec.h"
+ 
+ extern AVCodec ac3_encoder;
++extern AVCodec ac3_decoder;
+ extern AVCodec asv1_encoder;
+ extern AVCodec asv2_encoder;
+ extern AVCodec bmp_encoder;

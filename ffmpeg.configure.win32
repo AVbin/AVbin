@@ -1,0 +1,9 @@
+--extra-cflags="-mno-cygwin -mms-bitfields"
+--extra-ldflags="-Wl,--add-stdcall-alias"
+--enable-memalign-hack
+
+--enable-static
+--disable-shared
+
+--enable-w32threads
+--cross-compile

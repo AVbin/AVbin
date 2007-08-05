@@ -1,0 +1,8 @@
+--enable-static
+--disable-shared
+--enable-pthreads
+
+--arch=i386
+
+# Currently broken on Darwin
+--disable-mmx

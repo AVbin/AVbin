@@ -1,0 +1,21 @@
+LIBNAME=$(OUTDIR)/libavbin.$(AVBIN_VERSION).dylib
+
+CFLAGS += -O3 -arch ppc
+LDFLAGS += -dylib \
+           -read_only_relocs suppress \
+           -single_module \
+           -arch ppc
+
+STATIC_LIBS = \
+              $(FFMPEG)/libavformat/libavformat.a \
+              $(FFMPEG)/libavcodec/libavcodec.a \
+              $(FFMPEG)/libavutil/libavutil.a \
+
+LIBS = -lSystem \
+       -lz \
+       -L/usr/lib/gcc/powerpc-apple-darwin8/4.0.1 -lgcc \
+	   -lSystemStubs \
+       /usr/lib/dylib1.o
+
+$(LIBNAME) : $(OBJNAME) $(OUTDIR)
+	$(LD) $(LDFLAGS) -o $@ $< $(STATIC_LIBS) $(LIBS)

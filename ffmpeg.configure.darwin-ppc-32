@@ -1,0 +1,11 @@
+--enable-static
+--disable-shared
+--enable-pthreads
+
+--arch=ppc
+--cross-compile
+--extra-cflags=-arch\ ppc
+--extra-ldflags=-arch\ ppc
+
+# Currently broken on Darwin
+--disable-mmx

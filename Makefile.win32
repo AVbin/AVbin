@@ -1,0 +1,15 @@
+LIBNAME=$(OUTDIR)/avbin.dll
+
+CFLAGS += -O3
+LDFLAGS += -shared
+
+STATIC_LIBS = -Wl,-whole-archive \
+              -Wl,$(FFMPEG)/libavformat/libavformat.a \
+              -Wl,$(FFMPEG)/libavcodec/libavcodec.a \
+              -Wl,$(FFMPEG)/libavutil/libavutil.a \
+              -Wl,-no-whole-archive
+
+LIBS = -lm
+
+$(LIBNAME) : $(OBJNAME) $(OUTDIR)
+	$(CC) $(LDFLAGS) -o $@ $< $(STATIC_LIBS) $(LIBS)

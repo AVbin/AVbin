@@ -1,0 +1,10 @@
+--extra-cflags="-march=i686 -m32"
+--extra-ldflags="-L/lib32 -march=i686 -m32"
+
+# We only use the static library, but need to specify --enable-shared to
+# ensure -fPIC is passed.
+--enable-static
+--enable-shared
+
+--enable-pthreads
+--arch=i386
