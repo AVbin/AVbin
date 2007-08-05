@@ -1,5 +1,8 @@
 # $Id$
 
+CFLAGS += -DAVBIN_VERSION=$(AVBIN_VERSION) \
+          -DFFMPEG_REVISION=$(FFMPEG_REVISION)
+
 CC = gcc
 LD = ld
 BUILDDIR = build

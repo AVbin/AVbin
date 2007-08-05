@@ -18,6 +18,7 @@
  * <http://www.gnu.org/licenses/>.
  */
 
+#include <stdarg.h>
 #include <stdlib.h>
 
 #include <avbin.h>
@@ -27,45 +28,101 @@
 #include <avcodec.h>
 #include <avutil.h>
 
-struct AVbinFile {
+struct _AVbinFile {
     AVFormatContext *context;
     AVPacket *packet;
 };
 
-struct AVbinStream {
+struct _AVbinStream {
     int type;
     AVFormatContext *format_context;
     AVCodecContext *codec_context;
     AVFrame *frame;
 };
 
+static AVbinLogCallback user_log_callback = NULL;
+
+/**
+ * Format log messages and call the user log callback.  Essentially a
+ * reimplementation of libavutil/log.c:av_log_default_callback.
+ */
+static void avbin_log_callback(void *ptr, 
+                               int level, 
+                               const char *fmt, 
+                               va_list vl)
+{
+    static char message[8192];
+    const char *module = NULL;
+
+    if (level > av_log_level || !user_log_callback)
+        return;
+
+    if (ptr)
+    {
+        AVClass *avc = *(AVClass**) ptr;
+        module = avc->item_name(ptr);
+    }
+
+    vsnprintf(message, sizeof message, fmt, vl);
+    user_log_callback(module, level, message);
+}
 
 int avbin_get_version()
 {
-    avcodec_init();
     return AVBIN_VERSION;
 }
 
-int avbin_init()
+int avbin_get_ffmpeg_revision()
 {
-    av_register_all();    
+    return FFMPEG_REVISION;
 }
 
-size_t avbin_audio_buffer_size()
+size_t avbin_get_audio_buffer_size()
 {
     return AVCODEC_MAX_AUDIO_FRAME_SIZE;
 }
 
-struct AVbinFile *avbin_open_filename(const char *filename)
+int avbin_have_feature(const char *feature)
 {
-    struct AVbinFile *file = malloc(sizeof *file);
+    return 0;
+}
+
+AVbinResult avbin_init()
+{
+    avcodec_init();
+    av_register_all();    
+    return AVBIN_RESULT_OK;
+}
+
+AVbinResult avbin_set_log_level(AVbinLogLevel level)
+{
+    av_log_level = level;
+    return AVBIN_RESULT_OK;
+}
+
+AVbinResult avbin_set_log_callback(AVbinLogCallback callback)
+{
+    user_log_callback = callback;
+
+    /* Note av_log_set_callback looks set to disappear at 
+     * LIBAVUTIL_VERSION >= 50; at which point av_vlog must be
+     * set directly.
+     */
+    if (callback)
+        av_log_set_callback(avbin_log_callback);
+    else
+        av_log_set_callback(av_log_default_callback);
+    return AVBIN_RESULT_OK;
+}
+
+AVbinFile *avbin_open_filename(const char *filename)
+{
+    AVbinFile *file = malloc(sizeof *file);
     if (av_open_input_file(&file->context, filename, NULL, 0, NULL) != 0)
         goto error;
 
     if (av_find_stream_info(file->context) < 0)
         goto error;
-
-    dump_format(file->context, 0, filename, 0);
 
     file->packet = NULL;
     return file;
@@ -75,7 +132,7 @@ error:
     return NULL;
 }
 
-void avbin_close_file(struct AVbinFile *file)
+void avbin_close_file(AVbinFile *file)
 {
     if (file->packet)
     {
@@ -85,17 +142,19 @@ void avbin_close_file(struct AVbinFile *file)
     av_close_input_file(file->context);
 }
 
-void avbin_seek_file(struct AVbinFile *file, Timestamp timestamp)
+AVbinResult avbin_seek_file(AVbinFile *file, Timestamp timestamp)
 {
     av_seek_frame(file->context, -1, timestamp, 0);
+    return AVBIN_RESULT_OK;
 }
 
-void avbin_file_info(struct AVbinFile *file, struct AVbinFileInfo *info)
+AVbinResult avbin_file_info(AVbinFile *file, AVbinFileInfo *info)
 {
     if (info->structure_size < sizeof *info)
-        return;
+        return AVBIN_RESULT_ERROR;
 
-    info->streams = file->context->nb_streams;
+    info->n_streams = file->context->nb_streams;
+    info->start_time = file->context->start_time;
     info->duration = file->context->duration;
     memcpy(info->title, file->context->title, sizeof(info->title));
     memcpy(info->author, file->context->author, sizeof(info->author));
@@ -105,33 +164,65 @@ void avbin_file_info(struct AVbinFile *file, struct AVbinFileInfo *info)
     info->year = file->context->year;
     info->track = file->context->track;
     memcpy(info->genre, file->context->genre, sizeof(info->genre));
+
+    return AVBIN_RESULT_OK;
 }
 
-
-int codec_context_stream_type(int type)
+int avbin_stream_info(AVbinFile *file, int stream_index,
+                      AVbinStreamInfo *info)
 {
-    switch (type)
+    AVCodecContext *context = file->context->streams[stream_index]->codec;
+
+    /* This is the first version, so anything smaller is an error. */
+    if (info->structure_size < sizeof *info)
+        return AVBIN_RESULT_ERROR;
+
+    switch (context->codec_type)
     {
         case CODEC_TYPE_VIDEO:
-            return AVBIN_STREAM_TYPE_VIDEO;
+            info->type = AVBIN_STREAM_TYPE_VIDEO;
+            info->video.width = context->width;
+            info->video.height = context->height;
+            info->video.sample_aspect_num = context->sample_aspect_ratio.num;
+            info->video.sample_aspect_den = context->sample_aspect_ratio.den;
+            break;
         case CODEC_TYPE_AUDIO:
-            return AVBIN_STREAM_TYPE_AUDIO;
+            info->type = AVBIN_STREAM_TYPE_AUDIO;
+            info->audio.sample_rate = context->sample_rate;
+            info->audio.channels = context->channels;
+            switch (context->sample_fmt)
+            {
+                case SAMPLE_FMT_U8:
+                    info->audio.sample_rate = AVBIN_SAMPLE_FORMAT_U8;
+                    info->audio.sample_bits = 8;
+                    break;
+                case SAMPLE_FMT_S16:
+                    info->audio.sample_format = AVBIN_SAMPLE_FORMAT_S16;
+                    info->audio.sample_bits = 16;
+                    break;
+                case SAMPLE_FMT_S24:
+                    info->audio.sample_format = AVBIN_SAMPLE_FORMAT_S24;
+                    info->audio.sample_bits = 24;
+                    break;
+                case SAMPLE_FMT_S32:
+                    info->audio.sample_format = AVBIN_SAMPLE_FORMAT_S32;
+                    info->audio.sample_bits = 32;
+                    break;
+                case SAMPLE_FMT_FLT:
+                    info->audio.sample_format = AVBIN_SAMPLE_FORMAT_FLOAT;
+                    info->audio.sample_bits = 32;
+                    break;
+            }
+            break;
+
         default:
-            return AVBIN_STREAM_TYPE_UNKNOWN;
+            info->type = AVBIN_STREAM_TYPE_UNKNOWN;
     }
 
+    return AVBIN_RESULT_OK;
 }
 
-int avbin_get_stream_type(struct AVbinFile *file, int index)
-{
-    if (index < 0 || index >= file->context->nb_streams)
-        return AVBIN_STREAM_TYPE_UNKNOWN;
-
-    return codec_context_stream_type(
-        file->context->streams[index]->codec->codec_type);
-}
-
-struct AVbinStream *avbin_open_stream(struct AVbinFile *file, int index) 
+AVbinStream *avbin_open_stream(AVbinFile *file, int index) 
 {
     AVCodecContext *codec_context;
     AVCodec *codec;
@@ -147,77 +238,28 @@ struct AVbinStream *avbin_open_stream(struct AVbinFile *file, int index)
     if (avcodec_open(codec_context, codec) < 0)
         return NULL;
 
-    struct AVbinStream *stream = malloc(sizeof *stream);
+    AVbinStream *stream = malloc(sizeof *stream);
     stream->format_context = file->context;
     stream->codec_context = codec_context;
-    stream->type = codec_context_stream_type(codec_context->codec_type);
-    if (stream->type == AVBIN_STREAM_TYPE_VIDEO)
+    stream->type = codec_context->codec_type;
+    if (stream->type == CODEC_TYPE_VIDEO)
         stream->frame = avcodec_alloc_frame();
     else
         stream->frame = NULL;
     return stream;
 }
 
-void avbin_close_stream(struct AVbinStream *stream)
+void avbin_close_stream(AVbinStream *stream)
 {
     if (stream->frame)
         av_free(stream->frame);
     avcodec_close(stream->codec_context);
 }
 
-void avbin_stream_info(struct AVbinStream *stream,
-                       struct AVbinStreamInfo *info)
-{
-    /* This is the first version, so anything smaller is an error. */
-    if (info->structure_size < sizeof *info)
-        return;
-
-    info->type = stream->type;
-    switch (stream->type) 
-    {
-        case AVBIN_STREAM_TYPE_VIDEO:
-            info->video.width = stream->codec_context->width;
-            info->video.height = stream->codec_context->height;
-            info->video.sample_aspect_num = 
-                stream->codec_context->sample_aspect_ratio.num;
-            info->video.sample_aspect_den = 
-                stream->codec_context->sample_aspect_ratio.den;
-            break;
-
-        case AVBIN_STREAM_TYPE_AUDIO:
-            info->audio.sample_rate = stream->codec_context->sample_rate;
-            info->audio.channels = stream->codec_context->channels;
-            switch (stream->codec_context->sample_fmt)
-            {
-                case SAMPLE_FMT_U8:
-                    info->audio.sample_rate = AVBIN_SAMPLE_FORMAT_U8;
-                    info->audio.sample_size = 8;
-                    break;
-                case SAMPLE_FMT_S16:
-                    info->audio.sample_format = AVBIN_SAMPLE_FORMAT_S16;
-                    info->audio.sample_size = 16;
-                    break;
-                case SAMPLE_FMT_S24:
-                    info->audio.sample_format = AVBIN_SAMPLE_FORMAT_S24;
-                    info->audio.sample_size = 24;
-                    break;
-                case SAMPLE_FMT_S32:
-                    info->audio.sample_format = AVBIN_SAMPLE_FORMAT_S32;
-                    info->audio.sample_size = 32;
-                    break;
-                case SAMPLE_FMT_FLT:
-                    info->audio.sample_format = AVBIN_SAMPLE_FORMAT_FLOAT;
-                    info->audio.sample_size = 32;
-                    break;
-            }
-            break;
-    }
-}
-
-int avbin_read(struct AVbinFile *file, struct AVbinPacket *packet)
+int avbin_read(AVbinFile *file, AVbinPacket *packet)
 {
     if (packet->structure_size < sizeof *packet)
-        return -1;
+        return AVBIN_RESULT_ERROR;
 
     if (file->packet)
         av_free_packet(file->packet);
@@ -225,37 +267,39 @@ int avbin_read(struct AVbinFile *file, struct AVbinPacket *packet)
         file->packet = malloc(sizeof *file->packet);
 
     if (av_read_frame(file->context, file->packet) < 0)
-        return -1;
+        return AVBIN_RESULT_ERROR;
 
-    packet->has_timestamp = file->packet->dts != AV_NOPTS_VALUE;
     packet->timestamp = av_rescale_q(file->packet->dts,
         file->context->streams[file->packet->stream_index]->time_base,
         AV_TIME_BASE_Q);
-    packet->stream = file->packet->stream_index;
+    packet->stream_index = file->packet->stream_index;
     packet->data = file->packet->data;
     packet->size = file->packet->size;
 
-    return 0;
+    return AVBIN_RESULT_OK;
 }
 
-int avbin_decode_audio(struct AVbinStream *stream,
+int avbin_decode_audio(AVbinStream *stream,
                        uint8_t *data_in, size_t size_in,
                        uint8_t *data_out, int *size_out)
 {
     int used;
+    if (stream->type != CODEC_TYPE_AUDIO)
+        return AVBIN_RESULT_ERROR;
+
     used = avcodec_decode_audio2(stream->codec_context, 
                                  (int16_t *) data_out, size_out,
                                  data_in, size_in);
 
     if (used < 0)
-        return -1;
+        return AVBIN_RESULT_ERROR;
 
     return used;
 }
 
-int avbin_decode_video(struct AVbinStream *stream,
+int avbin_decode_video(AVbinStream *stream,
                        uint8_t *data_in, size_t size_in,
-                       uint8_t *data_out, int *pitch)
+                       uint8_t *data_out)
 {
     AVPicture picture_rgb;
     int got_picture;
@@ -263,15 +307,17 @@ int avbin_decode_video(struct AVbinStream *stream,
     int height = stream->codec_context->height;
     int used;
 
+    if (stream->type != CODEC_TYPE_VIDEO)
+        return AVBIN_RESULT_ERROR;
+
     used = avcodec_decode_video(stream->codec_context, 
                                 stream->frame, &got_picture,
                                 data_in, size_in);
     if (!got_picture)
-        return -1;
+        return AVBIN_RESULT_ERROR;
 
 
     avpicture_fill(&picture_rgb, data_out, PIX_FMT_RGB24, width, height);
-    *pitch = picture_rgb.linesize[0];
 
     /* img_convert is marked deprecated in favour of swscale, don't
      * be surprised if this stops working the next time the ffmpeg version

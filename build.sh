@@ -49,6 +49,7 @@ build_ffmpeg() {
 
 build_avbin() {
     export AVBIN_VERSION
+    export FFMPEG_REVISION
     export PLATFORM
     export FFMPEG
     if [ ! $REBUILD ]; then

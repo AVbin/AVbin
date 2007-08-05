@@ -23,27 +23,46 @@
 
 #include <stdint.h>
 
-#define AVBIN_VERSION 1
+typedef enum _AVbinResult {
+    AVBIN_RESULT_ERROR = -1,
+    AVBIN_RESULT_OK = 0
+} AVbinResult;
 
-#define AVBIN_STREAM_TYPE_UNKNOWN 0
-#define AVBIN_STREAM_TYPE_VIDEO 1
-#define AVBIN_STREAM_TYPE_AUDIO 2
+typedef enum _AVbinStreamType {
+    AVBIN_STREAM_TYPE_UNKNOWN = 0,
+    AVBIN_STREAM_TYPE_VIDEO = 1,
+    AVBIN_STREAM_TYPE_AUDIO = 2
+} AVbinStreamType;
 
-#define AVBIN_SAMPLE_FORMAT_U8 0
-#define AVBIN_SAMPLE_FORMAT_S16 1
-#define AVBIN_SAMPLE_FORMAT_S24 2
-#define AVBIN_SAMPLE_FORMAT_S32 3
-#define AVBIN_SAMPLE_FORMAT_FLOAT 4
+typedef enum _AVbinSampleFormat {
+    AVBIN_SAMPLE_FORMAT_U8 = 0,
+    AVBIN_SAMPLE_FORMAT_S16 = 1,
+    AVBIN_SAMPLE_FORMAT_S24 = 2,
+    AVBIN_SAMPLE_FORMAT_S32 = 3,
+    AVBIN_SAMPLE_FORMAT_FLOAT = 4
+} AVbinSampleFormat;
 
-struct AVbinFile;
-struct AVbinStream;
+typedef enum _AVbinLogLevel {
+    AVBIN_LOG_QUIET = -8,
+    AVBIN_LOG_PANIC = 0,
+    AVBIN_LOG_FATAL = 8,
+    AVBIN_LOG_ERROR = 16,
+    AVBIN_LOG_WARNING = 24,
+    AVBIN_LOG_INFO = 32,
+    AVBIN_LOG_VERBOSE = 40,
+    AVBIN_LOG_DEBUG = 48
+} AVbinLogLevel;
+
+typedef struct _AVbinFile AVbinFile;
+typedef struct _AVbinStream AVbinStream;
 
 typedef int64_t Timestamp; /* Timestamps are always in microseconds */
 
-struct AVbinFileInfo {
+typedef struct _AVbinFileInfo {
     size_t structure_size;
-    int streams;
+    int n_streams;
 
+    Timestamp start_time;
     Timestamp duration;
 
     char title[512];
@@ -54,11 +73,11 @@ struct AVbinFileInfo {
     int year;
     int track;
     char genre[32];
-};
+} AVbinFileInfo;
 
-struct AVbinStreamInfo {
+typedef struct _AVbinStreamInfo {
     size_t structure_size;
-    int type; /* One of the STREAM_TYPE_* constants */
+    AVbinStreamType type;
 
     union {
         struct {
@@ -69,48 +88,53 @@ struct AVbinStreamInfo {
         } video;
 
         struct {
+            AVbinSampleFormat sample_format;
             unsigned int sample_rate;
+            unsigned int sample_bits;
             unsigned int channels;
-            unsigned int sample_size;  /* Bits per sample (typically 8 or 16)*/
-            int sample_format; /* One of the SAMPLE_FORMAT_* constants */
         } audio;
     };
-};
+} AVbinStreamInfo;
 
-struct AVbinPacket {
+typedef struct _AVbinPacket {
     size_t structure_size;
-    int has_timestamp;
     Timestamp timestamp;
-    int stream;
+    int stream_index;
 
     uint8_t *data;
     size_t size;
-};
+} AVbinPacket;
+
+typedef void (*AVbinLogCallback)(const char *module, 
+                                 int level, 
+                                 const char *message);
 
 int avbin_get_version();
-int avbin_init();
+int avbin_get_ffmpeg_revision();
 size_t avbin_audio_buffer_size();
+int avbin_have_feature(const char *feature);
 
-struct AVbinFile *avbin_open_filename(const char *filename);
-void avbin_close_file(struct AVbinFile *file);
-void avbin_seek_file(struct AVbinFile *file, Timestamp timestamp);
-void avbin_file_info(struct AVbinFile *file,
-                     struct AVbinFileInfo *info);
+AVbinResult avbin_init();
+AVbinResult avbin_set_log_level(AVbinLogLevel level);
+AVbinResult avbin_set_log_callback(AVbinLogCallback callback);
 
-int avbin_read(struct AVbinFile *file, struct AVbinPacket *packet);
-int avbin_decode_audio(struct AVbinStream *stream,
+AVbinFile *avbin_open_filename(const char *filename);
+void avbin_close_file(AVbinFile *file);
+AVbinResult avbin_seek_file(AVbinFile *file, Timestamp timestamp);
+AVbinResult avbin_file_info(AVbinFile *file,
+                            AVbinFileInfo *info);
+AVbinResult avbin_stream_info(AVbinFile *file, int stream_index,
+                              AVbinStreamInfo *info);
+                       
+
+AVbinStream *avbin_open_stream(AVbinFile *file, int stream_index);
+void avbin_close_stream(AVbinStream *stream);
+
+AVbinResult avbin_read(AVbinFile *file, AVbinPacket *packet);
+int avbin_decode_audio(AVbinStream *stream,
                        uint8_t *data_in, size_t size_in,
                        uint8_t *data_out, int *size_out);
-int avbin_decode_video(struct AVbinStream *stream,
+int avbin_decode_video(AVbinStream *stream,
                        uint8_t *data_in, size_t size_in,
-                       uint8_t *data_out, int *pitch);
-int avbin_get_stream_count(struct AVbinFile *file);
-int avbin_get_stream_type(struct AVbinFile *file, int index);
-
-struct AVbinStream *avbin_open_stream(struct AVbinFile *file, int index);
-void avbin_stream_info(struct AVbinStream *stream,
-                       struct AVbinStreamInfo *info);
-void avbin_close_stream(struct AVbinStream *stream);
-
-
+                       uint8_t *data_out);
 #endif
