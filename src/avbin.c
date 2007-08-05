@@ -64,7 +64,7 @@ static void avbin_log_callback(void *ptr,
     }
 
     vsnprintf(message, sizeof message, fmt, vl);
-    user_log_callback(module, level, message);
+    user_log_callback(module, (AVbinLogLevel) level, message);
 }
 
 int avbin_get_version()
@@ -142,7 +142,7 @@ void avbin_close_file(AVbinFile *file)
     av_close_input_file(file->context);
 }
 
-AVbinResult avbin_seek_file(AVbinFile *file, Timestamp timestamp)
+AVbinResult avbin_seek_file(AVbinFile *file, AVbinTimestamp timestamp)
 {
     av_seek_frame(file->context, -1, timestamp, 0);
     return AVBIN_RESULT_OK;
