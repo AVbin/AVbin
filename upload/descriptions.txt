@@ -1,0 +1,5 @@
+avbin-darwin-universal Mac OS X universal binary distribution
+avbin-linux-x86-32 Linux 32-bit binary distribution
+avbin-linux-x86-64 Linux 64-bit binary distribution
+avbin-win32 Windows binary distribution
+avbin-src Source distribution
