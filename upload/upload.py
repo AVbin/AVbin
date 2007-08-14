@@ -37,13 +37,22 @@ if __name__ == '__main__':
         sys.exit(1)
 
     for filename, description in files.items():
+        labels = ['Featured']
+        if 'linux' in filename:
+            labels.append('OpSys-Linux')
+        elif 'darwin' in filename:
+            labels.append('OpSys-OSX')
+        elif 'src' in filename:
+            labels.append('Type-Source')
+        elif 'win32' in filename:
+            labels.append('OpSys-Windows')
         status, reason, url = googlecode_upload.upload(
             os.path.join(dist, filename),
             'avbin',
             'Alex.Holkner',
             password,
             description,
-            None)
+            labels)
         if url:
             print 'OK: %s' % url
         else:
