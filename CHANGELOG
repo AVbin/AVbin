@@ -1,0 +1,8 @@
+2
+    Update to FFmpeg r10112
+    Remove AC3 enabling patch, possibly enabled GPL code.
+    Remove sdp.c patch, no longer necessary.
+    Add CHANGELOG
+
+1
+    Initial release.
