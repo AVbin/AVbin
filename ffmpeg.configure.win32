@@ -1,3 +1,4 @@
+--cc=gcc-sjlj
 --extra-cflags="-mno-cygwin -mms-bitfields"
 --extra-ldflags="-Wl,--add-stdcall-alias"
 --enable-memalign-hack

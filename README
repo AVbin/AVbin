@@ -18,7 +18,7 @@ the appropriate version of FFmpeg::
 
 Use the included `build.sh` script to compile AVbin.  This takes care of
 configuring FFmpeg correctly, compiling it, then linking it with the AVbin
-sources.  The final AVbin librarise are placed in the `dist` directory.
+sources.  The final AVbin libraries are placed in the `dist` directory.
 
 If you've just updated the FFmpeg and the current AVbin distribution contains
 an ffmpeg.patch file, first run::
