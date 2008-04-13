@@ -3,7 +3,8 @@ LIBNAME=$(OUTDIR)/libavbin.$(AVBIN_VERSION).dylib
 CFLAGS += -O3
 LDFLAGS += -dylib \
            -read_only_relocs suppress \
-		   -single_module
+           -single_module \
+           -install_name /usr/local/lib/libavbin.dylib
 
 STATIC_LIBS = $(FFMPEG)/libavformat/libavformat.a \
               $(FFMPEG)/libavcodec/libavcodec.a \

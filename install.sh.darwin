@@ -1,6 +1,6 @@
 #!/bin/sh
 
-PREFIX=/usr/lib
+PREFIX=/usr/local/lib
 AVBIN_LIBRARY=libavbin.@AVBIN_VERSION@.dylib
 
 touch $PREFIX 2> /dev/null || echo "Insufficient priveleges; run sudo"

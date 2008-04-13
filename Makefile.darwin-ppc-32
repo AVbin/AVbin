@@ -4,7 +4,8 @@ CFLAGS += -O3 -arch ppc
 LDFLAGS += -dylib \
            -read_only_relocs suppress \
            -single_module \
-           -arch ppc
+           -arch ppc \
+           -install_name /usr/local/lib/libavbin.dylib
 
 STATIC_LIBS = \
               $(FFMPEG)/libavformat/libavformat.a \
@@ -14,7 +15,7 @@ STATIC_LIBS = \
 LIBS = -lSystem \
        -lz \
        -L/usr/lib/gcc/powerpc-apple-darwin9/4.0.1 -lgcc \
-	   -lSystemStubs \
+       -lSystemStubs \
        /usr/lib/dylib1.o
 
 $(LIBNAME) : $(OBJNAME) $(OUTDIR)
