@@ -59,6 +59,7 @@ The configuration scripts currently assume cross-compilation for Linux-x86-32
 and Darwin-ppc-32.  Minor changes should be needed to get these to compile on
 the target platform.  Patches for this or other platforms are welcome.
 
+Darwin compilation currently requires OS X 10.5.
 
 Installation and usage
 ----------------------

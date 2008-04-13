@@ -11,7 +11,7 @@ STATIC_LIBS = $(FFMPEG)/libavformat/libavformat.a \
 
 LIBS = -lSystem \
        -lz \
-       -L/usr/lib/gcc/i686-apple-darwin8/4.0.1 -lgcc
+       -L/usr/lib/gcc/i686-apple-darwin9/4.0.1 -lgcc
 
 $(LIBNAME) : $(OBJNAME) $(OUTDIR)
 	$(LD) $(LDFLAGS) -o $@ $< $(STATIC_LIBS) $(LIBS)

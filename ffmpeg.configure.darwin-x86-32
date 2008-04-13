@@ -1,5 +1,5 @@
 --enable-static
---disable-shared
+--enable-shared
 --enable-pthreads
 
 --arch=i386
