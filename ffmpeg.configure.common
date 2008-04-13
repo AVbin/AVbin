@@ -9,14 +9,9 @@
 --disable-muxers
 --disable-protocols
 --enable-protocol=file
+--disable-devices
 
 # These are usually disabled, but make sure
---disable-audio-oss
---disable-audio-beos
---disable-v4l
---disable-v4l2
---disable-bktr
---disable-dv1394
 --disable-network
 --disable-ipv6
 --disable-zlib

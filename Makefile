@@ -11,9 +11,7 @@ OUTDIR = dist/$(PLATFORM)
 OBJNAME = $(BUILDDIR)/avbin.o
 
 INCLUDE_DIRS = -I include \
-               -I $(FFMPEG)/libavcodec \
-               -I $(FFMPEG)/libavformat \
-               -I $(FFMPEG)/libavutil
+               -I $(FFMPEG)
 
 include Makefile.$(PLATFORM)
 
