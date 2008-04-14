@@ -7,4 +7,4 @@
 --disable-shared
 
 --enable-w32threads
---cross-compile
+--enable-cross-compile
