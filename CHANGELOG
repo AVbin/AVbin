@@ -1,3 +1,10 @@
+3
+    Update to FFmpeg r12795
+    Scripts updated for this FFmpeg release and building on OS X 10.5
+    Add patch for building shared linux-64
+    Fix Darwin dylib install_name, and set default install location to
+      /usr/local/lib instead of /usr/lib.
+
 2
     Update to FFmpeg r10112
     Remove AC3 enabling patch, possibly enabled GPL code.
