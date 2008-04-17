@@ -3,11 +3,9 @@
 --enable-pthreads
 
 --arch=ppc
---extra-cflags=-arch\ ppc
---extra-ldflags=-arch\ ppc
-
-# Currently broken on Darwin
---disable-mmx
+--extra-cflags='-arch ppc -isysroot /Developer/SDKs/MacOSX10.4u.sdk -mmacosx-version-min=10.3.9'
+--extra-ldflags='-arch ppc -isysroot /Developer/SDKs/MacOSX10.4u.sdk -mmacosx-version-min=10.3.9'
+--enable-cross-compile
 
 # Altivec doesn't build as of r12795
 --disable-altivec

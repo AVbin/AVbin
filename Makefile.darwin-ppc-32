@@ -1,6 +1,6 @@
 LIBNAME=$(OUTDIR)/libavbin.$(AVBIN_VERSION).dylib
 
-CFLAGS += -O3 -arch ppc
+CFLAGS += -O3 -arch ppc -force_cpusubtype_ALL
 LDFLAGS += -dylib \
            -read_only_relocs suppress \
            -single_module \
