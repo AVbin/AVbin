@@ -18,5 +18,5 @@ ffmpeg.configure.darwin-x86-32
 ffmpeg.configure.linux-x86-32
 ffmpeg.configure.linux-x86-64
 ffmpeg.configure.win32
-ffmpeg.patch
+ffmpeg-x86_64-pic.patch
 ffmpeg.revision
