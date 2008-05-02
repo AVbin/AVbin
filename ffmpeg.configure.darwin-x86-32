@@ -3,6 +3,8 @@
 --enable-pthreads
 
 --arch=i386
+--extra-cflags='-isysroot /Developer/SDKs/MacOSX10.4u.sdk -mmacosx-version-min=10.3.9'
+--extra-ldflags='-isysroot /Developer/SDKs/MacOSX10.4u.sdk -mmacosx-version-min=10.3.9'
 
 # Currently broken on Darwin
 --disable-mmx

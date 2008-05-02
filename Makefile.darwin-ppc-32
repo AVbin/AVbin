@@ -1,6 +1,6 @@
 LIBNAME=$(OUTDIR)/libavbin.$(AVBIN_VERSION).dylib
 
-CFLAGS += -O3 -arch ppc -force_cpusubtype_ALL
+CFLAGS += -O3 -arch ppc -force_cpusubtype_ALL -mmacosx-version-min=10.3.9
 LDFLAGS += -dylib \
            -read_only_relocs suppress \
            -single_module \
