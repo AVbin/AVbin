@@ -1,3 +1,6 @@
+4
+    Fix Darwin build for intel/10.4 and earlier.
+
 3
     Update to FFmpeg r12795
     Scripts updated for this FFmpeg release and building on OS X 10.5
