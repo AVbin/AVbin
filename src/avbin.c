@@ -145,7 +145,21 @@ void avbin_close_file(AVbinFile *file)
 
 AVbinResult avbin_seek_file(AVbinFile *file, AVbinTimestamp timestamp)
 {
-    av_seek_frame(file->context, -1, timestamp, 0);
+    int i;
+    AVCodecContext *codec_context;
+
+    if (!timestamp)
+        av_seek_frame(file->context, -1, 0, 
+                      AVSEEK_FLAG_ANY | AVSEEK_FLAG_BYTE);
+    else
+        av_seek_frame(file->context, -1, timestamp, 0);
+
+    for (i = 0; i < file->context->nb_streams; i++)
+    {
+        codec_context = file->context->streams[i]->codec;
+        if (codec_context)
+            avcodec_flush_buffers(codec_context);
+    }
     return AVBIN_RESULT_OK;
 }
 
