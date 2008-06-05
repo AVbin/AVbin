@@ -16,6 +16,7 @@ import googlecode_upload
 
 if __name__ == '__main__':
     password = open(os.path.expanduser('~/.googlecode-passwd')).read().strip()
+    version = open(os.path.join(base, '..', 'VERSION')).read().strip()
 
     descriptions = {}
     for line in open(os.path.join(base, 'descriptions.txt')):
@@ -24,6 +25,10 @@ if __name__ == '__main__':
 
     files = {}
     for filename in os.listdir(dist):
+        if not os.path.isfile(os.path.join(dist, filename)):
+            continue
+        if version not in filename:
+            continue
         for prefix in descriptions:
             if filename.startswith(prefix):
                 description = descriptions[prefix]
