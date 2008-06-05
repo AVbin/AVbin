@@ -148,7 +148,11 @@ AVbinResult avbin_seek_file(AVbinFile *file, AVbinTimestamp timestamp)
     int i;
     AVCodecContext *codec_context;
 
-    av_seek_frame(file->context, -1, timestamp, 0);
+    if (!timestamp)
+        av_seek_frame(file->context, -1, 0, 
+                      AVSEEK_FLAG_ANY | AVSEEK_FLAG_BYTE);
+    else
+        av_seek_frame(file->context, -1, timestamp, 0);
 
     for (i = 0; i < file->context->nb_streams; i++)
     {
