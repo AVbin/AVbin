@@ -1,3 +1,8 @@
+5
+    Update to FFmpeg r13661
+    Fix Win32 build for GCC 4.3.
+    Fix linux-x86-32 build (rebuilt with correct compiler).
+
 4
     Fix Darwin build for intel/10.4 and earlier.
 
