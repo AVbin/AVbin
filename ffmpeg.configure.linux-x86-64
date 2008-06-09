@@ -1,3 +1,5 @@
+--extra-cflags="-D_GNU_SROUCE"
+
 # We only use the static library, but need to specify --enable-shared to
 # ensure -fPIC is passed.
 --enable-static
