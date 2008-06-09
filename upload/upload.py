@@ -27,7 +27,7 @@ if __name__ == '__main__':
     for filename in os.listdir(dist):
         if not os.path.isfile(os.path.join(dist, filename)):
             continue
-        if version not in filename:
+        if '-%s.' % version not in filename:
             continue
         for prefix in descriptions:
             if filename.startswith(prefix):
