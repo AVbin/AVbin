@@ -1,3 +1,6 @@
+6
+    Fix linux builds for use with glibc < 2.7
+
 5
     Update to FFmpeg r13661
     Fix Win32 build for GCC 4.3.
