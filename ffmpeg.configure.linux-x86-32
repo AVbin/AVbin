@@ -1,4 +1,4 @@
---extra-cflags="-march=i686 -m32 -D_GNU_SOURCE"
+--extra-cflags="-march=i686 -m32 -D_GNU_SOURCE -fno-stack-protector"
 --extra-ldflags="-L/lib32 -march=i686 -m32"
 
 # We only use the static library, but need to specify --enable-shared to

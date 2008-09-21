@@ -1,7 +1,7 @@
 SONAME=libavbin.so.$(AVBIN_VERSION)
 LIBNAME=$(OUTDIR)/$(SONAME)
 
-CFLAGS += -fPIC -O3 -m32
+CFLAGS += -fPIC -fno-stack-protector -O3 -m32
 LDFLAGS += -shared -soname $(SONAME) -melf_i386
 
 STATIC_LIBS = -whole-archive \
