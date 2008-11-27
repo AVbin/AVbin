@@ -212,6 +212,13 @@ int avbin_stream_info(AVbinFile *file, int stream_index,
                 /* Take reciprocal of time_base (period) to get frame_rate */
                 info_8->video.frame_rate_num = context->time_base.den;
                 info_8->video.frame_rate_den = context->time_base.num;
+
+                /* Work around bug in FFmpeg: if frame rate over 1000, divide
+                 * by 1000.
+                 */
+                if (info_8->video.frame_rate_num / 
+                        info_8->video.frame_rate_den > 1000)
+                    info_8->video.frame_rate_den *= 1000;
             }
             break;
         case CODEC_TYPE_AUDIO:
