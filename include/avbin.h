@@ -218,10 +218,18 @@ typedef struct _AVbinStreamInfo {
 
             /**
              * Aspect-ratio of each pixel.  The aspect is given by dividing
-             * sample_aspect_num by asmple_aspect_den.
+             * sample_aspect_num by sample_aspect_den.
              */
             unsigned int sample_aspect_num;
             unsigned int sample_aspect_den;
+
+            /** Frame rate, in frames per second.  The frame rate is given by
+             * dividing frame_rate_num by frame_rate_den.
+             *
+             * @version Version 8.  Requires frame_rate feature. 
+             */
+            unsigned int frame_rate_num;
+            unsigned int frame_rate_den;
         } video;
 
         struct {
@@ -250,6 +258,84 @@ typedef struct _AVbinStreamInfo {
         } audio;
     };
 } AVbinStreamInfo;
+
+/**
+ * Stream details, version 8.
+ * 
+ * A stream is a single audio track or video.  Most audio files contain one
+ * audio stream.  Most video files contain one audio stream and one video
+ * stream.  More than one audio stream may indicate the presence of multiple
+ * languages which can be selected (however at this time AVbin does not
+ * provide language information).
+ */
+typedef struct _AVbinStreamInfo8 {
+    /** 
+     * Size of this structure, in bytes.  This must be filled in by the
+     * application before passing to AVbin.
+     */ 
+    size_t structure_size;
+
+    /**
+     * The type of stream; either audio or video.
+     */
+    AVbinStreamType type;
+
+    union {
+        struct {
+            /**
+             * Width of the video image, in pixels.  This is the width
+             * of actual video data, and is not necessarily the size the
+             * video is to be displayed at (see sample_aspect_num).
+             */
+            unsigned int width;
+
+            /**
+             * Height of the video image, in pixels.
+             */
+            unsigned int height;
+
+            /**
+             * Aspect-ratio of each pixel.  The aspect is given by dividing
+             * sample_aspect_num by sample_aspect_den.
+             */
+            unsigned int sample_aspect_num;
+            unsigned int sample_aspect_den;
+
+            /** Frame rate, in frames per second.  The frame rate is given by
+             * dividing frame_rate_num by frame_rate_den.
+             *
+             * @version Version 8.  Requires frame_rate extension. 
+             */
+            unsigned int frame_rate_num;
+            unsigned int frame_rate_den;
+        } video;
+
+        struct {
+            /**
+             * Data type of audio samples.
+             */
+            AVbinSampleFormat sample_format;
+
+            /**
+             * Number of samples per second, in Hz.
+             */
+            unsigned int sample_rate;
+
+            /**
+             * Number of bits per sample; typically 8 or 16.
+             */
+            unsigned int sample_bits;
+
+            /**
+             * Number of interleaved audio channels.  Typically 1 for
+             * monoaural, 2 for stereo.  Higher channel numbers are used for
+             * surround sound, however AVbin does not currently provide a way
+             * to access the arrangement of these channels.
+             */
+            unsigned int channels;
+        } audio;
+    };
+} AVbinStreamInfo8;
 
 /**
  * A single packet of stream data.
@@ -322,8 +408,9 @@ size_t avbin_get_audio_buffer_size();
  * Determine if AVbin includes a requested feature.
  *
  * When future versions of AVbin include more functionality, that
- * functionality can be tested for by calling this function.  Currently there
- * are no features to test for.
+ * functionality can be tested for by calling this function.  The following
+ * features can be tested for:
+ *  - "frame_rate"
  *
  * @retval 1 The feature is present
  * @retval 0 The feature is not present

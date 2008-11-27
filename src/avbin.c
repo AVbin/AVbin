@@ -85,6 +85,8 @@ size_t avbin_get_audio_buffer_size()
 
 int avbin_have_feature(const char *feature)
 {
+    if (strcmp(feature, "frame_rate") == 0)
+        return 1;
     return 0;
 }
 
@@ -187,10 +189,15 @@ int avbin_stream_info(AVbinFile *file, int stream_index,
                       AVbinStreamInfo *info)
 {
     AVCodecContext *context = file->context->streams[stream_index]->codec;
+    AVbinStreamInfo8 *info_8 = NULL;
 
-    /* This is the first version, so anything smaller is an error. */
+    /* Error if not large enough for version 1 */
     if (info->structure_size < sizeof *info)
         return AVBIN_RESULT_ERROR;
+
+    /* Version 8 adds frame_rate feature */
+    if (info->structure_size >= sizeof(AVbinStreamInfo8))
+        info_8 = (AVbinStreamInfo8 *) info;
 
     switch (context->codec_type)
     {
@@ -200,6 +207,12 @@ int avbin_stream_info(AVbinFile *file, int stream_index,
             info->video.height = context->height;
             info->video.sample_aspect_num = context->sample_aspect_ratio.num;
             info->video.sample_aspect_den = context->sample_aspect_ratio.den;
+            if (info_8) 
+            {
+                /* Take reciprocal of time_base (period) to get frame_rate */
+                info_8->video.frame_rate_num = context->time_base.den;
+                info_8->video.frame_rate_den = context->time_base.num;
+            }
             break;
         case CODEC_TYPE_AUDIO:
             info->type = AVBIN_STREAM_TYPE_AUDIO;
