@@ -215,10 +215,6 @@ int avbin_stream_info(AVbinFile *file, int stream_index,
                     info->audio.sample_format = AVBIN_SAMPLE_FORMAT_S16;
                     info->audio.sample_bits = 16;
                     break;
-                case SAMPLE_FMT_S24:
-                    info->audio.sample_format = AVBIN_SAMPLE_FORMAT_S24;
-                    info->audio.sample_bits = 24;
-                    break;
                 case SAMPLE_FMT_S32:
                     info->audio.sample_format = AVBIN_SAMPLE_FORMAT_S32;
                     info->audio.sample_bits = 32;

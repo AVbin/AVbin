@@ -1,10 +1,24 @@
+Index: libavcodec/i386/vc1dsp_mmx.c
+===================================================================
+--- libavcodec/i386/vc1dsp_mmx.c	(revision 15943)
++++ libavcodec/i386/vc1dsp_mmx.c	(working copy)
+@@ -67,7 +67,8 @@
+     "movq      %%mm"#R1", "#OFF"(%1)   \n\t"    \
+     "add       %2, %0                  \n\t"
+ 
+-DECLARE_ALIGNED_16(const uint64_t, ff_pw_9) = 0x0009000900090009ULL;
++#define ATTR_HIDDEN __attribute__((visibility("hidden")))
++DECLARE_ALIGNED_16(const uint64_t, _ATTR_HIDDEN ff_pw_9) = 0x0009000900090009ULL;
+ 
+ /** Sacrifying mm6 allows to pipeline loads from src */
+ static void vc1_put_ver_16b_shift2_mmx(int16_t *dst,
 Index: libavcodec/i386/dsputil_mmx.h
 ===================================================================
---- libavcodec/i386/dsputil_mmx.h	(revision 12795)
+--- libavcodec/i386/dsputil_mmx.h	(revision 15943)
 +++ libavcodec/i386/dsputil_mmx.h	(working copy)
-@@ -25,37 +25,42 @@
+@@ -25,39 +25,41 @@
  #include <stdint.h>
- #include "dsputil.h"
+ #include "libavcodec/dsputil.h"
  
 +#define _ATTR_HIDDEN __attribute__((visibility("hidden")))
 +
@@ -21,7 +35,7 @@ Index: libavcodec/i386/dsputil_mmx.h
 -extern const uint64_t ff_pw_3;
 -extern const uint64_t ff_pw_4;
 -extern const xmm_t    ff_pw_5;
--extern const uint64_t ff_pw_8;
+-extern const xmm_t    ff_pw_8;
 -extern const uint64_t ff_pw_15;
 -extern const xmm_t    ff_pw_16;
 -extern const uint64_t ff_pw_20;
@@ -35,16 +49,13 @@ Index: libavcodec/i386/dsputil_mmx.h
 +extern const uint64_t _ATTR_HIDDEN ff_pw_3;
 +extern const uint64_t _ATTR_HIDDEN ff_pw_4;
 +extern const xmm_t    _ATTR_HIDDEN ff_pw_5;
-+extern const uint64_t _ATTR_HIDDEN ff_pw_8;
-+extern const uint64_t _ATTR_HIDDEN ff_pw_9;
++extern const xmm_t    _ATTR_HIDDEN ff_pw_8;
 +extern const uint64_t _ATTR_HIDDEN ff_pw_15;
 +extern const xmm_t    _ATTR_HIDDEN ff_pw_16;
-+extern const uint64_t _ATTR_HIDDEN ff_pw_18;
 +extern const uint64_t _ATTR_HIDDEN ff_pw_20;
 +extern const xmm_t    _ATTR_HIDDEN ff_pw_28;
 +extern const xmm_t    _ATTR_HIDDEN ff_pw_32;
 +extern const uint64_t _ATTR_HIDDEN ff_pw_42;
-+extern const uint64_t _ATTR_HIDDEN ff_pw_53;
 +extern const uint64_t _ATTR_HIDDEN ff_pw_64;
 +extern const uint64_t _ATTR_HIDDEN ff_pw_96;
 +extern const uint64_t _ATTR_HIDDEN ff_pw_128;
@@ -53,13 +64,17 @@ Index: libavcodec/i386/dsputil_mmx.h
 -extern const uint64_t ff_pb_1;
 -extern const uint64_t ff_pb_3;
 -extern const uint64_t ff_pb_7;
+-extern const uint64_t ff_pb_1F;
 -extern const uint64_t ff_pb_3F;
+-extern const uint64_t ff_pb_81;
 -extern const uint64_t ff_pb_A1;
 -extern const uint64_t ff_pb_FC;
 +extern const uint64_t _ATTR_HIDDEN ff_pb_1;
 +extern const uint64_t _ATTR_HIDDEN ff_pb_3;
 +extern const uint64_t _ATTR_HIDDEN ff_pb_7;
++extern const uint64_t _ATTR_HIDDEN ff_pb_1F;
 +extern const uint64_t _ATTR_HIDDEN ff_pb_3F;
++extern const uint64_t _ATTR_HIDDEN ff_pb_81;
 +extern const uint64_t _ATTR_HIDDEN ff_pb_A1;
 +extern const uint64_t _ATTR_HIDDEN ff_pb_FC;
  
@@ -68,5 +83,5 @@ Index: libavcodec/i386/dsputil_mmx.h
 +extern const double _ATTR_HIDDEN ff_pd_1[2];
 +extern const double _ATTR_HIDDEN ff_pd_2[2];
  
- /* in/out: mma=mma+mmb, mmb=mmb-mma */
- #define SUMSUB_BA( a, b ) \
+ #define LOAD4(stride,in,a,b,c,d)\
+     "movq 0*"#stride"+"#in", "#a"\n\t"\
