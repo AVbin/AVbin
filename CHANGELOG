@@ -1,3 +1,11 @@
+8
+    Update to FFmpeg r15943
+    Deprecate AVBIN_SAMPLE_FORMAT_S24 (FFmpeg no longer exports this format)
+
+7
+    Remove stack protector check, for compatibility with older glibc.
+    Fix linux-64 builds
+
 6
     Fix linux builds for use with glibc < 2.7
 
