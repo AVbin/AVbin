@@ -1,0 +1,12 @@
+--enable-static
+--disable-shared
+#--enable-pthreads
+
+--arch=x86_64
+#--cpu=i686
+--extra-cflags='-arch x86_64'
+--extra-ldflags='-arch x86_64'
+
+# Currently broken on Darwin
+#--disable-mmx
+--enable-cross-compile

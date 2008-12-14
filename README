@@ -83,3 +83,8 @@ You should see the accompanying COPYING and COPYING.LESSER files for details.
 In summary, you must note the usage of FFmpeg and AVbin within the
 documentation of your application.  If you make changes to either library, you
 must include the sources of these changes within your application.
+
+Contributions
+-------------
+
+darwin-x86-64 and win64 targets contributed by Micah Richert.

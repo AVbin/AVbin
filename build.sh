@@ -110,8 +110,10 @@ if [ ! "$platforms" ]; then
     echo "  linux-x86-64"
     echo "  darwin-ppc-32"
     echo "  darwin-x86-32"
-    echo "  darwin-universal"
+    echo "  darwin-x86-64"
+    echo "  darwin-universal (32-bit only)"
     echo "  win32"
+    echo "  win64"
     exit 1
 fi
 

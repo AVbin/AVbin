@@ -1,0 +1,18 @@
+--enable-cross-compile
+--cross-prefix=x86_64-pc-mingw32-
+--target-os=mingw32
+--enable-memalign-hack
+--arch=x86_64
+#--cpu=i686
+
+--enable-static
+--disable-shared
+
+# trick the check for the right version of mingw32 into working...
+--extra-cflags="-D__MINGW32_MAJOR_VERSION=4"
+
+#these currently aren't supported by the version of w32api currently provided by mingw w64
+--disable-network
+--disable-avisynth
+--disable-demuxer=vfwcap
+
