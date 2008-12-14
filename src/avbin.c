@@ -209,9 +209,10 @@ int avbin_stream_info(AVbinFile *file, int stream_index,
             info->video.sample_aspect_den = context->sample_aspect_ratio.den;
             if (info_8) 
             {
-                /* Take reciprocal of time_base (period) to get frame_rate */
-                info_8->video.frame_rate_num = context->time_base.den;
-                info_8->video.frame_rate_den = context->time_base.num;
+                AVRational frame_rate = \
+                    file->context->streams[stream_index]->r_frame_rate;
+                info_8->video.frame_rate_num = frame_rate.den;
+                info_8->video.frame_rate_den = frame_rate.num;
 
                 /* Work around bug in FFmpeg: if frame rate over 1000, divide
                  * by 1000.
