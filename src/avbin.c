@@ -211,8 +211,8 @@ int avbin_stream_info(AVbinFile *file, int stream_index,
             {
                 AVRational frame_rate = \
                     file->context->streams[stream_index]->r_frame_rate;
-                info_8->video.frame_rate_num = frame_rate.den;
-                info_8->video.frame_rate_den = frame_rate.num;
+                info_8->video.frame_rate_num = frame_rate.num;
+                info_8->video.frame_rate_den = frame_rate.den;
 
                 /* Work around bug in FFmpeg: if frame rate over 1000, divide
                  * by 1000.
