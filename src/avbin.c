@@ -143,6 +143,7 @@ void avbin_close_file(AVbinFile *file)
         free(file->packet);
     }
     av_close_input_file(file->context);
+    free(file);
 }
 
 AVbinResult avbin_seek_file(AVbinFile *file, AVbinTimestamp timestamp)
@@ -286,6 +287,7 @@ void avbin_close_stream(AVbinStream *stream)
     if (stream->frame)
         av_free(stream->frame);
     avcodec_close(stream->codec_context);
+    free(stream);
 }
 
 int avbin_read(AVbinFile *file, AVbinPacket *packet)
