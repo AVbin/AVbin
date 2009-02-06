@@ -80,6 +80,8 @@ build_darwin_universal() {
 
 while [ "${1:0:2}" == "--" ]; do
     case $1 in
+        "--help") # fall through
+            ;;
         "--rebuild") REBUILD=1;;
         "--patch") 
             shift

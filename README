@@ -64,8 +64,8 @@ Darwin compilation currently requires OS X 10.5.
 Installation and usage
 ----------------------
 
-Place the resulting avbin.so, avbin.dylib or avbin.dll in the appropriate
-system directory.
+Place the resulting avbin.so, avbin.dylib or avbin.dll from the 'dist'
+directory into the appropriate system directory.
 
 The AVbin dynamic library exports all of FFmpeg's functions from libavcodec,
 libavutil and libavformat.  It also exports some higher-level functions which
