@@ -1,0 +1,13 @@
+This copy of libswscale was obtained by running the following commands from the
+avbin/ffmpeg directory:
+
+  svn export -r26991 svn://svn.mplayerhq.hu/mplayer/trunk/ trunk
+  mv trunk/libswscale .
+  rm -rf trunk
+
+This can't be accomplished in one command, beCcause subversion doesn't support
+exporting or checking out a directory that does not exist in the most recent 
+revision, and the libswscale directory does not exist in the most recent 
+revision.
+
+~ Nathan Stocks, 12 Nov 2011

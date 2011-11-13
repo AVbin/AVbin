@@ -1,0 +1,15 @@
+This copy of ffmpeg was originally obtained by running the following command:
+
+  svn export -r 15943 svn://svn.mplayerhq.hu/ffmpeg/trunk ffmpeg
+
+Note that the above command failed in part on the libswscale external item:
+
+  ...
+  svn: warning: Error handling externals definition for 'ffmpeg/libswscale':
+  svn: warning: URL 'svn://svn.mplarehq.hu/mplayer/trunk/libswscale' at revision 34343 doesn't exist
+  Exported revision 15943.
+
+See libswscale/README.avbin for details about how that external item was 
+obtained.
+
+~ Nathan Stocks, 12 Nov 2011
