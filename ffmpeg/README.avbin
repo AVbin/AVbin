@@ -6,10 +6,37 @@ Note that the above command failed in part on the libswscale external item:
 
   ...
   svn: warning: Error handling externals definition for 'ffmpeg/libswscale':
-  svn: warning: URL 'svn://svn.mplarehq.hu/mplayer/trunk/libswscale' at revision 34343 doesn't exist
+  svn: warning: URL 'svn://svn.mplarehq.hu/mplayer/trunk/libswscale' at \
+    revision 34343 doesn't exist
   Exported revision 15943.
 
 See libswscale/README.avbin for details about how that external item was 
 obtained.
 
-~ Nathan Stocks, 12 Nov 2011
+After the exports were completed, the patch in the 'ffmpeg-x86_64-pic.patch' 
+file was applied to the sources to allow for compiling on x86_64 (presumably
+under Linux).  See svn revisions 18 and 44 for more details.*  This patch file
+was originally in the root of the project, but was moved to `ffmpeg/` once it
+was no longer an external item.
+
+~ Nathan Stocks, 14 Nov 2011
+
+
+
+* Commit messages for revisions 18 and 44, in case we switch to another vcs:
+
+avbin $ svn log ffmpeg-x86_64-pic.patch
+------------------------------------------------------------------------
+r44 | Alex.Holkner | 2008-11-27 01:16:31 -0700 (Thu, 27 Nov 2008) | 3 lines
+
+Bump ffmpeg to r15943, bump avbin version to 8
+
+
+------------------------------------------------------------------------
+r18 | Alex.Holkner | 2008-04-13 00:18:31 -0600 (Sun, 13 Apr 2008) | 4 lines
+
+Push version to 3.  Update to ffmpeg revision 12795.  Apply patch for shared
+linking on x86_64.
+
+
+------------------------------------------------------------------------

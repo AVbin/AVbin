@@ -25,39 +25,41 @@
 #include <stdint.h>
 #include "libavcodec/dsputil.h"
 
+#define _ATTR_HIDDEN __attribute__((visibility("hidden")))
+
 typedef struct { uint64_t a, b; } xmm_t;
 
-extern const uint64_t ff_bone;
-extern const uint64_t ff_wtwo;
+extern const uint64_t _ATTR_HIDDEN ff_bone;
+extern const uint64_t _ATTR_HIDDEN ff_wtwo;
 
-extern const uint64_t ff_pdw_80000000[2];
+extern const uint64_t _ATTR_HIDDEN ff_pdw_80000000[2];
 
-extern const uint64_t ff_pw_3;
-extern const uint64_t ff_pw_4;
-extern const xmm_t    ff_pw_5;
-extern const xmm_t    ff_pw_8;
-extern const uint64_t ff_pw_15;
-extern const xmm_t    ff_pw_16;
-extern const uint64_t ff_pw_20;
-extern const xmm_t    ff_pw_28;
-extern const xmm_t    ff_pw_32;
-extern const uint64_t ff_pw_42;
-extern const uint64_t ff_pw_64;
-extern const uint64_t ff_pw_96;
-extern const uint64_t ff_pw_128;
-extern const uint64_t ff_pw_255;
+extern const uint64_t _ATTR_HIDDEN ff_pw_3;
+extern const uint64_t _ATTR_HIDDEN ff_pw_4;
+extern const xmm_t    _ATTR_HIDDEN ff_pw_5;
+extern const xmm_t    _ATTR_HIDDEN ff_pw_8;
+extern const uint64_t _ATTR_HIDDEN ff_pw_15;
+extern const xmm_t    _ATTR_HIDDEN ff_pw_16;
+extern const uint64_t _ATTR_HIDDEN ff_pw_20;
+extern const xmm_t    _ATTR_HIDDEN ff_pw_28;
+extern const xmm_t    _ATTR_HIDDEN ff_pw_32;
+extern const uint64_t _ATTR_HIDDEN ff_pw_42;
+extern const uint64_t _ATTR_HIDDEN ff_pw_64;
+extern const uint64_t _ATTR_HIDDEN ff_pw_96;
+extern const uint64_t _ATTR_HIDDEN ff_pw_128;
+extern const uint64_t _ATTR_HIDDEN ff_pw_255;
 
-extern const uint64_t ff_pb_1;
-extern const uint64_t ff_pb_3;
-extern const uint64_t ff_pb_7;
-extern const uint64_t ff_pb_1F;
-extern const uint64_t ff_pb_3F;
-extern const uint64_t ff_pb_81;
-extern const uint64_t ff_pb_A1;
-extern const uint64_t ff_pb_FC;
+extern const uint64_t _ATTR_HIDDEN ff_pb_1;
+extern const uint64_t _ATTR_HIDDEN ff_pb_3;
+extern const uint64_t _ATTR_HIDDEN ff_pb_7;
+extern const uint64_t _ATTR_HIDDEN ff_pb_1F;
+extern const uint64_t _ATTR_HIDDEN ff_pb_3F;
+extern const uint64_t _ATTR_HIDDEN ff_pb_81;
+extern const uint64_t _ATTR_HIDDEN ff_pb_A1;
+extern const uint64_t _ATTR_HIDDEN ff_pb_FC;
 
-extern const double ff_pd_1[2];
-extern const double ff_pd_2[2];
+extern const double _ATTR_HIDDEN ff_pd_1[2];
+extern const double _ATTR_HIDDEN ff_pd_2[2];
 
 #define LOAD4(stride,in,a,b,c,d)\
     "movq 0*"#stride"+"#in", "#a"\n\t"\
