@@ -1,32 +1,23 @@
 AVbin
 =====
 
-:Home:    http://code.google.com/p/avbin
-:Contact: Alex Holkner <Alex.Holkner@gmail.com>
-
+:Home:       http://code.google.com/p/avbin
+:Creator:    Alex Holkner <Alex.Holkner@gmail.com>
+:Maintainer: Nathan Stocks <nathan.stocks@gmail.com>
 
 Building
 --------
 
-AVbin is designed to be used with a particular version of FFmpeg.  This
-is checked out automatically into the `ffmpeg` directory when you use the SVN
-sources of AVbin.  If you've downloaded a source archive, you'll need to get
-the appropriate version of FFmpeg::
-
-    svn checkout -r `cat ffmpeg.revision` \
-                 svn://svn.mplayerhq.hu/ffmpeg/trunk ffmpeg
+AVbin is designed to be used with a particular version of FFmpeg.  This version
+of FFmpeg is included in the AVbin project under the ``ffmpeg`` directory.  Note
+that this version of FFmpeg may contain avbin-specific patches.  See the file
+``ffmpeg/README.avbin`` for more details.
 
 Use the included `build.sh` script to compile AVbin.  This takes care of
 configuring FFmpeg correctly, compiling it, then linking it with the AVbin
-sources.  The final AVbin libraries are placed in the `dist` directory.
+sources.  The final AVbin libraries are placed in the ``dist`` directory.
 
-If you've just updated the FFmpeg and the current AVbin distribution contains
-an ffmpeg.patch file, first run::
-
-    ./build.sh --patch ffmpeg.patch
-
-to apply some AVbin-specific patches to FFmpeg.  Then, on a 64-bit Linux
-computer run::
+To build AVbin on a 64-bit Linux computer run::
 
     ./build.sh linux-x86-64 linux-x86-32
 
@@ -49,22 +40,24 @@ AVbin is currently supported only on the following platforms
 * Linux
   - x86 (cross-compiled from x86-64)
   - x86-64
-* Mac OS X 10.4
-  - PowerPC (32-bit only; cross-compiled from x86)
-  - x86 (32-bit only)
-* Windows XP, Vista
-  - x86 (32-bit only)
+* Mac OS X 10.4 - 10.7
+  - PowerPC (32-bit only; cross-compiled from x86; 10.4 and 10.5 only)
+  - x86
+  - x86-64 (10.5 - 10.7)
+* Windows XP, Vista, 7
+  - x86
+  - x86-64
 
 The configuration scripts currently assume cross-compilation for Linux-x86-32
 and Darwin-ppc-32.  Minor changes should be needed to get these to compile on
 the target platform.  Patches for this or other platforms are welcome.
 
-Darwin compilation currently requires OS X 10.5.
+Darwin compilation currently requires OS X 10.5 or greater.
 
 Installation and usage
 ----------------------
 
-Place the resulting avbin.so, avbin.dylib or avbin.dll from the 'dist'
+Place the resulting avbin.so, avbin.dylib or avbin.dll from the ``dist``
 directory into the appropriate system directory.
 
 The AVbin dynamic library exports all of FFmpeg's functions from libavcodec,

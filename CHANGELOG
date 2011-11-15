@@ -1,6 +1,15 @@
 8
+    (Nathan Stocks - 2011)
+    Fix darwin-x86-64 build for Lion/Snow Leopard.
+    Export copy of FFmpeg into repository due to difficulties with the external
+      items referencing repositories that rapidly change and/or are being
+      converted from subversion to Git.
+    Directly applied AVbin-specific patches to above copy of FFmpeg.
+
+    (All changes below made by Alex Holkner <= 2008 - as far as I can see. ~ Nathan)
     Update to FFmpeg r15943
     Deprecate AVBIN_SAMPLE_FORMAT_S24 (FFmpeg no longer exports this format)
+    Fix darwin-x86-64 build for Lion/Snow Leopard.
 
 7
     Remove stack protector check, for compatibility with older glibc.
