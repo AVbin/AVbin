@@ -83,6 +83,17 @@ while [ "${1:0:2}" == "--" ]; do
         "--help") # fall through
             ;;
         "--rebuild") REBUILD=1;;
+        "--clean")
+            pushd $FFMPEG
+            make clean
+            make distclean
+            find . -name '*.d' -exec rm -f '{}' ';'
+            find . -name '*.pc' -exec rm -f '{}' ';'
+            rm -f config.err config.h config.mak
+            popd
+            rm -rf dist
+            exit
+            ;;
         "--patch") 
             shift
             if [ ! "$1" -o ! -f "$1" ]; then
