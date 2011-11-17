@@ -92,6 +92,7 @@ while [ "${1:0:2}" == "--" ]; do
             rm -f config.err config.h config.mak
             popd
             rm -rf dist
+            rm -rf build
             exit
             ;;
         "--patch") 
