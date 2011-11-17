@@ -116,6 +116,7 @@ if [ ! "$platforms" ]; then
     echo "   or: ./build.sh --patch <patchfile>"
     echo
     echo "Options"
+    echo "  --clean             Don't build, just clean up all generated files and directories."
     echo "  --rebuild           Don't reconfigure, just run make."
     echo "  --patch <file>      Apply a patch to ffmpeg."
     echo
