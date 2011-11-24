@@ -451,6 +451,7 @@ AVbinResult avbin_set_log_callback(AVbinLogCallback callback);
  *              file format.
  */
 AVbinFile *avbin_open_filename(const char *filename);
+AVbinFile *avbin_open_filename_with_format(const char *filename, char* format);
 
 /**
  * Close a media file.

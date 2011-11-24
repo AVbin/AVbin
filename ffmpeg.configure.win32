@@ -1,10 +1,21 @@
---cc=gcc
+#--cc=gcc
+--target-os=mingw32
+--extra-libs=-mno-cygwin
 --extra-cflags="-mno-cygwin -mms-bitfields"
 --extra-ldflags="-Wl,--add-stdcall-alias"
 --enable-memalign-hack
+--cpu=i586
+ 
+
+#--extra-cflags="-DHAVE_WINSOCK2_H"
 
 --enable-static
 --disable-shared
 
 --enable-w32threads
---enable-cross-compile
+#--enable-cross-compile
+
+--disable-avisynth
+--disable-demuxer=vfwcap
+#--enable-avisynth
+#--enable-demuxer=vfwcap

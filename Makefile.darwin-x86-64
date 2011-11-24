@@ -6,11 +6,13 @@ LDFLAGS += -dylib \
            -read_only_relocs suppress \
            -single_module \
            -arch x86_64 \
-           -install_name /usr/local/lib/libavbin.dylib
+           -install_name @rpath/libavbin.dylib
 
 STATIC_LIBS = $(FFMPEG)/libavformat/libavformat.a \
               $(FFMPEG)/libavcodec/libavcodec.a \
-              $(FFMPEG)/libavutil/libavutil.a
+              $(FFMPEG)/libavutil/libavutil.a \
+              $(FFMPEG)/libavcore/libavcore.a \
+              $(FFMPEG)/libswscale/libswscale.a
 
 LIBS = -lSystem \
        -lz \
