@@ -1,6 +1,6 @@
 --enable-static
 --disable-shared
-#--enable-pthreads
+--enable-pthreads
 
 --arch=x86_64
 #--cpu=i686
@@ -9,4 +9,4 @@
 
 # Currently broken on Darwin
 #--disable-mmx
---enable-cross-compile
+#--enable-cross-compile

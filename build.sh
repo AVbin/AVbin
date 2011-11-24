@@ -65,6 +65,12 @@ build_darwin_universal() {
         build_avbin
     fi
 
+    if [ ! -e dist/darwin-x86-64/libavbin.$AVBIN_VERSION.dylib ]; then
+        PLATFORM=darwin-x86-64
+        build_ffmpeg
+        build_avbin
+    fi
+
     if [ ! -e dist/darwin-ppc-32/libavbin.$AVBIN_VERSION.dylib ]; then
         PLATFORM=darwin-ppc-32
         build_ffmpeg
@@ -75,6 +81,7 @@ build_darwin_universal() {
     lipo -create \
         -output dist/darwin-universal/libavbin.$AVBIN_VERSION.dylib \
         dist/darwin-x86-32/libavbin.$AVBIN_VERSION.dylib \
+        dist/darwin-x86-64/libavbin.$AVBIN_VERSION.dylib \
         dist/darwin-ppc-32/libavbin.$AVBIN_VERSION.dylib
 }
 
@@ -126,7 +133,7 @@ if [ ! "$platforms" ]; then
     echo "  darwin-ppc-32"
     echo "  darwin-x86-32"
     echo "  darwin-x86-64"
-    echo "  darwin-universal (32-bit only)"
+    echo "  darwin-universal"
     echo "  win32"
     echo "  win64"
     exit 1

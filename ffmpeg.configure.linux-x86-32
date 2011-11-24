@@ -1,10 +1,12 @@
---extra-cflags="-march=i686 -m32 -D_GNU_SOURCE -fno-stack-protector"
---extra-ldflags="-L/lib32 -march=i686 -m32"
-
 # We only use the static library, but need to specify --enable-shared to
 # ensure -fPIC is passed.
---enable-static
 --enable-shared
+--enable-static
 
 --enable-pthreads
---arch=i386
+--cpu=i586
+--disable-bzlib
+--extra-cflags=-m32
+
+#--incdir=~/Common/matlab/graphics/mmread/avbin/ffmpeg
+#--extra-cflags=-static

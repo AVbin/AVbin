@@ -1,5 +1,5 @@
 --enable-cross-compile
---cross-prefix=x86_64-pc-mingw32-
+--cross-prefix=x86_64-w64-mingw32-
 --target-os=mingw32
 --enable-memalign-hack
 --arch=x86_64
@@ -8,11 +8,15 @@
 --enable-static
 --disable-shared
 
+--enable-w32threads
+
 # trick the check for the right version of mingw32 into working...
---extra-cflags="-D__MINGW32_MAJOR_VERSION=4"
+#--extra-cflags="-D__MINGW32_MAJOR_VERSION=4 -DHAVE_WINSOCK2_H"
 
 #these currently aren't supported by the version of w32api currently provided by mingw w64
---disable-network
---disable-avisynth
---disable-demuxer=vfwcap
-
+--disable-dxva2
+#--disable-network
+#--disable-avisynth
+#--disable-demuxer=vfwcap
+#--enable-avisynth
+#--enable-demuxer=vfwcap

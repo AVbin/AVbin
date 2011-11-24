@@ -1,9 +1,12 @@
---extra-cflags="-D_GNU_SOURCE -fno-stack-protector"
-
 # We only use the static library, but need to specify --enable-shared to
 # ensure -fPIC is passed.
---enable-static
 --enable-shared
+--enable-static
+
+--disable-mmx
+--arch=x86_64
+#--cpu=i686
 
 --enable-pthreads
---arch=x86_64
+--disable-bzlib
+#--disable-bz2lib
