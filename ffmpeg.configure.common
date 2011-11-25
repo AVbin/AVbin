@@ -13,6 +13,4 @@
 
 # These are usually disabled, but make sure
 --disable-network
---disable-ipv6
 --disable-zlib
---disable-vhook
