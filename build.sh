@@ -96,7 +96,7 @@ while [ "${1:0:2}" == "--" ]; do
             make distclean
             find . -name '*.d' -exec rm -f '{}' ';'
             find . -name '*.pc' -exec rm -f '{}' ';'
-            rm -f config.err config.h config.mak
+            rm -f config.err config.h config.mak .config .version
             popd
             rm -rf dist
             rm -rf build
