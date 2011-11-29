@@ -17,17 +17,17 @@ Use the included `build.sh` script to compile AVbin.  This takes care of
 configuring FFmpeg correctly, compiling it, then linking it with the AVbin
 sources.  The final AVbin libraries are placed in the ``dist`` directory.
 
-To build AVbin on a 64-bit Linux computer run::
+To build on your platform, run...
 
-    ./build.sh linux-x86-64 linux-x86-32
+    ./build.sh $TARGET
 
-or on an Intel Mac OS X computer run::
+...where $TARGET is one of:
 
-    ./build.sh darwin-universal
-
-or on a 32-bit Windows run::
-
-    ./build.sh win32
+   linux-x86-32
+   linux-x86-64
+   darwin-universal
+   win32
+   win64
 
 Run ``build.sh --help`` for more information.
 
@@ -57,19 +57,18 @@ AVbin is currently supported only on the following platforms
 * Linux
   - x86 (cross-compiled from x86-64)
   - x86-64
-* Mac OS X 10.4 - 10.7
-  - PowerPC (32-bit only; cross-compiled from x86; 10.4 and 10.5 only)
+* Mac OS X 10.6 - 10.7
   - x86
-  - x86-64 (10.5 - 10.7)
+  - x86-64
 * Windows XP, Vista, 7
   - x86
   - x86-64
 
-The configuration scripts currently assume cross-compilation for Linux-x86-32
-and Darwin-ppc-32.  Minor changes should be needed to get these to compile on
-the target platform.  Patches for this or other platforms are welcome.
+The configuration scripts currently assume cross-compilation for Linux-x86-32. 
+Minor changes should be needed to to compile on the target platform.  Patches 
+for this or other platforms are welcome.
 
-Darwin compilation currently requires OS X 10.5 or greater.
+Darwin compilation currently requires OS X 10.6 or greater.
 
 Installation and usage
 ----------------------
