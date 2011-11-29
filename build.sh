@@ -43,6 +43,8 @@ build_ffmpeg() {
         make distclean
         cat $config $common | egrep -v '^#' | xargs ./configure || exit 1
     fi
+    cat config.mak | sed -e s/-Werror=implicit-function-declaration//g | sed -e s/-Werror=missing-prototypes//g > config.mak2
+    mv config.mak2 config.mak
     make || exit 1
     popd
 }
@@ -65,10 +67,17 @@ build_darwin_universal() {
         build_avbin
     fi
 
+    if [ ! -e dist/darwin-x86-64/libavbin.$AVBIN_VERSION.dylib ]; then
+        PLATFORM=darwin-x86-64
+        build_ffmpeg
+        build_avbin
+    fi
+
     mkdir -p dist/darwin-universal
     lipo -create \
         -output dist/darwin-universal/libavbin.$AVBIN_VERSION.dylib \
-        dist/darwin-x86-32/libavbin.$AVBIN_VERSION.dylib
+        dist/darwin-x86-32/libavbin.$AVBIN_VERSION.dylib \
+        dist/darwin-x86-64/libavbin.$AVBIN_VERSION.dylib
 }
 
 while [ "${1:0:2}" == "--" ]; do
@@ -82,7 +91,7 @@ while [ "${1:0:2}" == "--" ]; do
             make distclean
             find . -name '*.d' -exec rm -f '{}' ';'
             find . -name '*.pc' -exec rm -f '{}' ';'
-            rm -f config.err config.h config.mak
+            rm -f config.err config.h config.mak .config .version
             popd
             rm -rf dist
             rm -rf build

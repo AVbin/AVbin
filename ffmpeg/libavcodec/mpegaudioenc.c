@@ -1,6 +1,6 @@
 /*
  * The simplest mpeg audio layer 2 encoder
- * Copyright (c) 2000, 2001 Fabrice Bellard.
+ * Copyright (c) 2000, 2001 Fabrice Bellard
  *
  * This file is part of FFmpeg.
  *
@@ -20,12 +20,15 @@
  */
 
 /**
- * @file mpegaudio.c
+ * @file
  * The simplest mpeg audio layer 2 encoder.
  */
 
 #include "avcodec.h"
-#include "bitstream.h"
+#include "put_bits.h"
+
+#undef  CONFIG_MPEGAUDIO_HP
+#define CONFIG_MPEGAUDIO_HP 0
 #include "mpegaudio.h"
 
 /* currently, cannot change these constants (need to modify
@@ -37,12 +40,10 @@
 typedef struct MpegAudioContext {
     PutBitContext pb;
     int nb_channels;
-    int freq, bit_rate;
     int lsf;           /* 1 if mpeg2 low bitrate selected */
     int bitrate_index; /* bit rate */
     int freq_index;
     int frame_size; /* frame size, in bits, without padding */
-    int64_t nb_samples; /* total number of samples encoded */
     /* padding computation */
     int frame_frac, frame_frac_incr, do_padding;
     short samples_buf[MPA_MAX_CHANNELS][SAMPLES_BUF_SIZE]; /* buffer for filter */
@@ -56,7 +57,7 @@ typedef struct MpegAudioContext {
 } MpegAudioContext;
 
 /* define it to use floats in quantization (I don't like floats !) */
-//#define USE_FLOATS
+#define USE_FLOATS
 
 #include "mpegaudiodata.h"
 #include "mpegaudiotab.h"
@@ -76,8 +77,6 @@ static av_cold int MPA_encode_init(AVCodecContext *avctx)
     }
     bitrate = bitrate / 1000;
     s->nb_channels = channels;
-    s->freq = freq;
-    s->bit_rate = bitrate * 1000;
     avctx->frame_size = MPA_FRAME_SIZE;
 
     /* encoding freq */
@@ -123,10 +122,8 @@ static av_cold int MPA_encode_init(AVCodecContext *avctx)
     s->sblimit = ff_mpa_sblimit_table[table];
     s->alloc_table = ff_mpa_alloc_tables[table];
 
-#ifdef DEBUG
-    av_log(avctx, AV_LOG_DEBUG, "%d kb/s, %d Hz, frame_size=%d bits, table=%d, padincr=%x\n",
-           bitrate, freq, s->frame_size, table, s->frame_frac_incr);
-#endif
+    dprintf(avctx, "%d kb/s, %d Hz, frame_size=%d bits, table=%d, padincr=%x\n",
+            bitrate, freq, s->frame_size, table, s->frame_frac_incr);
 
     for(i=0;i<s->nb_channels;i++)
         s->samples_offset[i] = 0;
@@ -309,7 +306,7 @@ static void idct32(int *out, int *tab)
 
 #define WSHIFT (WFRAC_BITS + 15 - FRAC_BITS)
 
-static void filter(MpegAudioContext *s, int ch, short *samples, int incr)
+static void filter(MpegAudioContext *s, int ch, const short *samples, int incr)
 {
     short *p, *q;
     int sum, offset, i, j;
@@ -755,7 +752,7 @@ static int MPA_encode_frame(AVCodecContext *avctx,
                             unsigned char *frame, int buf_size, void *data)
 {
     MpegAudioContext *s = avctx->priv_data;
-    short *samples = data;
+    const short *samples = data;
     short smr[MPA_MAX_CHANNELS][SBLIMIT];
     unsigned char bit_alloc[MPA_MAX_CHANNELS][SBLIMIT];
     int padding, i;
@@ -777,8 +774,7 @@ static int MPA_encode_frame(AVCodecContext *avctx,
 
     encode_frame(s, bit_alloc, padding);
 
-    s->nb_samples += MPA_FRAME_SIZE;
-    return pbBufPtr(&s->pb) - s->pb.buf;
+    return put_bits_ptr(&s->pb) - s->pb.buf;
 }
 
 static av_cold int MPA_encode_close(AVCodecContext *avctx)
@@ -789,14 +785,15 @@ static av_cold int MPA_encode_close(AVCodecContext *avctx)
 
 AVCodec mp2_encoder = {
     "mp2",
-    CODEC_TYPE_AUDIO,
+    AVMEDIA_TYPE_AUDIO,
     CODEC_ID_MP2,
     sizeof(MpegAudioContext),
     MPA_encode_init,
     MPA_encode_frame,
     MPA_encode_close,
     NULL,
-    .sample_fmts = (enum SampleFormat[]){SAMPLE_FMT_S16,SAMPLE_FMT_NONE},
+    .sample_fmts = (const enum AVSampleFormat[]){AV_SAMPLE_FMT_S16,AV_SAMPLE_FMT_NONE},
+    .supported_samplerates= (const int[]){44100, 48000,  32000, 22050, 24000, 16000, 0},
     .long_name = NULL_IF_CONFIG_SMALL("MP2 (MPEG audio layer 2)"),
 };
 

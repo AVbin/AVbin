@@ -1,7 +1,7 @@
 /*
  * filter graph parser
- * copyright (c) 2008 Vitor Sessak
- * copyright (c) 2007 Bobby Bingham
+ * Copyright (c) 2008 Vitor Sessak
+ * Copyright (c) 2007 Bobby Bingham
  *
  * This file is part of FFmpeg.
  *
@@ -23,76 +23,37 @@
 #include <ctype.h>
 #include <string.h>
 
-#include "graphparser.h"
+#include "libavutil/avstring.h"
 #include "avfilter.h"
 #include "avfiltergraph.h"
 
+#define WHITESPACES " \n\t"
+
+/**
+ * Link two filters together.
+ *
+ * @see avfilter_link()
+ */
 static int link_filter(AVFilterContext *src, int srcpad,
                        AVFilterContext *dst, int dstpad,
                        AVClass *log_ctx)
 {
-    if(avfilter_link(src, srcpad, dst, dstpad)) {
+    int ret;
+    if ((ret = avfilter_link(src, srcpad, dst, dstpad))) {
         av_log(log_ctx, AV_LOG_ERROR,
-               "cannot create the link %s:%d -> %s:%d\n",
+               "Cannot create the link %s:%d -> %s:%d\n",
                src->filter->name, srcpad, dst->filter->name, dstpad);
-        return -1;
+        return ret;
     }
 
     return 0;
 }
 
-static int consume_whitespace(const char *buf)
-{
-    return strspn(buf, " \n\t");
-}
-
 /**
- * Consumes a string from *buf.
- * @return a copy of the consumed string, which should be free'd after use
- */
-static char *consume_string(const char **buf)
-{
-    char *out = av_malloc(strlen(*buf) + 1);
-    char *ret = out;
-
-    *buf += consume_whitespace(*buf);
-
-    do{
-        char c = *(*buf)++;
-        switch (c) {
-        case '\\':
-            *out++ = *(*buf)++;
-            break;
-        case '\'':
-            while(**buf && **buf != '\'')
-                *out++ = *(*buf)++;
-            if(**buf) (*buf)++;
-            break;
-        case 0:
-        case ']':
-        case '[':
-        case '=':
-        case ',':
-        case ';':
-        case ' ':
-        case '\n':
-            *out++ = 0;
-            break;
-        default:
-            *out++ = c;
-        }
-    } while(out[-1]);
-
-    (*buf)--;
-    *buf += consume_whitespace(*buf);
-
-    return ret;
-}
-
-/**
- * Parse "[linkname]"
- * @param name a pointer (that need to be free'd after use) to the name between
- *        parenthesis
+ * Parse the name of a link, which has the format "[linkname]".
+ *
+ * @return a pointer (that need to be freed after use) to the name
+ * between parenthesis
  */
 static char *parse_link_name(const char **buf, AVClass *log_ctx)
 {
@@ -100,15 +61,15 @@ static char *parse_link_name(const char **buf, AVClass *log_ctx)
     char *name;
     (*buf)++;
 
-    name = consume_string(buf);
+    name = av_get_token(buf, "]");
 
-    if(!name[0]) {
+    if (!name[0]) {
         av_log(log_ctx, AV_LOG_ERROR,
                "Bad (empty?) label found in the following: \"%s\".\n", start);
         goto fail;
     }
 
-    if(*(*buf)++ != ']') {
+    if (*(*buf)++ != ']') {
         av_log(log_ctx, AV_LOG_ERROR,
                "Mismatched '[' found in the following: \"%s\".\n", start);
     fail:
@@ -118,62 +79,90 @@ static char *parse_link_name(const char **buf, AVClass *log_ctx)
     return name;
 }
 
-static AVFilterContext *create_filter(AVFilterGraph *ctx, int index,
-                                      const char *name, const char *args,
-                                      AVClass *log_ctx)
+/**
+ * Create an instance of a filter, initialize and insert it in the
+ * filtergraph in *ctx.
+ *
+ * @param ctx the filtergraph context
+ * @param put here a filter context in case of successful creation and configuration, NULL otherwise.
+ * @param index an index which is supposed to be unique for each filter instance added to the filtergraph
+ * @param filt_name the name of the filter to create
+ * @param args the arguments provided to the filter during its initialization
+ * @param log_ctx the log context to use
+ * @return 0 in case of success, a negative AVERROR code otherwise
+ */
+static int create_filter(AVFilterContext **filt_ctx, AVFilterGraph *ctx, int index,
+                         const char *filt_name, const char *args, AVClass *log_ctx)
 {
-    AVFilterContext *filt;
-
-    AVFilter *filterdef;
+    AVFilter *filt;
     char inst_name[30];
+    char tmp_args[256];
+    int ret;
 
-    snprintf(inst_name, sizeof(inst_name), "Parsed filter %d", index);
+    snprintf(inst_name, sizeof(inst_name), "Filter %d %s", index, filt_name);
 
-    filterdef = avfilter_get_by_name(name);
+    filt = avfilter_get_by_name(filt_name);
 
-    if(!filterdef) {
+    if (!filt) {
         av_log(log_ctx, AV_LOG_ERROR,
-               "no such filter: '%s'\n", name);
-        return NULL;
+               "No such filter: '%s'\n", filt_name);
+        return AVERROR(EINVAL);
     }
 
-    filt = avfilter_open(filterdef, inst_name);
-    if(!filt) {
+    ret = avfilter_open(filt_ctx, filt, inst_name);
+    if (!*filt_ctx) {
         av_log(log_ctx, AV_LOG_ERROR,
-               "error creating filter '%s'\n", name);
-        return NULL;
+               "Error creating filter '%s'\n", filt_name);
+        return ret;
     }
 
-    if(avfilter_graph_add_filter(ctx, filt) < 0) {
-        avfilter_destroy(filt);
-        return NULL;
+    if ((ret = avfilter_graph_add_filter(ctx, *filt_ctx)) < 0) {
+        avfilter_free(*filt_ctx);
+        return ret;
     }
 
-    if(avfilter_init_filter(filt, args, NULL)) {
+    if (!strcmp(filt_name, "scale") && !strstr(args, "flags")) {
+        snprintf(tmp_args, sizeof(tmp_args), "%s:%s",
+                 args, ctx->scale_sws_opts);
+        args = tmp_args;
+    }
+
+    if ((ret = avfilter_init_filter(*filt_ctx, args, NULL)) < 0) {
         av_log(log_ctx, AV_LOG_ERROR,
-               "error initializing filter '%s' with args '%s'\n", name, args);
-        return NULL;
+               "Error initializing filter '%s' with args '%s'\n", filt_name, args);
+        return ret;
     }
 
-    return filt;
+    return 0;
 }
 
 /**
- * Parse "filter=params"
+ * Parse a string of the form FILTER_NAME[=PARAMS], and create a
+ * corresponding filter instance which is added to graph with
+ * create_filter().
+ *
+ * @param filt_ctx put here a pointer to the created filter context on
+ * success, NULL otherwise
+ * @param buf pointer to the buffer to parse, *buf will be updated to
+ * point to the char next after the parsed string
+ * @param index an index which is assigned to the created filter
+ * instance, and which is supposed to be unique for each filter
+ * instance added to the filtergraph
+ * @return 0 in case of success, a negative AVERROR code otherwise
  */
-static AVFilterContext *parse_filter(const char **buf, AVFilterGraph *graph,
-                                     int index, AVClass *log_ctx)
+static int parse_filter(AVFilterContext **filt_ctx, const char **buf, AVFilterGraph *graph,
+                        int index, AVClass *log_ctx)
 {
     char *opts = NULL;
-    char *name = consume_string(buf);
-    AVFilterContext *ret;
+    char *name = av_get_token(buf, "=,;[\n");
+    int ret;
 
-    if(**buf == '=') {
+    if (**buf == '=') {
         (*buf)++;
-        opts = consume_string(buf);
+        opts = av_get_token(buf, "[],;\n");
     }
 
-    ret = create_filter(graph, index, name, opts, log_ctx);
+    ret = create_filter(filt_ctx, graph, index, name, opts, log_ctx);
     av_free(name);
     av_free(opts);
     return ret;
@@ -181,7 +170,7 @@ static AVFilterContext *parse_filter(const char **buf, AVFilterGraph *graph,
 
 static void free_inout(AVFilterInOut *head)
 {
-    while(head) {
+    while (head) {
         AVFilterInOut *next = head->next;
         av_free(head->name);
         av_free(head);
@@ -193,12 +182,12 @@ static AVFilterInOut *extract_inout(const char *label, AVFilterInOut **links)
 {
     AVFilterInOut *ret;
 
-    while(*links && strcmp((*links)->name, label))
+    while (*links && strcmp((*links)->name, label))
         links = &((*links)->next);
 
     ret = *links;
 
-    if(ret)
+    if (ret)
         *links = ret->next;
 
     return ret;
@@ -210,186 +199,202 @@ static void insert_inout(AVFilterInOut **inouts, AVFilterInOut *element)
     *inouts = element;
 }
 
-static int link_filter_inouts(AVFilterContext *filter,
-                              AVFilterInOut **currInputs,
-                              AVFilterInOut **openInputs, AVClass *log_ctx)
+static int link_filter_inouts(AVFilterContext *filt_ctx,
+                              AVFilterInOut **curr_inputs,
+                              AVFilterInOut **open_inputs, AVClass *log_ctx)
 {
-    int pad = filter->input_count;
+    int pad = filt_ctx->input_count, ret;
 
-    while(pad--) {
-        AVFilterInOut *p = *currInputs;
-        if(!p) {
+    while (pad--) {
+        AVFilterInOut *p = *curr_inputs;
+        if (!p) {
             av_log(log_ctx, AV_LOG_ERROR,
                    "Not enough inputs specified for the \"%s\" filter.\n",
-                   filter->filter->name);
-            return -1;
+                   filt_ctx->filter->name);
+            return AVERROR(EINVAL);
         }
 
-        *currInputs = (*currInputs)->next;
+        *curr_inputs = (*curr_inputs)->next;
 
-        if(p->filter) {
-            if(link_filter(p->filter, p->pad_idx, filter, pad, log_ctx))
-                return -1;
+        if (p->filter_ctx) {
+            if ((ret = link_filter(p->filter_ctx, p->pad_idx, filt_ctx, pad, log_ctx)) < 0)
+                return ret;
             av_free(p->name);
             av_free(p);
         } else {
-            p->filter = filter;
+            p->filter_ctx = filt_ctx;
             p->pad_idx = pad;
-            insert_inout(openInputs, p);
+            insert_inout(open_inputs, p);
         }
     }
 
-    if(*currInputs) {
+    if (*curr_inputs) {
         av_log(log_ctx, AV_LOG_ERROR,
                "Too many inputs specified for the \"%s\" filter.\n",
-               filter->filter->name);
-        return -1;
+               filt_ctx->filter->name);
+        return AVERROR(EINVAL);
     }
 
-    pad = filter->output_count;
-    while(pad--) {
+    pad = filt_ctx->output_count;
+    while (pad--) {
         AVFilterInOut *currlinkn = av_mallocz(sizeof(AVFilterInOut));
-        currlinkn->filter  = filter;
+        if (!currlinkn)
+            return AVERROR(ENOMEM);
+        currlinkn->filter_ctx  = filt_ctx;
         currlinkn->pad_idx = pad;
-        insert_inout(currInputs, currlinkn);
+        insert_inout(curr_inputs, currlinkn);
     }
 
     return 0;
 }
 
-static int parse_inputs(const char **buf, AVFilterInOut **currInputs,
-                        AVFilterInOut **openOutputs, AVClass *log_ctx)
+static int parse_inputs(const char **buf, AVFilterInOut **curr_inputs,
+                        AVFilterInOut **open_outputs, AVClass *log_ctx)
 {
     int pad = 0;
 
-    while(**buf == '[') {
+    while (**buf == '[') {
         char *name = parse_link_name(buf, log_ctx);
         AVFilterInOut *match;
 
-        if(!name)
-            return -1;
+        if (!name)
+            return AVERROR(EINVAL);
 
-        /* First check if the label is not in the openOutputs list */
-        match = extract_inout(name, openOutputs);
+        /* First check if the label is not in the open_outputs list */
+        match = extract_inout(name, open_outputs);
 
-        if(match) {
+        if (match) {
             av_free(name);
         } else {
             /* Not in the list, so add it as an input */
-            match = av_mallocz(sizeof(AVFilterInOut));
+            if (!(match = av_mallocz(sizeof(AVFilterInOut))))
+                return AVERROR(ENOMEM);
             match->name    = name;
             match->pad_idx = pad;
         }
 
-        insert_inout(currInputs, match);
+        insert_inout(curr_inputs, match);
 
-        *buf += consume_whitespace(*buf);
+        *buf += strspn(*buf, WHITESPACES);
         pad++;
     }
 
     return pad;
 }
 
-static int parse_outputs(const char **buf, AVFilterInOut **currInputs,
-                         AVFilterInOut **openInputs,
-                         AVFilterInOut **openOutputs, AVClass *log_ctx)
+static int parse_outputs(const char **buf, AVFilterInOut **curr_inputs,
+                         AVFilterInOut **open_inputs,
+                         AVFilterInOut **open_outputs, AVClass *log_ctx)
 {
-    int pad = 0;
+    int ret, pad = 0;
 
-    while(**buf == '[') {
+    while (**buf == '[') {
         char *name = parse_link_name(buf, log_ctx);
         AVFilterInOut *match;
 
-        AVFilterInOut *input = *currInputs;
-        *currInputs = (*currInputs)->next;
+        AVFilterInOut *input = *curr_inputs;
+        if (!input) {
+            av_log(log_ctx, AV_LOG_ERROR,
+                   "No output pad can be associated to link label '%s'.\n",
+                   name);
+            return AVERROR(EINVAL);
+        }
+        *curr_inputs = (*curr_inputs)->next;
 
-        if(!name)
-            return -1;
+        if (!name)
+            return AVERROR(EINVAL);
 
-        /* First check if the label is not in the openInputs list */
-        match = extract_inout(name, openInputs);
+        /* First check if the label is not in the open_inputs list */
+        match = extract_inout(name, open_inputs);
 
-        if(match) {
-            if(link_filter(input->filter, input->pad_idx,
-                           match->filter, match->pad_idx, log_ctx) < 0)
-                return -1;
+        if (match) {
+            if ((ret = link_filter(input->filter_ctx, input->pad_idx,
+                                   match->filter_ctx, match->pad_idx, log_ctx)) < 0)
+                return ret;
             av_free(match->name);
             av_free(name);
             av_free(match);
             av_free(input);
         } else {
-            /* Not in the list, so add the first input as a openOutput */
+            /* Not in the list, so add the first input as a open_output */
             input->name = name;
-            insert_inout(openOutputs, input);
+            insert_inout(open_outputs, input);
         }
-        *buf += consume_whitespace(*buf);
+        *buf += strspn(*buf, WHITESPACES);
         pad++;
     }
 
     return pad;
 }
 
-int avfilter_parse_graph(AVFilterGraph *graph, const char *filters,
-                         AVFilterInOut *openInputs,
-                         AVFilterInOut *openOutputs, AVClass *log_ctx)
+int avfilter_graph_parse(AVFilterGraph *graph, const char *filters,
+                         AVFilterInOut *open_inputs,
+                         AVFilterInOut *open_outputs, AVClass *log_ctx)
 {
-    int index = 0;
+    int index = 0, ret;
     char chr = 0;
 
-    AVFilterInOut *currInputs = NULL;
+    AVFilterInOut *curr_inputs = NULL;
 
     do {
         AVFilterContext *filter;
-        filters += consume_whitespace(filters);
+        filters += strspn(filters, WHITESPACES);
 
-        if(parse_inputs(&filters, &currInputs, &openOutputs, log_ctx) < 0)
+        if ((ret = parse_inputs(&filters, &curr_inputs, &open_outputs, log_ctx)) < 0)
             goto fail;
 
-        filter = parse_filter(&filters, graph, index, log_ctx);
-
-        if(!filter)
+        if ((ret = parse_filter(&filter, &filters, graph, index, log_ctx)) < 0)
             goto fail;
 
-        if(filter->input_count == 1 && !currInputs && !index) {
-            /* First input can be ommitted if it is "[in]" */
+        if (filter->input_count == 1 && !curr_inputs && !index) {
+            /* First input can be omitted if it is "[in]" */
             const char *tmp = "[in]";
-            if(parse_inputs(&tmp, &currInputs, &openOutputs, log_ctx) < 0)
+            if ((ret = parse_inputs(&tmp, &curr_inputs, &open_outputs, log_ctx)) < 0)
                 goto fail;
         }
 
-        if(link_filter_inouts(filter, &currInputs, &openInputs, log_ctx) < 0)
+        if ((ret = link_filter_inouts(filter, &curr_inputs, &open_inputs, log_ctx)) < 0)
             goto fail;
 
-        if(parse_outputs(&filters, &currInputs, &openInputs, &openOutputs,
-                         log_ctx) < 0)
+        if ((ret = parse_outputs(&filters, &curr_inputs, &open_inputs, &open_outputs,
+                                 log_ctx)) < 0)
             goto fail;
 
-        filters += consume_whitespace(filters);
+        filters += strspn(filters, WHITESPACES);
         chr = *filters++;
 
-        if(chr == ';' && currInputs) {
+        if (chr == ';' && curr_inputs) {
             av_log(log_ctx, AV_LOG_ERROR,
                    "Could not find a output to link when parsing \"%s\"\n",
                    filters - 1);
+            ret = AVERROR(EINVAL);
             goto fail;
         }
         index++;
-    } while(chr == ',' || chr == ';');
+    } while (chr == ',' || chr == ';');
 
-    if(openInputs && !strcmp(openInputs->name, "out") && currInputs) {
-        /* Last output can be ommitted if it is "[out]" */
+    if (chr) {
+        av_log(log_ctx, AV_LOG_ERROR,
+               "Unable to parse graph description substring: \"%s\"\n",
+               filters - 1);
+        ret = AVERROR(EINVAL);
+        goto fail;
+    }
+
+    if (open_inputs && !strcmp(open_inputs->name, "out") && curr_inputs) {
+        /* Last output can be omitted if it is "[out]" */
         const char *tmp = "[out]";
-        if(parse_outputs(&tmp, &currInputs, &openInputs,
-                         &openOutputs, log_ctx) < 0)
+        if ((ret = parse_outputs(&tmp, &curr_inputs, &open_inputs, &open_outputs,
+                                 log_ctx)) < 0)
             goto fail;
     }
 
     return 0;
 
  fail:
-    avfilter_destroy_graph(graph);
-    free_inout(openInputs);
-    free_inout(openOutputs);
-    free_inout(currInputs);
-    return -1;
+    avfilter_graph_free(graph);
+    free_inout(open_inputs);
+    free_inout(open_outputs);
+    free_inout(curr_inputs);
+    return ret;
 }

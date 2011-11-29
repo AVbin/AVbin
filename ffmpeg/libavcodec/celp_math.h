@@ -43,32 +43,12 @@ int16_t ff_cos(uint16_t arg);
 int ff_exp2(uint16_t power);
 
 /**
- * Calculates log2(x).
+ * Calculate log2(x).
  * @param value function argument, 0 < value <= 7fff ffff
  *
  * @return value of (1<<15) * log2(value)
  */
 int ff_log2(uint32_t value);
-
-/**
- * returns the dot product.
- * @param a input data array
- * @param b input data array
- * @param length number of elements
- * @param shift right shift by this value will be done after multiplication
- *
- * @return dot product = sum of elementwise products
- */
-static int dot_product(const int16_t* a, const int16_t* b, int length, int shift)
-{
-    int sum = 0;
-    int i;
-
-    for(i=0; i<length; i++)
-        sum += (a[i] * b[i]) >> shift;
-
-    return sum;
-}
 
 /**
  * Shift value left or right depending on sign of offset parameter.
@@ -91,6 +71,6 @@ static inline int bidir_sal(int value, int offset)
  *
  * @return dot product = sum of elementwise products
  */
-extern float ff_dot_productf(const float* a, const float* b, int length);
+float ff_dot_productf(const float* a, const float* b, int length);
 
 #endif /* AVCODEC_CELP_MATH_H */

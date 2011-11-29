@@ -21,7 +21,7 @@
 
 /**
  * TIFF tables
- * @file tiff.h
+ * @file
  * @author Konstantin Shishkov
  */
 #ifndef AVCODEC_TIFF_H
@@ -37,6 +37,7 @@ enum TiffTags{
     TIFF_BPP,
     TIFF_COMPR,
     TIFF_INVERT = 0x106,
+    TIFF_FILL_ORDER = 0x10A,
     TIFF_STRIP_OFFS = 0x111,
     TIFF_SAMPLES_PER_PIXEL = 0x115,
     TIFF_ROWSPERSTRIP = 0x116,
@@ -46,6 +47,8 @@ enum TiffTags{
     TIFF_PLANAR = 0x11C,
     TIFF_XPOS = 0x11E,
     TIFF_YPOS = 0x11F,
+    TIFF_T4OPTIONS = 0x124,
+    TIFF_T6OPTIONS,
     TIFF_RES_UNIT = 0x128,
     TIFF_SOFTWARE_NAME = 0x131,
     TIFF_PREDICTOR = 0x13D,

@@ -20,7 +20,7 @@
  */
 
 /**
- * @file aasc.c
+ * @file
  * Autodesk RLE Video Decoder by Konstantin Shishkov
  */
 
@@ -52,16 +52,18 @@ static av_cold int aasc_decode_init(AVCodecContext *avctx)
     s->avctx = avctx;
 
     avctx->pix_fmt = PIX_FMT_BGR24;
-    s->frame.data[0] = NULL;
 
     return 0;
 }
 
 static int aasc_decode_frame(AVCodecContext *avctx,
                               void *data, int *data_size,
-                              const uint8_t *buf, int buf_size)
+                              AVPacket *avpkt)
 {
+    const uint8_t *buf = avpkt->data;
+    int buf_size = avpkt->size;
     AascContext *s = avctx->priv_data;
+    int compr, i, stride;
 
     s->frame.reference = 1;
     s->frame.buffer_hints = FF_BUFFER_HINTS_VALID | FF_BUFFER_HINTS_PRESERVE | FF_BUFFER_HINTS_REUSABLE;
@@ -70,7 +72,24 @@ static int aasc_decode_frame(AVCodecContext *avctx,
         return -1;
     }
 
-    ff_msrle_decode(avctx, &s->frame, 8, buf, buf_size);
+    compr = AV_RL32(buf);
+    buf += 4;
+    buf_size -= 4;
+    switch(compr){
+    case 0:
+        stride = (avctx->width * 3 + 3) & ~3;
+        for(i = avctx->height - 1; i >= 0; i--){
+            memcpy(s->frame.data[0] + i*s->frame.linesize[0], buf, avctx->width*3);
+            buf += stride;
+        }
+        break;
+    case 1:
+        ff_msrle_decode(avctx, (AVPicture*)&s->frame, 8, buf - 4, buf_size + 4);
+        break;
+    default:
+        av_log(avctx, AV_LOG_ERROR, "Unknown compression type %d\n", compr);
+        return -1;
+    }
 
     *data_size = sizeof(AVFrame);
     *(AVFrame*)data = s->frame;
@@ -92,7 +111,7 @@ static av_cold int aasc_decode_end(AVCodecContext *avctx)
 
 AVCodec aasc_decoder = {
     "aasc",
-    CODEC_TYPE_VIDEO,
+    AVMEDIA_TYPE_VIDEO,
     CODEC_ID_AASC,
     sizeof(AascContext),
     aasc_decode_init,

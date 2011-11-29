@@ -1,6 +1,6 @@
 /*
  * The simplest mpeg encoder (well, it was the simplest!)
- * Copyright (c) 2000,2001 Fabrice Bellard.
+ * Copyright (c) 2000,2001 Fabrice Bellard
  * Copyright (c) 2002-2004 Michael Niedermayer <michaelni@gmx.at>
  *
  * 4MV & hq & B-frame encoding stuff by Michael Niedermayer <michaelni@gmx.at>
@@ -23,13 +23,14 @@
  */
 
 /**
- * @file mpegvideo_common.h
+ * @file
  * The simplest mpeg encoder (well, it was the simplest!).
  */
 
 #ifndef AVCODEC_MPEGVIDEO_COMMON_H
 #define AVCODEC_MPEGVIDEO_COMMON_H
 
+#include <string.h>
 #include "avcodec.h"
 #include "dsputil.h"
 #include "mpegvideo.h"
@@ -103,7 +104,7 @@ static inline void gmc1_motion(MpegEncContext *s,
         }
     }
 
-    if(ENABLE_GRAY && s->flags&CODEC_FLAG_GRAY) return;
+    if(CONFIG_GRAY && s->flags&CODEC_FLAG_GRAY) return;
 
     motion_x= s->sprite_offset[1][0];
     motion_y= s->sprite_offset[1][1];
@@ -172,7 +173,7 @@ static inline void gmc_motion(MpegEncContext *s,
            a+1, (1<<(2*a+1)) - s->no_rounding,
            s->h_edge_pos, s->v_edge_pos);
 
-    if(ENABLE_GRAY && s->flags&CODEC_FLAG_GRAY) return;
+    if(CONFIG_GRAY && s->flags&CODEC_FLAG_GRAY) return;
 
     ox= s->sprite_offset[1][0] + s->sprite_delta[0][0]*s->mb_x*8 + s->sprite_delta[0][1]*s->mb_y*8;
     oy= s->sprite_offset[1][1] + s->sprite_delta[1][0]*s->mb_x*8 + s->sprite_delta[1][1]*s->mb_y*8;
@@ -241,7 +242,7 @@ void mpeg_motion_internal(MpegEncContext *s,
                  uint8_t *dest_y, uint8_t *dest_cb, uint8_t *dest_cr,
                  int field_based, int bottom_field, int field_select,
                  uint8_t **ref_picture, op_pixels_func (*pix_op)[4],
-                 int motion_x, int motion_y, int h, int is_mpeg12)
+                 int motion_x, int motion_y, int h, int is_mpeg12, int mb_y)
 {
     uint8_t *ptr_y, *ptr_cb, *ptr_cr;
     int dxy, uvdxy, mx, my, src_x, src_y,
@@ -261,7 +262,7 @@ if(s->quarter_sample)
 
     dxy = ((motion_y & 1) << 1) | (motion_x & 1);
     src_x = s->mb_x* 16               + (motion_x >> 1);
-    src_y =(s->mb_y<<(4-field_based)) + (motion_y >> 1);
+    src_y =(   mb_y<<(4-field_based)) + (motion_y >> 1);
 
     if (!is_mpeg12 && s->out_format == FMT_H263) {
         if((s->workaround_bugs & FF_BUG_HPEL_CHROMA) && field_based){
@@ -269,7 +270,7 @@ if(s->quarter_sample)
             my = motion_y >>1;
             uvdxy = ((my & 1) << 1) | (mx & 1);
             uvsrc_x = s->mb_x* 8               + (mx >> 1);
-            uvsrc_y = (s->mb_y<<(3-field_based)) + (my >> 1);
+            uvsrc_y =(   mb_y<<(3-field_based))+ (my >> 1);
         }else{
             uvdxy = dxy | (motion_y & 2) | ((motion_x & 2) >> 1);
             uvsrc_x = src_x>>1;
@@ -280,14 +281,14 @@ if(s->quarter_sample)
         my = motion_y / 4;
         uvdxy = 0;
         uvsrc_x = s->mb_x*8 + mx;
-        uvsrc_y = s->mb_y*8 + my;
+        uvsrc_y =    mb_y*8 + my;
     } else {
         if(s->chroma_y_shift){
             mx = motion_x / 2;
             my = motion_y / 2;
             uvdxy = ((my & 1) << 1) | (mx & 1);
             uvsrc_x = s->mb_x* 8               + (mx >> 1);
-            uvsrc_y = (s->mb_y<<(3-field_based)) + (my >> 1);
+            uvsrc_y =(   mb_y<<(3-field_based))+ (my >> 1);
         } else {
             if(s->chroma_x_shift){
             //Chroma422
@@ -313,15 +314,15 @@ if(s->quarter_sample)
             if(is_mpeg12 || s->codec_id == CODEC_ID_MPEG2VIDEO ||
                s->codec_id == CODEC_ID_MPEG1VIDEO){
                 av_log(s->avctx,AV_LOG_DEBUG,
-                        "MPEG motion vector out of boundary\n");
-                return ;
+                        "MPEG motion vector out of boundary (%d %d)\n", src_x, src_y);
+                return;
             }
             ff_emulated_edge_mc(s->edge_emu_buffer, ptr_y, s->linesize,
                                 17, 17+field_based,
                                 src_x, src_y<<field_based,
                                 s->h_edge_pos, s->v_edge_pos);
             ptr_y = s->edge_emu_buffer;
-            if(!ENABLE_GRAY || !(s->flags&CODEC_FLAG_GRAY)){
+            if(!CONFIG_GRAY || !(s->flags&CODEC_FLAG_GRAY)){
                 uint8_t *uvbuf= s->edge_emu_buffer+18*s->linesize;
                 ff_emulated_edge_mc(uvbuf ,
                                     ptr_cb, s->uvlinesize,
@@ -352,13 +353,13 @@ if(s->quarter_sample)
 
     pix_op[0][dxy](dest_y, ptr_y, linesize, h);
 
-    if(!ENABLE_GRAY || !(s->flags&CODEC_FLAG_GRAY)){
+    if(!CONFIG_GRAY || !(s->flags&CODEC_FLAG_GRAY)){
         pix_op[s->chroma_x_shift][uvdxy]
                 (dest_cb, ptr_cb, uvlinesize, h >> s->chroma_y_shift);
         pix_op[s->chroma_x_shift][uvdxy]
                 (dest_cr, ptr_cr, uvlinesize, h >> s->chroma_y_shift);
     }
-    if(!is_mpeg12 && (ENABLE_H261_ENCODER || ENABLE_H261_DECODER) &&
+    if(!is_mpeg12 && (CONFIG_H261_ENCODER || CONFIG_H261_DECODER) &&
          s->out_format == FMT_H261){
         ff_h261_loop_filter(s);
     }
@@ -369,18 +370,18 @@ void mpeg_motion(MpegEncContext *s,
                  uint8_t *dest_y, uint8_t *dest_cb, uint8_t *dest_cr,
                  int field_based, int bottom_field, int field_select,
                  uint8_t **ref_picture, op_pixels_func (*pix_op)[4],
-                 int motion_x, int motion_y, int h)
+                 int motion_x, int motion_y, int h, int mb_y)
 {
-#ifndef CONFIG_SMALL
+#if !CONFIG_SMALL
     if(s->out_format == FMT_MPEG1)
         mpeg_motion_internal(s, dest_y, dest_cb, dest_cr, field_based,
                     bottom_field, field_select, ref_picture, pix_op,
-                    motion_x, motion_y, h, 1);
+                    motion_x, motion_y, h, 1, mb_y);
     else
 #endif
         mpeg_motion_internal(s, dest_y, dest_cb, dest_cr, field_based,
                     bottom_field, field_select, ref_picture, pix_op,
-                    motion_x, motion_y, h, 0);
+                    motion_x, motion_y, h, 0, mb_y);
 }
 
 //FIXME move to dsputil, avg variant, 16x16 version
@@ -517,7 +518,7 @@ static inline void qpel_motion(MpegEncContext *s,
                             17, 17+field_based, src_x, src_y<<field_based,
                             s->h_edge_pos, s->v_edge_pos);
         ptr_y= s->edge_emu_buffer;
-        if(!ENABLE_GRAY || !(s->flags&CODEC_FLAG_GRAY)){
+        if(!CONFIG_GRAY || !(s->flags&CODEC_FLAG_GRAY)){
             uint8_t *uvbuf= s->edge_emu_buffer + 18*s->linesize;
             ff_emulated_edge_mc(uvbuf, ptr_cb, s->uvlinesize,
                                 9, 9 + field_based,
@@ -551,7 +552,7 @@ static inline void qpel_motion(MpegEncContext *s,
         qpix_op[1][dxy](dest_y  , ptr_y  , linesize);
         qpix_op[1][dxy](dest_y+8, ptr_y+8, linesize);
     }
-    if(!ENABLE_GRAY || !(s->flags&CODEC_FLAG_GRAY)){
+    if(!CONFIG_GRAY || !(s->flags&CODEC_FLAG_GRAY)){
         pix_op[1][uvdxy](dest_cr, ptr_cr, uvlinesize, h >> 1);
         pix_op[1][uvdxy](dest_cb, ptr_cb, uvlinesize, h >> 1);
     }
@@ -579,11 +580,11 @@ static inline void chroma_4mv_motion(MpegEncContext *s,
 
     src_x = s->mb_x * 8 + mx;
     src_y = s->mb_y * 8 + my;
-    src_x = av_clip(src_x, -8, s->width/2);
-    if (src_x == s->width/2)
+    src_x = av_clip(src_x, -8, (s->width >> 1));
+    if (src_x == (s->width >> 1))
         dxy &= ~1;
-    src_y = av_clip(src_y, -8, s->height/2);
-    if (src_y == s->height/2)
+    src_y = av_clip(src_y, -8, (s->height >> 1));
+    if (src_y == (s->height >> 1))
         dxy &= ~2;
 
     offset = (src_y * (s->uvlinesize)) + src_x;
@@ -630,8 +631,8 @@ static inline void prefetch_motion(MpegEncContext *s, uint8_t **pix, int dir){
  * @param dest_cr chroma cr/v destination pointer
  * @param dir direction (0->forward, 1->backward)
  * @param ref_picture array[3] of pointers to the 3 planes of the reference picture
- * @param pic_op halfpel motion compensation function (average or put normally)
- * @param pic_op qpel motion compensation function (average or put normally)
+ * @param pix_op halfpel motion compensation function (average or put normally)
+ * @param qpix_op qpel motion compensation function (average or put normally)
  * the motion vectors are taken from s->mv and the MV type from s->mv_type
  */
 static av_always_inline void MPV_motion_internal(MpegEncContext *s,
@@ -669,19 +670,19 @@ static av_always_inline void MPV_motion_internal(MpegEncContext *s,
         }
 
         if(mb_x==0 || IS_INTRA(s->current_picture.mb_type[xy-1])){
-            *(int32_t*)mv_cache[1][0]= *(int32_t*)mv_cache[1][1];
-            *(int32_t*)mv_cache[2][0]= *(int32_t*)mv_cache[2][1];
+            AV_COPY32(mv_cache[1][0], mv_cache[1][1]);
+            AV_COPY32(mv_cache[2][0], mv_cache[2][1]);
         }else{
-            *(int32_t*)mv_cache[1][0]= *(int32_t*)s->current_picture.motion_val[0][mot_xy-1];
-            *(int32_t*)mv_cache[2][0]= *(int32_t*)s->current_picture.motion_val[0][mot_xy-1+mot_stride];
+            AV_COPY32(mv_cache[1][0], s->current_picture.motion_val[0][mot_xy-1]);
+            AV_COPY32(mv_cache[2][0], s->current_picture.motion_val[0][mot_xy-1+mot_stride]);
         }
 
         if(mb_x+1>=s->mb_width || IS_INTRA(s->current_picture.mb_type[xy+1])){
-            *(int32_t*)mv_cache[1][3]= *(int32_t*)mv_cache[1][2];
-            *(int32_t*)mv_cache[2][3]= *(int32_t*)mv_cache[2][2];
+            AV_COPY32(mv_cache[1][3], mv_cache[1][2]);
+            AV_COPY32(mv_cache[2][3], mv_cache[2][2]);
         }else{
-            *(int32_t*)mv_cache[1][3]= *(int32_t*)s->current_picture.motion_val[0][mot_xy+2];
-            *(int32_t*)mv_cache[2][3]= *(int32_t*)s->current_picture.motion_val[0][mot_xy+2+mot_stride];
+            AV_COPY32(mv_cache[1][3], s->current_picture.motion_val[0][mot_xy+2]);
+            AV_COPY32(mv_cache[2][3], s->current_picture.motion_val[0][mot_xy+2+mot_stride]);
         }
 
         mx = 0;
@@ -705,7 +706,7 @@ static av_always_inline void MPV_motion_internal(MpegEncContext *s,
             mx += mv[0][0];
             my += mv[0][1];
         }
-        if(!ENABLE_GRAY || !(s->flags&CODEC_FLAG_GRAY))
+        if(!CONFIG_GRAY || !(s->flags&CODEC_FLAG_GRAY))
             chroma_4mv_motion(s, dest_cb, dest_cr, ref_picture, pix_op[1], mx, my);
 
         return;
@@ -726,7 +727,7 @@ static av_always_inline void MPV_motion_internal(MpegEncContext *s,
                         0, 0, 0,
                         ref_picture, pix_op, qpix_op,
                         s->mv[dir][0][0], s->mv[dir][0][1], 16);
-        }else if(!is_mpeg12 && ENABLE_WMV2 && s->mspel){
+        }else if(!is_mpeg12 && (CONFIG_WMV2_DECODER || CONFIG_WMV2_ENCODER) && s->mspel){
             ff_mspel_motion(s, dest_y, dest_cb, dest_cr,
                         ref_picture, pix_op,
                         s->mv[dir][0][0], s->mv[dir][0][1], 16);
@@ -735,7 +736,7 @@ static av_always_inline void MPV_motion_internal(MpegEncContext *s,
             mpeg_motion(s, dest_y, dest_cb, dest_cr,
                         0, 0, 0,
                         ref_picture, pix_op,
-                        s->mv[dir][0][0], s->mv[dir][0][1], 16);
+                        s->mv[dir][0][0], s->mv[dir][0][1], 16, mb_y);
         }
         break;
     case MV_TYPE_8X8:
@@ -791,7 +792,7 @@ static av_always_inline void MPV_motion_internal(MpegEncContext *s,
             }
         }
 
-        if(!ENABLE_GRAY || !(s->flags&CODEC_FLAG_GRAY))
+        if(!CONFIG_GRAY || !(s->flags&CODEC_FLAG_GRAY))
             chroma_4mv_motion(s, dest_cb, dest_cr, ref_picture, pix_op[1], mx, my);
     }
         break;
@@ -809,12 +810,12 @@ static av_always_inline void MPV_motion_internal(MpegEncContext *s,
                 mpeg_motion(s, dest_y, dest_cb, dest_cr,
                             1, 0, s->field_select[dir][0],
                             ref_picture, pix_op,
-                            s->mv[dir][0][0], s->mv[dir][0][1], 8);
+                            s->mv[dir][0][0], s->mv[dir][0][1], 8, mb_y);
                 /* bottom field */
                 mpeg_motion(s, dest_y, dest_cb, dest_cr,
                             1, 1, s->field_select[dir][1],
                             ref_picture, pix_op,
-                            s->mv[dir][1][0], s->mv[dir][1][1], 8);
+                            s->mv[dir][1][0], s->mv[dir][1][1], 8, mb_y);
             }
         } else {
             if(s->picture_structure != s->field_select[dir][0] + 1 && s->pict_type != FF_B_TYPE && !s->first_field){
@@ -824,7 +825,7 @@ static av_always_inline void MPV_motion_internal(MpegEncContext *s,
             mpeg_motion(s, dest_y, dest_cb, dest_cr,
                         0, 0, s->field_select[dir][0],
                         ref_picture, pix_op,
-                        s->mv[dir][0][0], s->mv[dir][0][1], 16);
+                        s->mv[dir][0][0], s->mv[dir][0][1], 16, mb_y>>1);
         }
         break;
     case MV_TYPE_16X8:
@@ -841,7 +842,7 @@ static av_always_inline void MPV_motion_internal(MpegEncContext *s,
             mpeg_motion(s, dest_y, dest_cb, dest_cr,
                         0, 0, s->field_select[dir][i],
                         ref2picture, pix_op,
-                        s->mv[dir][i][0], s->mv[dir][i][1] + 16*i, 8);
+                        s->mv[dir][i][0], s->mv[dir][i][1] + 16*i, 8, mb_y>>1);
 
             dest_y += 16*s->linesize;
             dest_cb+= (16>>s->chroma_y_shift)*s->uvlinesize;
@@ -856,7 +857,7 @@ static av_always_inline void MPV_motion_internal(MpegEncContext *s,
                     mpeg_motion(s, dest_y, dest_cb, dest_cr,
                                 1, j, j^i,
                                 ref_picture, pix_op,
-                                s->mv[dir][2*i + j][0], s->mv[dir][2*i + j][1], 8);
+                                s->mv[dir][2*i + j][0], s->mv[dir][2*i + j][1], 8, mb_y);
                 }
                 pix_op = s->dsp.avg_pixels_tab;
             }
@@ -865,7 +866,7 @@ static av_always_inline void MPV_motion_internal(MpegEncContext *s,
                 mpeg_motion(s, dest_y, dest_cb, dest_cr,
                             0, 0, s->picture_structure != i+1,
                             ref_picture, pix_op,
-                            s->mv[dir][2*i][0],s->mv[dir][2*i][1],16);
+                            s->mv[dir][2*i][0],s->mv[dir][2*i][1],16, mb_y>>1);
 
                 // after put we make avg of the same block
                 pix_op=s->dsp.avg_pixels_tab;
@@ -888,7 +889,7 @@ static inline void MPV_motion(MpegEncContext *s,
                               op_pixels_func (*pix_op)[4],
                               qpel_mc_func (*qpix_op)[16])
 {
-#ifndef CONFIG_SMALL
+#if !CONFIG_SMALL
     if(s->out_format == FMT_MPEG1)
         MPV_motion_internal(s, dest_y, dest_cb, dest_cr, dir,
                             ref_picture, pix_op, qpix_op, 1);

@@ -21,9 +21,9 @@
  */
 
 /**
- * @file fraps.c
+ * @file
  * Lossless Fraps 'FPS1' decoder
- * @author Roine Gustafsson <roine at users sf net>
+ * @author Roine Gustafsson (roine at users sf net)
  * @author Konstantin Shishkov
  *
  * Codec algorithm for version 0 is taken from Transcode <www.transcoding.org>
@@ -32,7 +32,7 @@
  */
 
 #include "avcodec.h"
-#include "bitstream.h"
+#include "get_bits.h"
 #include "huffman.h"
 #include "bytestream.h"
 #include "dsputil.h"
@@ -63,7 +63,6 @@ static av_cold int decode_init(AVCodecContext *avctx)
     avctx->pix_fmt= PIX_FMT_NONE; /* set in decode_frame */
 
     s->avctx = avctx;
-    s->frame.data[0] = NULL;
     s->tmpbuf = NULL;
 
     dsputil_init(&s->dsp, avctx);
@@ -119,19 +118,12 @@ static int fraps2_decode_plane(FrapsContext *s, uint8_t *dst, int stride, int w,
     return 0;
 }
 
-/**
- * decode a frame
- * @param avctx codec context
- * @param data output AVFrame
- * @param data_size size of output data or 0 if no picture is returned
- * @param buf input data frame
- * @param buf_size size of input data frame
- * @return number of consumed bytes on success or negative if decode fails
- */
 static int decode_frame(AVCodecContext *avctx,
                         void *data, int *data_size,
-                        const uint8_t *buf, int buf_size)
+                        AVPacket *avpkt)
 {
+    const uint8_t *buf = avpkt->data;
+    int buf_size = avpkt->size;
     FrapsContext * const s = avctx->priv_data;
     AVFrame *frame = data;
     AVFrame * const f = (AVFrame*)&s->frame;
@@ -148,10 +140,10 @@ static int decode_frame(AVCodecContext *avctx,
     version = header & 0xff;
     header_size = (header & (1<<30))? 8 : 4; /* bit 30 means pad to 8 bytes */
 
-    if (version > 2 && version != 4 && version != 5) {
+    if (version > 5) {
         av_log(avctx, AV_LOG_ERROR,
                "This file is encoded with Fraps version %d. " \
-               "This codec can only decode version 0, 1, 2 and 4.\n", version);
+               "This codec can only decode versions <= 5.\n", version);
         return -1;
     }
 
@@ -163,7 +155,7 @@ static int decode_frame(AVCodecContext *avctx,
     case 0:
     default:
         /* Fraps v0 is a reordered YUV420 */
-        avctx->pix_fmt = PIX_FMT_YUV420P;
+        avctx->pix_fmt = PIX_FMT_YUVJ420P;
 
         if ( (buf_size != avctx->width*avctx->height*3/2+header_size) &&
              (buf_size != header_size) ) {
@@ -238,7 +230,7 @@ static int decode_frame(AVCodecContext *avctx,
             for(y=0; y<avctx->height; y++)
                 memcpy(&f->data[0][ (avctx->height-y)*f->linesize[0] ],
                        &buf[y*avctx->width*3],
-                       f->linesize[0]);
+                       3*avctx->width);
         }
         break;
 
@@ -248,7 +240,7 @@ static int decode_frame(AVCodecContext *avctx,
          * Fraps v2 is Huffman-coded YUV420 planes
          * Fraps v4 is virtually the same
          */
-        avctx->pix_fmt = PIX_FMT_YUV420P;
+        avctx->pix_fmt = PIX_FMT_YUVJ420P;
         planes = 3;
         f->reference = 1;
         f->buffer_hints = FF_BUFFER_HINTS_VALID |
@@ -288,6 +280,7 @@ static int decode_frame(AVCodecContext *avctx,
             }
         }
         break;
+    case 3:
     case 5:
         /* Virtually the same as version 4, but is for RGB24 */
         avctx->pix_fmt = PIX_FMT_BGR24;
@@ -364,7 +357,7 @@ static av_cold int decode_end(AVCodecContext *avctx)
 
 AVCodec fraps_decoder = {
     "fraps",
-    CODEC_TYPE_VIDEO,
+    AVMEDIA_TYPE_VIDEO,
     CODEC_ID_FRAPS,
     sizeof(FrapsContext),
     decode_init,

@@ -1,6 +1,6 @@
 /*
  * GXF demuxer.
- * Copyright (c) 2006 Reimar Doeffinger.
+ * Copyright (c) 2006 Reimar Doeffinger
  *
  * This file is part of FFmpeg.
  *
@@ -23,12 +23,12 @@
 #include "avformat.h"
 #include "gxf.h"
 
-typedef struct {
+struct gxf_stream_info {
     int64_t first_field;
     int64_t last_field;
     AVRational frames_per_second;
     int32_t fields_per_frame;
-} st_info_t;
+};
 
 /**
  * \brief parses a packet header, extracting type and length
@@ -37,7 +37,7 @@ typedef struct {
  * \param length detected packet length, excluding header is stored here
  * \return 0 if header not found or contains invalid data, 1 otherwise
  */
-static int parse_packet_header(ByteIOContext *pb, pkt_type_t *type, int *length) {
+static int parse_packet_header(ByteIOContext *pb, GXFPktType *type, int *length) {
     if (get_be32(pb))
         return 0;
     if (get_byte(pb) != 1)
@@ -71,7 +71,7 @@ static int gxf_probe(AVProbeData *p) {
 /**
  * \brief gets the stream index for the track with the specified id, creates new
  *        stream if not found
- * \param stream id of stream to find / add
+ * \param id     id of stream to find / add
  * \param format stream format identifier
  */
 static int get_sindex(AVFormatContext *s, int id, int format) {
@@ -87,34 +87,34 @@ static int get_sindex(AVFormatContext *s, int id, int format) {
     switch (format) {
         case 3:
         case 4:
-            st->codec->codec_type = CODEC_TYPE_VIDEO;
+            st->codec->codec_type = AVMEDIA_TYPE_VIDEO;
             st->codec->codec_id = CODEC_ID_MJPEG;
             break;
         case 13:
         case 15:
-            st->codec->codec_type = CODEC_TYPE_VIDEO;
+            st->codec->codec_type = AVMEDIA_TYPE_VIDEO;
             st->codec->codec_id = CODEC_ID_DVVIDEO;
             break;
         case 14:
         case 16:
-            st->codec->codec_type = CODEC_TYPE_VIDEO;
+            st->codec->codec_type = AVMEDIA_TYPE_VIDEO;
             st->codec->codec_id = CODEC_ID_DVVIDEO;
             break;
         case 11:
         case 12:
         case 20:
-            st->codec->codec_type = CODEC_TYPE_VIDEO;
+            st->codec->codec_type = AVMEDIA_TYPE_VIDEO;
             st->codec->codec_id = CODEC_ID_MPEG2VIDEO;
             st->need_parsing = AVSTREAM_PARSE_HEADERS; //get keyframe flag etc.
             break;
         case 22:
         case 23:
-            st->codec->codec_type = CODEC_TYPE_VIDEO;
+            st->codec->codec_type = AVMEDIA_TYPE_VIDEO;
             st->codec->codec_id = CODEC_ID_MPEG1VIDEO;
             st->need_parsing = AVSTREAM_PARSE_HEADERS; //get keyframe flag etc.
             break;
         case 9:
-            st->codec->codec_type = CODEC_TYPE_AUDIO;
+            st->codec->codec_type = AVMEDIA_TYPE_AUDIO;
             st->codec->codec_id = CODEC_ID_PCM_S24LE;
             st->codec->channels = 1;
             st->codec->sample_rate = 48000;
@@ -123,7 +123,7 @@ static int get_sindex(AVFormatContext *s, int id, int format) {
             st->codec->bits_per_coded_sample = 24;
             break;
         case 10:
-            st->codec->codec_type = CODEC_TYPE_AUDIO;
+            st->codec->codec_type = AVMEDIA_TYPE_AUDIO;
             st->codec->codec_id = CODEC_ID_PCM_S16LE;
             st->codec->channels = 1;
             st->codec->sample_rate = 48000;
@@ -132,7 +132,7 @@ static int get_sindex(AVFormatContext *s, int id, int format) {
             st->codec->bits_per_coded_sample = 16;
             break;
         case 17:
-            st->codec->codec_type = CODEC_TYPE_AUDIO;
+            st->codec->codec_type = AVMEDIA_TYPE_AUDIO;
             st->codec->codec_id = CODEC_ID_AC3;
             st->codec->channels = 2;
             st->codec->sample_rate = 48000;
@@ -141,11 +141,11 @@ static int get_sindex(AVFormatContext *s, int id, int format) {
         case 7:
         case 8:
         case 24:
-            st->codec->codec_type = CODEC_TYPE_DATA;
+            st->codec->codec_type = AVMEDIA_TYPE_DATA;
             st->codec->codec_id = CODEC_ID_NONE;
             break;
         default:
-            st->codec->codec_type = CODEC_TYPE_UNKNOWN;
+            st->codec->codec_type = AVMEDIA_TYPE_UNKNOWN;
             st->codec->codec_id = CODEC_ID_NONE;
             break;
     }
@@ -157,11 +157,11 @@ static int get_sindex(AVFormatContext *s, int id, int format) {
  * \param len length of tag section, will be adjusted to contain remaining bytes
  * \param si struct to store collected information into
  */
-static void gxf_material_tags(ByteIOContext *pb, int *len, st_info_t *si) {
+static void gxf_material_tags(ByteIOContext *pb, int *len, struct gxf_stream_info *si) {
     si->first_field = AV_NOPTS_VALUE;
     si->last_field = AV_NOPTS_VALUE;
     while (*len >= 2) {
-        mat_tag_t tag = get_byte(pb);
+        GXFMatTag tag = get_byte(pb);
         int tlen = get_byte(pb);
         *len -= 2;
         if (tlen > *len)
@@ -191,7 +191,7 @@ static AVRational fps_tag2avr(int32_t fps) {
 
 /**
  * \brief convert UMF attributes flags to AVRational fps
- * \param fps fps value from flags
+ * \param flags UMF flags to convert
  * \return fps as AVRational, or 0 / 0 if unknown
  */
 static AVRational fps_umf2avr(uint32_t flags) {
@@ -206,11 +206,11 @@ static AVRational fps_umf2avr(uint32_t flags) {
  * \param len length of tag section, will be adjusted to contain remaining bytes
  * \param si struct to store collected information into
  */
-static void gxf_track_tags(ByteIOContext *pb, int *len, st_info_t *si) {
+static void gxf_track_tags(ByteIOContext *pb, int *len, struct gxf_stream_info *si) {
     si->frames_per_second = (AVRational){0, 0};
     si->fields_per_frame = 0;
     while (*len >= 2) {
-        track_tag_t tag = get_byte(pb);
+        GXFTrackTag tag = get_byte(pb);
         int tlen = get_byte(pb);
         *len -= 2;
         if (tlen > *len)
@@ -237,6 +237,10 @@ static void gxf_read_index(AVFormatContext *s, int pkt_len) {
     uint32_t map_cnt = get_le32(pb);
     int i;
     pkt_len -= 8;
+    if (s->flags & AVFMT_FLAG_IGNIDX) {
+        url_fskip(pb, pkt_len);
+        return;
+    }
     if (map_cnt > 1000) {
         av_log(s, AV_LOG_ERROR, "too many index entries %u (%x)\n", map_cnt, map_cnt);
         map_cnt = 1000;
@@ -256,11 +260,11 @@ static void gxf_read_index(AVFormatContext *s, int pkt_len) {
 
 static int gxf_header(AVFormatContext *s, AVFormatParameters *ap) {
     ByteIOContext *pb = s->pb;
-    pkt_type_t pkt_type;
+    GXFPktType pkt_type;
     int map_len;
     int len;
     AVRational main_timebase = {0, 0};
-    st_info_t si;
+    struct gxf_stream_info si;
     int i;
     if (!parse_packet_header(pb, &pkt_type, &map_len) || pkt_type != PKT_MAP) {
         av_log(s, AV_LOG_ERROR, "map packet not found\n");
@@ -313,7 +317,7 @@ static int gxf_header(AVFormatContext *s, AVFormatParameters *ap) {
         st = s->streams[idx];
         if (!main_timebase.num || !main_timebase.den) {
             main_timebase.num = si.frames_per_second.den;
-            main_timebase.den = si.frames_per_second.num * si.fields_per_frame;
+            main_timebase.den = si.frames_per_second.num * 2;
         }
         st->start_time = si.first_field;
         if (si.first_field != AV_NOPTS_VALUE && si.last_field != AV_NOPTS_VALUE)
@@ -344,15 +348,17 @@ static int gxf_header(AVFormatContext *s, AVFormatParameters *ap) {
             if (!main_timebase.num || !main_timebase.den) {
                 // this may not always be correct, but simply the best we can get
                 main_timebase.num = fps.den;
-                main_timebase.den = fps.num;
+                main_timebase.den = fps.num * 2;
             }
         } else
             av_log(s, AV_LOG_INFO, "UMF packet too short\n");
     } else
         av_log(s, AV_LOG_INFO, "UMF packet missing\n");
     url_fskip(pb, len);
+    // set a fallback value, 60000/1001 is specified for audio-only files
+    // so use that regardless of why we do not know the video frame rate.
     if (!main_timebase.num || !main_timebase.den)
-        main_timebase = (AVRational){1, 50}; // set some arbitrary fallback
+        main_timebase = (AVRational){1001, 60000};
     for (i = 0; i < s->nb_streams; i++) {
         AVStream *st = s->streams[i];
         av_set_pts_info(st, 32, main_timebase.num, main_timebase.den);
@@ -382,7 +388,7 @@ static int64_t gxf_resync_media(AVFormatContext *s, uint64_t max_interval, int t
     int64_t cur_timestamp = AV_NOPTS_VALUE;
     int len;
     ByteIOContext *pb = s->pb;
-    pkt_type_t type;
+    GXFPktType type;
     tmp = get_be32(pb);
 start:
     while (tmp)
@@ -391,9 +397,11 @@ start:
     if (tmp != 1)
         goto start;
     last_pos = url_ftell(pb);
-    url_fseek(pb, -5, SEEK_CUR);
+    if (url_fseek(pb, -5, SEEK_CUR) < 0)
+        goto out;
     if (!parse_packet_header(pb, &type, &len) || type != PKT_MEDIA) {
-        url_fseek(pb, last_pos, SEEK_SET);
+        if (url_fseek(pb, last_pos, SEEK_SET) < 0)
+            goto out;
         goto start;
     }
     get_byte(pb);
@@ -401,8 +409,8 @@ start:
     cur_timestamp = get_be32(pb);
     last_found_pos = url_ftell(pb) - 16 - 6;
     if ((track >= 0 && track != cur_track) || (timestamp >= 0 && timestamp > cur_timestamp)) {
-        url_fseek(pb, last_pos, SEEK_SET);
-        goto start;
+        if (url_fseek(pb, last_pos, SEEK_SET) >= 0)
+            goto start;
     }
 out:
     if (last_found_pos)
@@ -412,7 +420,7 @@ out:
 
 static int gxf_packet(AVFormatContext *s, AVPacket *pkt) {
     ByteIOContext *pb = s->pb;
-    pkt_type_t pkt_type;
+    GXFPktType pkt_type;
     int pkt_len;
     while (!url_feof(pb)) {
         AVStream *st;
@@ -471,6 +479,7 @@ static int gxf_packet(AVFormatContext *s, AVPacket *pkt) {
 }
 
 static int gxf_seek(AVFormatContext *s, int stream_index, int64_t timestamp, int flags) {
+    int res = 0;
     uint64_t pos;
     uint64_t maxlen = 100 * 1024 * 1024;
     AVStream *st = s->streams[0];
@@ -486,7 +495,9 @@ static int gxf_seek(AVFormatContext *s, int stream_index, int64_t timestamp, int
     if (idx < st->nb_index_entries - 2)
         maxlen = st->index_entries[idx + 2].pos - pos;
     maxlen = FFMAX(maxlen, 200 * 1024);
-    url_fseek(s->pb, pos, SEEK_SET);
+    res = url_fseek(s->pb, pos, SEEK_SET);
+    if (res < 0)
+        return res;
     found = gxf_resync_media(s, maxlen, -1, timestamp);
     if (FFABS(found - timestamp) > 4)
         return -1;
@@ -497,7 +508,8 @@ static int64_t gxf_read_timestamp(AVFormatContext *s, int stream_index,
                                   int64_t *pos, int64_t pos_limit) {
     ByteIOContext *pb = s->pb;
     int64_t res;
-    url_fseek(pb, *pos, SEEK_SET);
+    if (url_fseek(pb, *pos, SEEK_SET) < 0)
+        return AV_NOPTS_VALUE;
     res = gxf_resync_media(s, pos_limit - *pos, -1, -1);
     *pos = url_ftell(pb);
     return res;

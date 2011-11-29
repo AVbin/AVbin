@@ -22,11 +22,11 @@
 #define AVCODEC_LIBXVID_INTERNAL_H
 
 /**
- * @file libxvid_internal.h
+ * @file
  * common functions for use with the Xvid wrappers
  */
 
 
-int av_tempfile(char *prefix, char **filename);
+int ff_tempfile(const char *prefix, char **filename);
 
 #endif /* AVCODEC_LIBXVID_INTERNAL_H */

@@ -24,14 +24,9 @@
 
 #include <inttypes.h>
 
-#if defined __GNUC__
-# define GNUC_PREREQ(maj, min) \
-        ((__GNUC__ << 16) + __GNUC_MINOR__ >= ((maj) << 16) + (min))
-#else
-# define GNUC_PREREQ(maj, min) 0
-#endif
+#include "libavutil/common.h"
 
-#if GNUC_PREREQ(2,96)
+#if AV_GCC_VERSION_AT_LEAST(2,96)
 # define likely(x)      __builtin_expect((x) != 0, 1)
 # define unlikely(x)    __builtin_expect((x) != 0, 0)
 #else
@@ -62,12 +57,12 @@ static inline uint64_t WORD_VEC(uint64_t x)
 
 #ifdef __GNUC__
 #define ldq(p)                                                  \
-    (((union {                                                  \
+    (((const union {                                            \
         uint64_t __l;                                           \
         __typeof__(*(p)) __s[sizeof (uint64_t) / sizeof *(p)];  \
     } *) (p))->__l)
 #define ldl(p)                                                  \
-    (((union {                                                  \
+    (((const union {                                            \
         int32_t __l;                                            \
         __typeof__(*(p)) __s[sizeof (int32_t) / sizeof *(p)];   \
     } *) (p))->__l)
@@ -89,7 +84,7 @@ struct unaligned_long { uint64_t l; } __attribute__((packed));
 #define ldq_u(p)        (*(const uint64_t *) (((uint64_t) (p)) & ~7ul))
 #define uldq(a)         (((const struct unaligned_long *) (a))->l)
 
-#if GNUC_PREREQ(3,3)
+#if AV_GCC_VERSION_AT_LEAST(3,3)
 #define prefetch(p)     __builtin_prefetch((p), 0, 1)
 #define prefetch_en(p)  __builtin_prefetch((p), 0, 0)
 #define prefetch_m(p)   __builtin_prefetch((p), 1, 1)
@@ -121,7 +116,7 @@ struct unaligned_long { uint64_t l; } __attribute__((packed));
 #endif
 #define wh64(p) __asm__ volatile("wh64 (%0)" : : "r"(p) : "memory")
 
-#if GNUC_PREREQ(3,3) && defined(__alpha_max__)
+#if AV_GCC_VERSION_AT_LEAST(3,3) && defined(__alpha_max__)
 #define minub8  __builtin_alpha_minub8
 #define minsb8  __builtin_alpha_minsb8
 #define minuw4  __builtin_alpha_minuw4
@@ -158,31 +153,31 @@ struct unaligned_long { uint64_t l; } __attribute__((packed));
 #define ldl(p) (*(const int32_t *)  (p))
 #define stq(l, p) do { *(uint64_t *) (p) = (l); } while (0)
 #define stl(l, p) do { *(int32_t *)  (p) = (l); } while (0)
-#define ldq_u(a)     __asm__ ("ldq_u   %v0,0(%a0)", a)
+#define ldq_u(a)     asm ("ldq_u   %v0,0(%a0)", a)
 #define uldq(a)      (*(const __unaligned uint64_t *) (a))
-#define cmpbge(a, b) __asm__ ("cmpbge  %a0,%a1,%v0", a, b)
-#define extql(a, b)  __asm__ ("extql   %a0,%a1,%v0", a, b)
-#define extwl(a, b)  __asm__ ("extwl   %a0,%a1,%v0", a, b)
-#define extqh(a, b)  __asm__ ("extqh   %a0,%a1,%v0", a, b)
-#define zap(a, b)    __asm__ ("zap     %a0,%a1,%v0", a, b)
-#define zapnot(a, b) __asm__ ("zapnot  %a0,%a1,%v0", a, b)
-#define amask(a)     __asm__ ("amask   %a0,%v0", a)
-#define implver()    __asm__ ("implver %v0")
-#define rpcc()       __asm__ ("rpcc           %v0")
-#define minub8(a, b) __asm__ ("minub8  %a0,%a1,%v0", a, b)
-#define minsb8(a, b) __asm__ ("minsb8  %a0,%a1,%v0", a, b)
-#define minuw4(a, b) __asm__ ("minuw4  %a0,%a1,%v0", a, b)
-#define minsw4(a, b) __asm__ ("minsw4  %a0,%a1,%v0", a, b)
-#define maxub8(a, b) __asm__ ("maxub8  %a0,%a1,%v0", a, b)
-#define maxsb8(a, b) __asm__ ("maxsb8  %a0,%a1,%v0", a, b)
-#define maxuw4(a, b) __asm__ ("maxuw4  %a0,%a1,%v0", a, b)
-#define maxsw4(a, b) __asm__ ("maxsw4  %a0,%a1,%v0", a, b)
-#define perr(a, b)   __asm__ ("perr    %a0,%a1,%v0", a, b)
-#define pklb(a)      __asm__ ("pklb    %a0,%v0", a)
-#define pkwb(a)      __asm__ ("pkwb    %a0,%v0", a)
-#define unpkbl(a)    __asm__ ("unpkbl  %a0,%v0", a)
-#define unpkbw(a)    __asm__ ("unpkbw  %a0,%v0", a)
-#define wh64(a)      __asm__ ("wh64    %a0", a)
+#define cmpbge(a, b) asm ("cmpbge  %a0,%a1,%v0", a, b)
+#define extql(a, b)  asm ("extql   %a0,%a1,%v0", a, b)
+#define extwl(a, b)  asm ("extwl   %a0,%a1,%v0", a, b)
+#define extqh(a, b)  asm ("extqh   %a0,%a1,%v0", a, b)
+#define zap(a, b)    asm ("zap     %a0,%a1,%v0", a, b)
+#define zapnot(a, b) asm ("zapnot  %a0,%a1,%v0", a, b)
+#define amask(a)     asm ("amask   %a0,%v0", a)
+#define implver()    asm ("implver %v0")
+#define rpcc()       asm ("rpcc           %v0")
+#define minub8(a, b) asm ("minub8  %a0,%a1,%v0", a, b)
+#define minsb8(a, b) asm ("minsb8  %a0,%a1,%v0", a, b)
+#define minuw4(a, b) asm ("minuw4  %a0,%a1,%v0", a, b)
+#define minsw4(a, b) asm ("minsw4  %a0,%a1,%v0", a, b)
+#define maxub8(a, b) asm ("maxub8  %a0,%a1,%v0", a, b)
+#define maxsb8(a, b) asm ("maxsb8  %a0,%a1,%v0", a, b)
+#define maxuw4(a, b) asm ("maxuw4  %a0,%a1,%v0", a, b)
+#define maxsw4(a, b) asm ("maxsw4  %a0,%a1,%v0", a, b)
+#define perr(a, b)   asm ("perr    %a0,%a1,%v0", a, b)
+#define pklb(a)      asm ("pklb    %a0,%v0", a)
+#define pkwb(a)      asm ("pkwb    %a0,%v0", a)
+#define unpkbl(a)    asm ("unpkbl  %a0,%v0", a)
+#define unpkbw(a)    asm ("unpkbw  %a0,%v0", a)
+#define wh64(a)      asm ("wh64    %a0", a)
 
 #else
 #error "Unknown compiler!"

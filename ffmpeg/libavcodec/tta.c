@@ -20,7 +20,7 @@
  */
 
 /**
- * @file tta.c
+ * @file
  * TTA (The Lossless True Audio) decoder
  * (www.true-audio.com or tta.corecodec.org)
  * @author Alex Beregszaszi
@@ -31,10 +31,28 @@
 //#define DEBUG
 #include <limits.h>
 #include "avcodec.h"
-#include "bitstream.h"
+#include "get_bits.h"
 
 #define FORMAT_INT 1
 #define FORMAT_FLOAT 3
+
+#define MAX_ORDER 16
+typedef struct TTAFilter {
+    int32_t shift, round, error, mode;
+    int32_t qm[MAX_ORDER];
+    int32_t dx[MAX_ORDER];
+    int32_t dl[MAX_ORDER];
+} TTAFilter;
+
+typedef struct TTARice {
+    uint32_t k0, k1, sum0, sum1;
+} TTARice;
+
+typedef struct TTAChannel {
+    int32_t predictor;
+    TTAFilter filter;
+    TTARice rice;
+} TTAChannel;
 
 typedef struct TTAContext {
     AVCodecContext *avctx;
@@ -44,6 +62,8 @@ typedef struct TTAContext {
     int frame_length, last_frame_length, total_frames;
 
     int32_t *decode_buffer;
+
+    TTAChannel *ch_ctx;
 } TTAContext;
 
 #if 0
@@ -78,14 +98,6 @@ static const uint32_t shift_1[] = {
 
 static const uint32_t * const shift_16 = shift_1 + 4;
 #endif
-
-#define MAX_ORDER 16
-typedef struct TTAFilter {
-    int32_t shift, round, error, mode;
-    int32_t qm[MAX_ORDER];
-    int32_t dx[MAX_ORDER];
-    int32_t dl[MAX_ORDER];
-} TTAFilter;
 
 static const int32_t ttafilter_configs[4][2] = {
     {10, 1},
@@ -175,10 +187,6 @@ static inline void ttafilter_process(TTAFilter *c, int32_t *in, int32_t mode) {
     memshl(c->dx, c->dx + 1);
 }
 
-typedef struct TTARice {
-    uint32_t k0, k1, sum0, sum1;
-} TTARice;
-
 static void rice_init(TTARice *c, uint32_t k0, uint32_t k1)
 {
     c->k0 = k0;
@@ -209,11 +217,11 @@ static av_cold int tta_decode_init(AVCodecContext * avctx)
         return -1;
 
     init_get_bits(&s->gb, avctx->extradata, avctx->extradata_size);
-    if (show_bits_long(&s->gb, 32) == ff_get_fourcc("TTA1"))
+    if (show_bits_long(&s->gb, 32) == AV_RL32("TTA1"))
     {
         /* signature */
         skip_bits(&s->gb, 32);
-//        if (get_bits_long(&s->gb, 32) != bswap_32(ff_get_fourcc("TTA1"))) {
+//        if (get_bits_long(&s->gb, 32) != av_bswap32(AV_RL32("TTA1"))) {
 //            av_log(s->avctx, AV_LOG_ERROR, "Missing magic\n");
 //            return -1;
 //        }
@@ -238,15 +246,15 @@ static av_cold int tta_decode_init(AVCodecContext * avctx)
 
         if (s->is_float)
         {
-            avctx->sample_fmt = SAMPLE_FMT_FLT;
+            avctx->sample_fmt = AV_SAMPLE_FMT_FLT;
             av_log(s->avctx, AV_LOG_ERROR, "Unsupported sample format. Please contact the developers.\n");
             return -1;
         }
         else switch(s->bps) {
-//            case 1: avctx->sample_fmt = SAMPLE_FMT_U8; break;
-            case 2: avctx->sample_fmt = SAMPLE_FMT_S16; break;
-//            case 3: avctx->sample_fmt = SAMPLE_FMT_S24; break;
-            case 4: avctx->sample_fmt = SAMPLE_FMT_S32; break;
+//            case 1: avctx->sample_fmt = AV_SAMPLE_FMT_U8; break;
+            case 2: avctx->sample_fmt = AV_SAMPLE_FMT_S16; break;
+//            case 3: avctx->sample_fmt = AV_SAMPLE_FMT_S24; break;
+            case 4: avctx->sample_fmt = AV_SAMPLE_FMT_S32; break;
             default:
                 av_log(s->avctx, AV_LOG_ERROR, "Invalid/unsupported sample format. Please contact the developers.\n");
                 return -1;
@@ -277,6 +285,9 @@ static av_cold int tta_decode_init(AVCodecContext * avctx)
         }
 
         s->decode_buffer = av_mallocz(sizeof(int32_t)*s->frame_length*s->channels);
+        s->ch_ctx = av_malloc(avctx->channels * sizeof(*s->ch_ctx));
+        if (!s->ch_ctx)
+            return AVERROR(ENOMEM);
     } else {
         av_log(avctx, AV_LOG_ERROR, "Wrong extradata present\n");
         return -1;
@@ -287,19 +298,22 @@ static av_cold int tta_decode_init(AVCodecContext * avctx)
 
 static int tta_decode_frame(AVCodecContext *avctx,
         void *data, int *data_size,
-        const uint8_t *buf, int buf_size)
+        AVPacket *avpkt)
 {
+    const uint8_t *buf = avpkt->data;
+    int buf_size = avpkt->size;
     TTAContext *s = avctx->priv_data;
     int i;
 
     init_get_bits(&s->gb, buf, buf_size*8);
     {
-        int32_t predictors[s->channels];
-        TTAFilter filters[s->channels];
-        TTARice rices[s->channels];
         int cur_chan = 0, framelen = s->frame_length;
         int32_t *p;
 
+        if (*data_size < (framelen * s->channels * 2)) {
+            av_log(avctx, AV_LOG_ERROR, "Output buffer size is too small.\n");
+            return -1;
+        }
         // FIXME: seeking
         s->total_frames--;
         if (!s->total_frames && s->last_frame_length)
@@ -307,15 +321,15 @@ static int tta_decode_frame(AVCodecContext *avctx,
 
         // init per channel states
         for (i = 0; i < s->channels; i++) {
-            predictors[i] = 0;
-            ttafilter_init(&(filters[i]), ttafilter_configs[s->bps-1][0], ttafilter_configs[s->bps-1][1]);
-            rice_init(&(rices[i]), 10, 10);
+            s->ch_ctx[i].predictor = 0;
+            ttafilter_init(&s->ch_ctx[i].filter, ttafilter_configs[s->bps-1][0], ttafilter_configs[s->bps-1][1]);
+            rice_init(&s->ch_ctx[i].rice, 10, 10);
         }
 
         for (p = s->decode_buffer; p < s->decode_buffer + (framelen * s->channels); p++) {
-            int32_t *predictor = &(predictors[cur_chan]);
-            TTAFilter *filter = &(filters[cur_chan]);
-            TTARice *rice = &(rices[cur_chan]);
+            int32_t *predictor = &s->ch_ctx[cur_chan].predictor;
+            TTAFilter *filter = &s->ch_ctx[cur_chan].filter;
+            TTARice *rice = &s->ch_ctx[cur_chan].rice;
             uint32_t unary, depth, k;
             int32_t value;
 
@@ -330,9 +344,14 @@ static int tta_decode_frame(AVCodecContext *avctx,
                 unary--;
             }
 
-            if (k)
+            if (get_bits_left(&s->gb) < k)
+                return -1;
+
+            if (k) {
+                if (k > MIN_CACHE_BITS)
+                    return -1;
                 value = (unary << k) + get_bits(&s->gb, k);
-            else
+            } else
                 value = unary;
 
             // FIXME: copy paste from original
@@ -402,6 +421,8 @@ static int tta_decode_frame(AVCodecContext *avctx,
             }
         }
 
+        if (get_bits_left(&s->gb) < 32)
+            return -1;
         skip_bits(&s->gb, 32); // frame crc
 
         // convert to output buffer
@@ -430,18 +451,19 @@ static av_cold int tta_decode_close(AVCodecContext *avctx) {
 
     if (s->decode_buffer)
         av_free(s->decode_buffer);
+    av_freep(&s->ch_ctx);
 
     return 0;
 }
 
 AVCodec tta_decoder = {
     "tta",
-    CODEC_TYPE_AUDIO,
+    AVMEDIA_TYPE_AUDIO,
     CODEC_ID_TTA,
     sizeof(TTAContext),
     tta_decode_init,
     NULL,
     tta_decode_close,
     tta_decode_frame,
-    .long_name = NULL_IF_CONFIG_SMALL("True Audio"),
+    .long_name = NULL_IF_CONFIG_SMALL("True Audio (TTA)"),
 };

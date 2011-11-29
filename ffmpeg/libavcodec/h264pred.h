@@ -20,7 +20,7 @@
  */
 
 /**
- * @file h264pred.h
+ * @file
  * H.264 / AVC / MPEG4 prediction functions.
  * @author Michael Niedermayer <michaelni@gmx.at>
  */
@@ -29,6 +29,7 @@
 #define AVCODEC_H264PRED_H
 
 #include "libavutil/common.h"
+#include "dsputil.h"
 
 /**
  * Prediction types
@@ -47,6 +48,8 @@
 #define LEFT_DC_PRED          9
 #define TOP_DC_PRED           10
 #define DC_128_PRED           11
+
+#define TM_VP8_PRED           9     ///< "True Motion", used instead of plane
 
 #define DIAG_DOWN_LEFT_PRED_RV40_NODOWN   12
 #define HOR_UP_PRED_RV40_NODOWN           13
@@ -71,12 +74,19 @@
  * Context for storing H.264 prediction functions
  */
 typedef struct H264PredContext{
-    void (*pred4x4  [9+3+3])(uint8_t *src, uint8_t *topright, int stride);//FIXME move to dsp?
+    void (*pred4x4  [9+3+3])(uint8_t *src, const uint8_t *topright, int stride);//FIXME move to dsp?
     void (*pred8x8l [9+3])(uint8_t *src, int topleft, int topright, int stride);
     void (*pred8x8  [4+3+4])(uint8_t *src, int stride);
     void (*pred16x16[4+3])(uint8_t *src, int stride);
+
+    void (*pred4x4_add  [2])(uint8_t *pix/*align  4*/, const DCTELEM *block/*align 16*/, int stride);
+    void (*pred8x8l_add [2])(uint8_t *pix/*align  8*/, const DCTELEM *block/*align 16*/, int stride);
+    void (*pred8x8_add  [3])(uint8_t *pix/*align  8*/, const int *block_offset, const DCTELEM *block/*align 16*/, int stride);
+    void (*pred16x16_add[3])(uint8_t *pix/*align 16*/, const int *block_offset, const DCTELEM *block/*align 16*/, int stride);
 }H264PredContext;
 
 void ff_h264_pred_init(H264PredContext *h, int codec_id);
+void ff_h264_pred_init_arm(H264PredContext *h, int codec_id);
+void ff_h264_pred_init_x86(H264PredContext *h, int codec_id);
 
 #endif /* AVCODEC_H264PRED_H */

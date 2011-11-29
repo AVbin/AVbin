@@ -28,6 +28,7 @@
 #include <libavformat/avformat.h>
 #include <libavcodec/avcodec.h>
 #include <libavutil/avutil.h>
+#include <libswscale/swscale.h>
 
 struct _AVbinFile {
     AVFormatContext *context;
@@ -55,7 +56,8 @@ static void avbin_log_callback(void *ptr,
     static char message[8192];
     const char *module = NULL;
 
-    if (level > av_log_level || !user_log_callback)
+//    if (level > av_log_level || !user_log_callback)
+    if (level > av_log_get_level() || !user_log_callback)
         return;
 
     if (ptr)
@@ -99,7 +101,8 @@ AVbinResult avbin_init()
 
 AVbinResult avbin_set_log_level(AVbinLogLevel level)
 {
-    av_log_level = level;
+    //av_log_level = level;
+    av_log_set_level(level);
     return AVBIN_RESULT_OK;
 }
 
@@ -118,10 +121,15 @@ AVbinResult avbin_set_log_callback(AVbinLogCallback callback)
     return AVBIN_RESULT_OK;
 }
 
-AVbinFile *avbin_open_filename(const char *filename)
+AVbinFile *avbin_open_filename(const char *filename) { return avbin_open_filename_with_format(filename, NULL); }
+
+AVbinFile *avbin_open_filename_with_format(const char *filename, char* format)
 {
     AVbinFile *file = malloc(sizeof *file);
-    if (av_open_input_file(&file->context, filename, NULL, 0, NULL) != 0)
+    AVInputFormat *avformat = NULL;
+    if (format) avformat = av_find_input_format(format);
+
+    if (av_open_input_file(&file->context, filename, avformat, 0, NULL) != 0)
         goto error;
 
     if (av_find_stream_info(file->context) < 0)
@@ -321,9 +329,14 @@ int avbin_decode_audio(AVbinStream *stream,
     if (stream->type != CODEC_TYPE_AUDIO)
         return AVBIN_RESULT_ERROR;
 
-    used = avcodec_decode_audio2(stream->codec_context, 
+    AVPacket packet;
+    av_init_packet(&packet);
+    packet.data = data_in;
+    packet.size = size_in;
+
+    used = avcodec_decode_audio3(stream->codec_context,
                                  (int16_t *) data_out, size_out,
-                                 data_in, size_in);
+                                 &packet);
 
     if (used < 0)
         return AVBIN_RESULT_ERROR;
@@ -344,9 +357,15 @@ int avbin_decode_video(AVbinStream *stream,
     if (stream->type != CODEC_TYPE_VIDEO)
         return AVBIN_RESULT_ERROR;
 
-    used = avcodec_decode_video(stream->codec_context, 
+    AVPacket packet;
+    av_init_packet(&packet);
+    packet.data = data_in;
+    packet.size = size_in;
+
+    used = avcodec_decode_video2(stream->codec_context,
                                 stream->frame, &got_picture,
-                                data_in, size_in);
+                                &packet);
+
     if (!got_picture)
         return AVBIN_RESULT_ERROR;
 
@@ -355,10 +374,16 @@ int avbin_decode_video(AVbinStream *stream,
 
     /* img_convert is marked deprecated in favour of swscale, don't
      * be surprised if this stops working the next time the ffmpeg version
-     * is pushed.  Example use of the new API is in ffplay.c. */
+     * is pushed.  Example use of the new API is in ffplay.c.
     img_convert(&picture_rgb, PIX_FMT_RGB24, 
                 (AVPicture *) stream->frame, stream->codec_context->pix_fmt,
                 width, height);
+ */
+
+    static struct SwsContext *img_convert_ctx = NULL;
+
+    img_convert_ctx = sws_getCachedContext(img_convert_ctx,width, height,stream->codec_context->pix_fmt,width, height,PIX_FMT_RGB24, SWS_FAST_BILINEAR, NULL, NULL, NULL);
+    sws_scale(img_convert_ctx, stream->frame->data, stream->frame->linesize,0, height, picture_rgb.data, picture_rgb.linesize);
     
     return used;
 }

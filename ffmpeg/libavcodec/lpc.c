@@ -27,6 +27,68 @@
 
 
 /**
+ * Apply Welch window function to audio block
+ */
+static void apply_welch_window(const int32_t *data, int len, double *w_data)
+{
+    int i, n2;
+    double w;
+    double c;
+
+    assert(!(len&1)); //the optimization in r11881 does not support odd len
+                      //if someone wants odd len extend the change in r11881
+
+    n2 = (len >> 1);
+    c = 2.0 / (len - 1.0);
+
+    w_data+=n2;
+      data+=n2;
+    for(i=0; i<n2; i++) {
+        w = c - n2 + i;
+        w = 1.0 - (w * w);
+        w_data[-i-1] = data[-i-1] * w;
+        w_data[+i  ] = data[+i  ] * w;
+    }
+}
+
+/**
+ * Calculate autocorrelation data from audio samples
+ * A Welch window function is applied before calculation.
+ */
+void ff_lpc_compute_autocorr(const int32_t *data, int len, int lag,
+                             double *autoc)
+{
+    int i, j;
+    double tmp[len + lag + 1];
+    double *data1= tmp + lag;
+
+    apply_welch_window(data, len, data1);
+
+    for(j=0; j<lag; j++)
+        data1[j-lag]= 0.0;
+    data1[len] = 0.0;
+
+    for(j=0; j<lag; j+=2){
+        double sum0 = 1.0, sum1 = 1.0;
+        for(i=j; i<len; i++){
+            sum0 += data1[i] * data1[i-j];
+            sum1 += data1[i] * data1[i-j-1];
+        }
+        autoc[j  ] = sum0;
+        autoc[j+1] = sum1;
+    }
+
+    if(j==lag){
+        double sum = 1.0;
+        for(i=j-1; i<len; i+=2){
+            sum += data1[i  ] * data1[i-j  ]
+                 + data1[i+1] * data1[i-j+1];
+        }
+        autoc[j] = sum;
+    }
+}
+
+/**
  * Quantize LPC coefficients
  */
 static void quantize_lpc_coefs(double *lpc_in, int order, int precision,
@@ -94,11 +156,17 @@ static int estimate_best_order(double *ref, int min_order, int max_order)
 
 /**
  * Calculate LPC coefficients for multiple orders
+ *
+ * @param use_lpc LPC method for determining coefficients
+ * 0  = LPC with fixed pre-defined coeffs
+ * 1  = LPC with coeffs determined by Levinson-Durbin recursion
+ * 2+ = LPC with coeffs determined by Cholesky factorization using (use_lpc-1) passes.
  */
 int ff_lpc_calc_coefs(DSPContext *s,
                       const int32_t *samples, int blocksize, int min_order,
                       int max_order, int precision,
-                      int32_t coefs[][MAX_LPC_ORDER], int *shift, int use_lpc,
+                      int32_t coefs[][MAX_LPC_ORDER], int *shift,
+                      enum AVLPCType lpc_type, int lpc_passes,
                       int omethod, int max_shift, int zero_shift)
 {
     double autoc[MAX_LPC_ORDER+1];
@@ -107,20 +175,21 @@ int ff_lpc_calc_coefs(DSPContext *s,
     int i, j, pass;
     int opt_order;
 
-    assert(max_order >= MIN_LPC_ORDER && max_order <= MAX_LPC_ORDER);
+    assert(max_order >= MIN_LPC_ORDER && max_order <= MAX_LPC_ORDER &&
+           lpc_type > AV_LPC_TYPE_FIXED);
 
-    if(use_lpc == 1){
-        s->flac_compute_autocorr(samples, blocksize, max_order, autoc);
+    if (lpc_type == AV_LPC_TYPE_LEVINSON) {
+        s->lpc_compute_autocorr(samples, blocksize, max_order, autoc);
 
         compute_lpc_coefs(autoc, max_order, &lpc[0][0], MAX_LPC_ORDER, 0, 1);
 
         for(i=0; i<max_order; i++)
             ref[i] = fabs(lpc[i][i]);
-    }else{
+    } else if (lpc_type == AV_LPC_TYPE_CHOLESKY) {
         LLSModel m[2];
-        double var[MAX_LPC_ORDER+1], weight;
+        double var[MAX_LPC_ORDER+1], av_uninit(weight);
 
-        for(pass=0; pass<use_lpc-1; pass++){
+        for(pass=0; pass<lpc_passes; pass++){
             av_init_lls(&m[pass&1], max_order);
 
             weight=0;

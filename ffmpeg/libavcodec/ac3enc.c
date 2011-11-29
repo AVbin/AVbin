@@ -1,6 +1,6 @@
 /*
  * The simplest AC-3 encoder
- * Copyright (c) 2000 Fabrice Bellard.
+ * Copyright (c) 2000 Fabrice Bellard
  *
  * This file is part of FFmpeg.
  *
@@ -20,21 +20,25 @@
  */
 
 /**
- * @file ac3enc.c
+ * @file
  * The simplest AC-3 encoder.
  */
 //#define DEBUG
 //#define DEBUG_BITALLOC
+#include "libavcore/audioconvert.h"
 #include "libavutil/crc.h"
 #include "avcodec.h"
-#include "bitstream.h"
+#include "libavutil/common.h" /* for av_reverse */
+#include "put_bits.h"
 #include "ac3.h"
+#include "audioconvert.h"
 
 typedef struct AC3EncodeContext {
     PutBitContext pb;
     int nb_channels;
     int nb_all_channels;
     int lfe_channel;
+    const uint8_t *channel_map;
     int bit_rate;
     unsigned int sample_rate;
     unsigned int bitstream_id;
@@ -88,7 +92,7 @@ typedef struct IComplex {
     short re,im;
 } IComplex;
 
-static void fft_init(int ln)
+static av_cold void fft_init(int ln)
 {
     int i, n;
     float alpha;
@@ -116,8 +120,6 @@ static void fft_init(int ln)
   qim = (by - ay) >> 1;\
 }
 
-#define MUL16(a,b) ((a) * (b))
-
 #define CMUL(pre, pim, are, aim, bre, bim) \
 {\
    pre = (MUL16(are, bre) - MUL16(aim, bim)) >> 15;\
@@ -137,7 +139,7 @@ static void fft(IComplex *z, int ln)
 
     /* reverse */
     for(j=0;j<np;j++) {
-        int k = ff_reverse[j] >> (8 - ln);
+        int k = av_reverse[j] >> (8 - ln);
         if (k < j)
             FFSWAP(IComplex, z[k], z[j]);
     }
@@ -249,9 +251,7 @@ static void compute_exp_strategy(uint8_t exp_strategy[NB_BLOCKS][AC3_MAX_CHANNEL
     exp_strategy[0][ch] = EXP_NEW;
     for(i=1;i<NB_BLOCKS;i++) {
         exp_diff = calc_exp_diff(exp[i][ch], exp[i-1][ch], N/2);
-#ifdef DEBUG
-        av_log(NULL, AV_LOG_DEBUG, "exp_diff=%d\n", exp_diff);
-#endif
+        dprintf(NULL, "exp_diff=%d\n", exp_diff);
         if (exp_diff > EXP_DIFF_THRESHOLD)
             exp_strategy[i][ch] = EXP_NEW;
         else
@@ -609,36 +609,72 @@ static int compute_bit_allocation(AC3EncodeContext *s,
     return 0;
 }
 
+static av_cold int set_channel_info(AC3EncodeContext *s, int channels,
+                                    int64_t *channel_layout)
+{
+    int ch_layout;
+
+    if (channels < 1 || channels > AC3_MAX_CHANNELS)
+        return -1;
+    if ((uint64_t)*channel_layout > 0x7FF)
+        return -1;
+    ch_layout = *channel_layout;
+    if (!ch_layout)
+        ch_layout = avcodec_guess_channel_layout(channels, CODEC_ID_AC3, NULL);
+    if (av_get_channel_layout_nb_channels(ch_layout) != channels)
+        return -1;
+
+    s->lfe = !!(ch_layout & AV_CH_LOW_FREQUENCY);
+    s->nb_all_channels = channels;
+    s->nb_channels = channels - s->lfe;
+    s->lfe_channel = s->lfe ? s->nb_channels : -1;
+    if (s->lfe)
+        ch_layout -= AV_CH_LOW_FREQUENCY;
+
+    switch (ch_layout) {
+    case AV_CH_LAYOUT_MONO:           s->channel_mode = AC3_CHMODE_MONO;   break;
+    case AV_CH_LAYOUT_STEREO:         s->channel_mode = AC3_CHMODE_STEREO; break;
+    case AV_CH_LAYOUT_SURROUND:       s->channel_mode = AC3_CHMODE_3F;     break;
+    case AV_CH_LAYOUT_2_1:            s->channel_mode = AC3_CHMODE_2F1R;   break;
+    case AV_CH_LAYOUT_4POINT0:        s->channel_mode = AC3_CHMODE_3F1R;   break;
+    case AV_CH_LAYOUT_QUAD:
+    case AV_CH_LAYOUT_2_2:            s->channel_mode = AC3_CHMODE_2F2R;   break;
+    case AV_CH_LAYOUT_5POINT0:
+    case AV_CH_LAYOUT_5POINT0_BACK:   s->channel_mode = AC3_CHMODE_3F2R;   break;
+    default:
+        return -1;
+    }
+
+    s->channel_map = ff_ac3_enc_channel_map[s->channel_mode][s->lfe];
+    *channel_layout = ch_layout;
+    if (s->lfe)
+        *channel_layout |= AV_CH_LOW_FREQUENCY;
+
+    return 0;
+}
+
 static av_cold int AC3_encode_init(AVCodecContext *avctx)
 {
     int freq = avctx->sample_rate;
     int bitrate = avctx->bit_rate;
-    int channels = avctx->channels;
     AC3EncodeContext *s = avctx->priv_data;
     int i, j, ch;
     float alpha;
     int bw_code;
-    static const uint8_t channel_mode_defs[6] = {
-        0x01, /* C */
-        0x02, /* L R */
-        0x03, /* L C R */
-        0x06, /* L R SL SR */
-        0x07, /* L C R SL SR */
-        0x07, /* L C R SL SR (+LFE) */
-    };
 
     avctx->frame_size = AC3_FRAME_SIZE;
 
     ac3_common_init();
 
-    /* number of channels */
-    if (channels < 1 || channels > 6)
+    if (!avctx->channel_layout) {
+        av_log(avctx, AV_LOG_WARNING, "No channel layout specified. The "
+                                      "encoder will guess the layout, but it "
+                                      "might be incorrect.\n");
+    }
+    if (set_channel_info(s, avctx->channels, &avctx->channel_layout)) {
+        av_log(avctx, AV_LOG_ERROR, "invalid channel layout\n");
         return -1;
-    s->channel_mode = channel_mode_defs[channels - 1];
-    s->lfe = (channels == 6) ? 1 : 0;
-    s->nb_all_channels = channels;
-    s->nb_channels = channels > 5 ? 5 : channels;
-    s->lfe_channel = s->lfe ? 5 : -1;
+    }
 
     /* frequency */
     for(i=0;i<3;i++) {
@@ -1118,22 +1154,22 @@ static int output_frame_end(AC3EncodeContext *s)
     flush_put_bits(&s->pb);
     /* add zero bytes to reach the frame size */
     frame = s->pb.buf;
-    n = 2 * s->frame_size - (pbBufPtr(&s->pb) - frame) - 2;
+    n = 2 * s->frame_size - (put_bits_ptr(&s->pb) - frame) - 2;
     assert(n >= 0);
     if(n>0)
-      memset(pbBufPtr(&s->pb), 0, n);
+      memset(put_bits_ptr(&s->pb), 0, n);
 
     /* Now we must compute both crcs : this is not so easy for crc1
        because it is at the beginning of the data... */
     frame_size_58 = (frame_size >> 1) + (frame_size >> 3);
-    crc1 = bswap_16(av_crc(av_crc_get_table(AV_CRC_16_ANSI), 0,
+    crc1 = av_bswap16(av_crc(av_crc_get_table(AV_CRC_16_ANSI), 0,
                            frame + 4, 2 * frame_size_58 - 4));
     /* XXX: could precompute crc_inv */
     crc_inv = pow_poly((CRC16_POLY >> 1), (16 * frame_size_58) - 16, CRC16_POLY);
     crc1 = mul_poly(crc_inv, crc1, CRC16_POLY);
     AV_WB16(frame+2,crc1);
 
-    crc2 = bswap_16(av_crc(av_crc_get_table(AV_CRC_16_ANSI), 0,
+    crc2 = av_bswap16(av_crc(av_crc_get_table(AV_CRC_16_ANSI), 0,
                            frame + 2 * frame_size_58,
                            (frame_size - frame_size_58) * 2 - 2));
     AV_WB16(frame+2*frame_size-2,crc2);
@@ -1146,7 +1182,7 @@ static int AC3_encode_frame(AVCodecContext *avctx,
                             unsigned char *frame, int buf_size, void *data)
 {
     AC3EncodeContext *s = avctx->priv_data;
-    int16_t *samples = data;
+    const int16_t *samples = data;
     int i, j, k, v, ch;
     int16_t input_samples[N];
     int32_t mdct_coef[NB_BLOCKS][AC3_MAX_CHANNELS][N/2];
@@ -1159,19 +1195,20 @@ static int AC3_encode_frame(AVCodecContext *avctx,
 
     frame_bits = 0;
     for(ch=0;ch<s->nb_all_channels;ch++) {
+        int ich = s->channel_map[ch];
         /* fixed mdct to the six sub blocks & exponent computation */
         for(i=0;i<NB_BLOCKS;i++) {
-            int16_t *sptr;
+            const int16_t *sptr;
             int sinc;
 
             /* compute input samples */
-            memcpy(input_samples, s->last_samples[ch], N/2 * sizeof(int16_t));
+            memcpy(input_samples, s->last_samples[ich], N/2 * sizeof(int16_t));
             sinc = s->nb_all_channels;
-            sptr = samples + (sinc * (N/2) * i) + ch;
+            sptr = samples + (sinc * (N/2) * i) + ich;
             for(j=0;j<N/2;j++) {
                 v = *sptr;
                 input_samples[j + N/2] = v;
-                s->last_samples[ch][j] = v;
+                s->last_samples[ich][j] = v;
                 sptr += sinc;
             }
 
@@ -1357,13 +1394,33 @@ void test_ac3(void)
 
 AVCodec ac3_encoder = {
     "ac3",
-    CODEC_TYPE_AUDIO,
+    AVMEDIA_TYPE_AUDIO,
     CODEC_ID_AC3,
     sizeof(AC3EncodeContext),
     AC3_encode_init,
     AC3_encode_frame,
     AC3_encode_close,
     NULL,
-    .sample_fmts = (enum SampleFormat[]){SAMPLE_FMT_S16,SAMPLE_FMT_NONE},
+    .sample_fmts = (const enum AVSampleFormat[]){AV_SAMPLE_FMT_S16,AV_SAMPLE_FMT_NONE},
     .long_name = NULL_IF_CONFIG_SMALL("ATSC A/52A (AC-3)"),
+    .channel_layouts = (const int64_t[]){
+        AV_CH_LAYOUT_MONO,
+        AV_CH_LAYOUT_STEREO,
+        AV_CH_LAYOUT_2_1,
+        AV_CH_LAYOUT_SURROUND,
+        AV_CH_LAYOUT_2_2,
+        AV_CH_LAYOUT_QUAD,
+        AV_CH_LAYOUT_4POINT0,
+        AV_CH_LAYOUT_5POINT0,
+        AV_CH_LAYOUT_5POINT0_BACK,
+       (AV_CH_LAYOUT_MONO     | AV_CH_LOW_FREQUENCY),
+       (AV_CH_LAYOUT_STEREO   | AV_CH_LOW_FREQUENCY),
+       (AV_CH_LAYOUT_2_1      | AV_CH_LOW_FREQUENCY),
+       (AV_CH_LAYOUT_SURROUND | AV_CH_LOW_FREQUENCY),
+       (AV_CH_LAYOUT_2_2      | AV_CH_LOW_FREQUENCY),
+       (AV_CH_LAYOUT_QUAD     | AV_CH_LOW_FREQUENCY),
+       (AV_CH_LAYOUT_4POINT0  | AV_CH_LOW_FREQUENCY),
+        AV_CH_LAYOUT_5POINT1,
+        AV_CH_LAYOUT_5POINT1_BACK,
+        0 },
 };

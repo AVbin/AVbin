@@ -24,9 +24,15 @@
 #include "isom.h"
 #include "matroska.h"
 #include "avc.h"
-#include "libavutil/md5.h"
+#include "flacenc.h"
+#include "avlanguage.h"
+#include "libavcore/samplefmt.h"
+#include "libavutil/intreadwrite.h"
+#include "libavutil/random_seed.h"
+#include "libavutil/lfg.h"
 #include "libavcodec/xiph.h"
 #include "libavcodec/mpeg4audio.h"
+#include <strings.h>
 
 typedef struct ebml_master {
     int64_t         pos;                ///< absolute offset in the file where the master's elements start
@@ -59,20 +65,29 @@ typedef struct {
     int             num_entries;
 } mkv_cues;
 
+typedef struct {
+    int             write_dts;
+} mkv_track;
+
+#define MODE_MATROSKAv2 0x01
+#define MODE_WEBM       0x02
+
 typedef struct MatroskaMuxContext {
+    int             mode;
+    ByteIOContext   *dyn_bc;
     ebml_master     segment;
     int64_t         segment_offset;
-    int64_t         segment_uid;
     ebml_master     cluster;
     int64_t         cluster_pos;        ///< file offset of the current cluster
-    uint64_t        cluster_pts;
+    int64_t         cluster_pts;
     int64_t         duration_offset;
-    uint64_t        duration;
+    int64_t         duration;
     mkv_seekhead    *main_seekhead;
-    mkv_seekhead    *cluster_seekhead;
     mkv_cues        *cues;
+    mkv_track       *tracks;
 
-    struct AVMD5    *md5_ctx;
+    unsigned int    audio_buffer_size;
+    AVPacket        cur_audio_pkt;
 } MatroskaMuxContext;
 
 
@@ -168,7 +183,7 @@ static void put_ebml_float(ByteIOContext *pb, unsigned int elementid, double val
 }
 
 static void put_ebml_binary(ByteIOContext *pb, unsigned int elementid,
-                            const uint8_t *buf, int size)
+                            const void *buf, int size)
 {
     put_ebml_id(pb, elementid);
     put_ebml_num(pb, size, 0);
@@ -181,7 +196,7 @@ static void put_ebml_string(ByteIOContext *pb, unsigned int elementid, const cha
 }
 
 /**
- * Writes a void element of a given size. Useful for reserving space in
+ * Write a void element of a given size. Useful for reserving space in
  * the file to be written to later.
  *
  * @param size The number of bytes to reserve, which must be at least 2.
@@ -216,11 +231,8 @@ static void end_ebml_master(ByteIOContext *pb, ebml_master master)
 {
     int64_t pos = url_ftell(pb);
 
-    // leave the unknown size for masters when streaming
-    if (url_is_streamed(pb))
+    if (url_fseek(pb, master.pos - master.sizebytes, SEEK_SET) < 0)
         return;
-
-    url_fseek(pb, master.pos - master.sizebytes, SEEK_SET);
     put_ebml_num(pb, pos - master.pos, master.sizebytes);
     url_fseek(pb, pos, SEEK_SET);
 }
@@ -289,7 +301,8 @@ static int mkv_add_seekhead_entry(mkv_seekhead *seekhead, unsigned int elementid
  * be written at the location reserved for it. Otherwise, it is written
  * at the current location in the file.
  *
- * @return The file offset where the seekhead was written.
+ * @return The file offset where the seekhead was written,
+ * -1 if an error occurred.
  */
 static int64_t mkv_write_seekhead(ByteIOContext *pb, mkv_seekhead *seekhead)
 {
@@ -300,7 +313,8 @@ static int64_t mkv_write_seekhead(ByteIOContext *pb, mkv_seekhead *seekhead)
     currentpos = url_ftell(pb);
 
     if (seekhead->reserved_size > 0)
-        url_fseek(pb, seekhead->filepos, SEEK_SET);
+        if (url_fseek(pb, seekhead->filepos, SEEK_SET) < 0)
+            return -1;
 
     metaseek = start_ebml_master(pb, MATROSKA_ID_SEEKHEAD, seekhead->reserved_size);
     for (i = 0; i < seekhead->num_entries; i++) {
@@ -340,7 +354,7 @@ static mkv_cues * mkv_start_cues(int64_t segment_offset)
     return cues;
 }
 
-static int mkv_add_cuepoint(mkv_cues *cues, AVPacket *pkt, int64_t cluster_pos)
+static int mkv_add_cuepoint(mkv_cues *cues, int stream, int64_t ts, int64_t cluster_pos)
 {
     mkv_cuepoint *entries = cues->entries;
 
@@ -348,8 +362,11 @@ static int mkv_add_cuepoint(mkv_cues *cues, AVPacket *pkt, int64_t cluster_pos)
     if (entries == NULL)
         return AVERROR(ENOMEM);
 
-    entries[cues->num_entries  ].pts = pkt->pts;
-    entries[cues->num_entries  ].tracknum = pkt->stream_index + 1;
+    if (ts < 0)
+        return 0;
+
+    entries[cues->num_entries  ].pts = ts;
+    entries[cues->num_entries  ].tracknum = stream + 1;
     entries[cues->num_entries++].cluster_pos = cluster_pos - cues->segment_offset;
 
     cues->entries = entries;
@@ -419,28 +436,6 @@ static int put_xiph_codecpriv(AVFormatContext *s, ByteIOContext *pb, AVCodecCont
     return 0;
 }
 
-#define FLAC_STREAMINFO_SIZE 34
-
-static int put_flac_codecpriv(AVFormatContext *s, ByteIOContext *pb, AVCodecContext *codec)
-{
-    // if the extradata_size is greater than FLAC_STREAMINFO_SIZE,
-    // assume that it's in Matroska format already
-    if (codec->extradata_size < FLAC_STREAMINFO_SIZE) {
-        av_log(s, AV_LOG_ERROR, "Invalid FLAC extradata\n");
-        return -1;
-    } else if (codec->extradata_size == FLAC_STREAMINFO_SIZE) {
-        // only the streaminfo packet
-        put_buffer(pb, "fLaC", 4);
-        put_byte(pb, 0x80);
-        put_be24(pb, FLAC_STREAMINFO_SIZE);
-    } else if(memcmp("fLaC", codec->extradata, 4)) {
-        av_log(s, AV_LOG_ERROR, "Invalid FLAC extradata\n");
-        return -1;
-    }
-    put_buffer(pb, codec->extradata, codec->extradata_size);
-    return 0;
-}
-
 static void get_aac_sample_rates(AVFormatContext *s, AVCodecContext *codec, int *sample_rate, int *output_sample_rate)
 {
     int sri;
@@ -482,37 +477,39 @@ static int mkv_write_codecprivate(AVFormatContext *s, ByteIOContext *pb, AVCodec
         if (codec->codec_id == CODEC_ID_VORBIS || codec->codec_id == CODEC_ID_THEORA)
             ret = put_xiph_codecpriv(s, dyn_cp, codec);
         else if (codec->codec_id == CODEC_ID_FLAC)
-            ret = put_flac_codecpriv(s, dyn_cp, codec);
+            ret = ff_flac_write_header(dyn_cp, codec, 1);
         else if (codec->codec_id == CODEC_ID_H264)
             ret = ff_isom_write_avcc(dyn_cp, codec->extradata, codec->extradata_size);
         else if (codec->extradata_size)
             put_buffer(dyn_cp, codec->extradata, codec->extradata_size);
-    } else if (codec->codec_type == CODEC_TYPE_VIDEO) {
+    } else if (codec->codec_type == AVMEDIA_TYPE_VIDEO) {
         if (qt_id) {
             if (!codec->codec_tag)
-                codec->codec_tag = codec_get_tag(codec_movvideo_tags, codec->codec_id);
+                codec->codec_tag = ff_codec_get_tag(codec_movvideo_tags, codec->codec_id);
             if (codec->extradata_size)
                 put_buffer(dyn_cp, codec->extradata, codec->extradata_size);
         } else {
-        if (!codec->codec_tag)
-            codec->codec_tag = codec_get_tag(codec_bmp_tags, codec->codec_id);
-        if (!codec->codec_tag) {
-            av_log(s, AV_LOG_ERROR, "No bmp codec ID found.");
+            if (!codec->codec_tag)
+                codec->codec_tag = ff_codec_get_tag(ff_codec_bmp_tags, codec->codec_id);
+            if (!codec->codec_tag) {
+                av_log(s, AV_LOG_ERROR, "No bmp codec ID found.\n");
+                ret = -1;
+            }
+
+            ff_put_bmp_header(dyn_cp, codec, ff_codec_bmp_tags, 0);
+        }
+
+    } else if (codec->codec_type == AVMEDIA_TYPE_AUDIO) {
+        unsigned int tag;
+        tag = ff_codec_get_tag(ff_codec_wav_tags, codec->codec_id);
+        if (!tag) {
+            av_log(s, AV_LOG_ERROR, "No wav codec ID found.\n");
             ret = -1;
         }
-
-        put_bmp_header(dyn_cp, codec, codec_bmp_tags, 0);
-        }
-
-    } else if (codec->codec_type == CODEC_TYPE_AUDIO) {
         if (!codec->codec_tag)
-            codec->codec_tag = codec_get_tag(codec_wav_tags, codec->codec_id);
-        if (!codec->codec_tag) {
-            av_log(s, AV_LOG_ERROR, "No wav codec ID found.");
-            ret = -1;
-        }
+            codec->codec_tag = tag;
 
-        put_wav_header(dyn_cp, codec);
+        ff_put_wav_header(dyn_cp, codec);
     }
 
     codecpriv_size = url_close_dyn_buf(dyn_cp, &codecpriv);
@@ -542,9 +539,10 @@ static int mkv_write_tracks(AVFormatContext *s)
         int bit_depth = av_get_bits_per_sample(codec->codec_id);
         int sample_rate = codec->sample_rate;
         int output_sample_rate = 0;
+        AVMetadataTag *tag;
 
         if (!bit_depth)
-            bit_depth = av_get_bits_per_sample_format(codec->sample_fmt);
+            bit_depth = av_get_bits_per_sample_fmt(codec->sample_fmt);
 
         if (codec->codec_id == CODEC_ID_AAC)
             get_aac_sample_rates(s, codec, &sample_rate, &output_sample_rate);
@@ -554,12 +552,13 @@ static int mkv_write_tracks(AVFormatContext *s)
         put_ebml_uint (pb, MATROSKA_ID_TRACKUID        , i + 1);
         put_ebml_uint (pb, MATROSKA_ID_TRACKFLAGLACING , 0);    // no lacing (yet)
 
-        if (st->language[0])
-            put_ebml_string(pb, MATROSKA_ID_TRACKLANGUAGE, st->language);
-        else
-            put_ebml_string(pb, MATROSKA_ID_TRACKLANGUAGE, "und");
+        if ((tag = av_metadata_get(st->metadata, "title", NULL, 0)))
+            put_ebml_string(pb, MATROSKA_ID_TRACKNAME, tag->value);
+        tag = av_metadata_get(st->metadata, "language", NULL, 0);
+        put_ebml_string(pb, MATROSKA_ID_TRACKLANGUAGE, tag ? tag->value:"und");
 
-        put_ebml_uint(pb, MATROSKA_ID_TRACKFLAGDEFAULT, !!(st->disposition & AV_DISPOSITION_DEFAULT));
+        if (st->disposition)
+            put_ebml_uint(pb, MATROSKA_ID_TRACKFLAGDEFAULT, !!(st->disposition & AV_DISPOSITION_DEFAULT));
 
         // look for a codec ID string specific to mkv to use,
         // if none are found, use AVI codes
@@ -571,13 +570,21 @@ static int mkv_write_tracks(AVFormatContext *s)
             }
         }
 
+        if (mkv->mode == MODE_WEBM && !(codec->codec_id == CODEC_ID_VP8 ||
+                                        codec->codec_id == CODEC_ID_VORBIS)) {
+            av_log(s, AV_LOG_ERROR,
+                   "Only VP8 video and Vorbis audio are supported for WebM.\n");
+            return AVERROR(EINVAL);
+        }
+
         switch (codec->codec_type) {
-            case CODEC_TYPE_VIDEO:
+            case AVMEDIA_TYPE_VIDEO:
                 put_ebml_uint(pb, MATROSKA_ID_TRACKTYPE, MATROSKA_TRACK_TYPE_VIDEO);
+                put_ebml_uint(pb, MATROSKA_ID_TRACKDEFAULTDURATION, av_q2d(codec->time_base)*1E9);
 
                 if (!native_id &&
-                      codec_get_tag(codec_movvideo_tags, codec->codec_id) &&
-                    (!codec_get_tag(codec_bmp_tags,      codec->codec_id)
+                      ff_codec_get_tag(codec_movvideo_tags, codec->codec_id) &&
+                    (!ff_codec_get_tag(ff_codec_bmp_tags,   codec->codec_id)
                      || codec->codec_id == CODEC_ID_SVQ1
                      || codec->codec_id == CODEC_ID_SVQ3
                      || codec->codec_id == CODEC_ID_CINEPAK))
@@ -585,9 +592,11 @@ static int mkv_write_tracks(AVFormatContext *s)
 
                 if (qt_id)
                     put_ebml_string(pb, MATROSKA_ID_CODECID, "V_QUICKTIME");
-                else if (!native_id)
+                else if (!native_id) {
                     // if there is no mkv-specific codec ID, use VFW mode
                     put_ebml_string(pb, MATROSKA_ID_CODECID, "V_MS/VFW/FOURCC");
+                    mkv->tracks[i].write_dts = 1;
+                }
 
                 subinfo = start_ebml_master(pb, MATROSKA_ID_TRACKVIDEO, 0);
                 // XXX: interlace flag?
@@ -597,11 +606,12 @@ static int mkv_write_tracks(AVFormatContext *s)
                     int d_width = codec->width*av_q2d(st->sample_aspect_ratio);
                     put_ebml_uint(pb, MATROSKA_ID_VIDEODISPLAYWIDTH , d_width);
                     put_ebml_uint(pb, MATROSKA_ID_VIDEODISPLAYHEIGHT, codec->height);
+                    put_ebml_uint(pb, MATROSKA_ID_VIDEODISPLAYUNIT, 3);
                 }
                 end_ebml_master(pb, subinfo);
                 break;
 
-            case CODEC_TYPE_AUDIO:
+            case AVMEDIA_TYPE_AUDIO:
                 put_ebml_uint(pb, MATROSKA_ID_TRACKTYPE, MATROSKA_TRACK_TYPE_AUDIO);
 
                 if (!native_id)
@@ -618,7 +628,7 @@ static int mkv_write_tracks(AVFormatContext *s)
                 end_ebml_master(pb, subinfo);
                 break;
 
-            case CODEC_TYPE_SUBTITLE:
+            case AVMEDIA_TYPE_SUBTITLE:
                 put_ebml_uint(pb, MATROSKA_ID_TRACKTYPE, MATROSKA_TRACK_TYPE_SUBTITLE);
                 break;
             default:
@@ -637,22 +647,167 @@ static int mkv_write_tracks(AVFormatContext *s)
     return 0;
 }
 
+static int mkv_write_chapters(AVFormatContext *s)
+{
+    MatroskaMuxContext *mkv = s->priv_data;
+    ByteIOContext *pb = s->pb;
+    ebml_master chapters, editionentry;
+    AVRational scale = {1, 1E9};
+    int i, ret;
+
+    if (!s->nb_chapters)
+        return 0;
+
+    ret = mkv_add_seekhead_entry(mkv->main_seekhead, MATROSKA_ID_CHAPTERS, url_ftell(pb));
+    if (ret < 0) return ret;
+
+    chapters     = start_ebml_master(pb, MATROSKA_ID_CHAPTERS    , 0);
+    editionentry = start_ebml_master(pb, MATROSKA_ID_EDITIONENTRY, 0);
+    put_ebml_uint(pb, MATROSKA_ID_EDITIONFLAGDEFAULT, 1);
+    put_ebml_uint(pb, MATROSKA_ID_EDITIONFLAGHIDDEN , 0);
+    for (i = 0; i < s->nb_chapters; i++) {
+        ebml_master chapteratom, chapterdisplay;
+        AVChapter *c     = s->chapters[i];
+        AVMetadataTag *t = NULL;
+
+        chapteratom = start_ebml_master(pb, MATROSKA_ID_CHAPTERATOM, 0);
+        put_ebml_uint(pb, MATROSKA_ID_CHAPTERUID, c->id);
+        put_ebml_uint(pb, MATROSKA_ID_CHAPTERTIMESTART,
+                      av_rescale_q(c->start, c->time_base, scale));
+        put_ebml_uint(pb, MATROSKA_ID_CHAPTERTIMEEND,
+                      av_rescale_q(c->end,   c->time_base, scale));
+        put_ebml_uint(pb, MATROSKA_ID_CHAPTERFLAGHIDDEN , 0);
+        put_ebml_uint(pb, MATROSKA_ID_CHAPTERFLAGENABLED, 1);
+        if ((t = av_metadata_get(c->metadata, "title", NULL, 0))) {
+            chapterdisplay = start_ebml_master(pb, MATROSKA_ID_CHAPTERDISPLAY, 0);
+            put_ebml_string(pb, MATROSKA_ID_CHAPSTRING, t->value);
+            put_ebml_string(pb, MATROSKA_ID_CHAPLANG  , "und");
+            end_ebml_master(pb, chapterdisplay);
+        }
+        end_ebml_master(pb, chapteratom);
+    }
+    end_ebml_master(pb, editionentry);
+    end_ebml_master(pb, chapters);
+    return 0;
+}
+
+static void mkv_write_simpletag(ByteIOContext *pb, AVMetadataTag *t)
+{
+    uint8_t *key = av_strdup(t->key);
+    uint8_t *p   = key;
+    const uint8_t *lang = NULL;
+    ebml_master tag;
+
+    if ((p = strrchr(p, '-')) &&
+        (lang = av_convert_lang_to(p + 1, AV_LANG_ISO639_2_BIBL)))
+        *p = 0;
+
+    p = key;
+    while (*p) {
+        if (*p == ' ')
+            *p = '_';
+        else if (*p >= 'a' && *p <= 'z')
+            *p -= 'a' - 'A';
+        p++;
+    }
+
+    tag = start_ebml_master(pb, MATROSKA_ID_SIMPLETAG, 0);
+    put_ebml_string(pb, MATROSKA_ID_TAGNAME, key);
+    if (lang)
+        put_ebml_string(pb, MATROSKA_ID_TAGLANG, lang);
+    put_ebml_string(pb, MATROSKA_ID_TAGSTRING, t->value);
+    end_ebml_master(pb, tag);
+
+    av_freep(&key);
+}
+
+static int mkv_write_tag(AVFormatContext *s, AVMetadata *m, unsigned int elementid,
+                         unsigned int uid, ebml_master *tags)
+{
+    MatroskaMuxContext *mkv = s->priv_data;
+    ebml_master tag, targets;
+    AVMetadataTag *t = NULL;
+    int ret;
+
+    if (!tags->pos) {
+        ret = mkv_add_seekhead_entry(mkv->main_seekhead, MATROSKA_ID_TAGS, url_ftell(s->pb));
+        if (ret < 0) return ret;
+
+        *tags = start_ebml_master(s->pb, MATROSKA_ID_TAGS, 0);
+    }
+
+    tag     = start_ebml_master(s->pb, MATROSKA_ID_TAG,        0);
+    targets = start_ebml_master(s->pb, MATROSKA_ID_TAGTARGETS, 0);
+    if (elementid)
+        put_ebml_uint(s->pb, elementid, uid);
+    end_ebml_master(s->pb, targets);
+
+    while ((t = av_metadata_get(m, "", t, AV_METADATA_IGNORE_SUFFIX)))
+        if (strcasecmp(t->key, "title"))
+            mkv_write_simpletag(s->pb, t);
+
+    end_ebml_master(s->pb, tag);
+    return 0;
+}
+
+static int mkv_write_tags(AVFormatContext *s)
+{
+    ebml_master tags = {0};
+    int i, ret;
+
+    ff_metadata_conv_ctx(s, ff_mkv_metadata_conv, NULL);
+
+    if (av_metadata_get(s->metadata, "", NULL, AV_METADATA_IGNORE_SUFFIX)) {
+        ret = mkv_write_tag(s, s->metadata, 0, 0, &tags);
+        if (ret < 0) return ret;
+    }
+
+    for (i = 0; i < s->nb_streams; i++) {
+        AVStream *st = s->streams[i];
+
+        if (!av_metadata_get(st->metadata, "", 0, AV_METADATA_IGNORE_SUFFIX))
+            continue;
+
+        ret = mkv_write_tag(s, st->metadata, MATROSKA_ID_TAGTARGETS_TRACKUID, i + 1, &tags);
+        if (ret < 0) return ret;
+    }
+
+    for (i = 0; i < s->nb_chapters; i++) {
+        AVChapter *ch = s->chapters[i];
+
+        if (!av_metadata_get(ch->metadata, "", NULL, AV_METADATA_IGNORE_SUFFIX))
+            continue;
+
+        ret = mkv_write_tag(s, ch->metadata, MATROSKA_ID_TAGTARGETS_CHAPTERUID, ch->id, &tags);
+        if (ret < 0) return ret;
+    }
+
+    if (tags.pos)
+        end_ebml_master(s->pb, tags);
+    return 0;
+}
+
 static int mkv_write_header(AVFormatContext *s)
 {
     MatroskaMuxContext *mkv = s->priv_data;
     ByteIOContext *pb = s->pb;
     ebml_master ebml_header, segment_info;
-    int ret;
+    AVMetadataTag *tag;
+    int ret, i;
 
-    mkv->md5_ctx = av_mallocz(av_md5_size);
-    av_md5_init(mkv->md5_ctx);
+    if (!strcmp(s->oformat->name, "webm")) mkv->mode = MODE_WEBM;
+    else                                   mkv->mode = MODE_MATROSKAv2;
+
+    mkv->tracks = av_mallocz(s->nb_streams * sizeof(*mkv->tracks));
+    if (!mkv->tracks)
+        return AVERROR(ENOMEM);
 
     ebml_header = start_ebml_master(pb, EBML_ID_HEADER, 0);
     put_ebml_uint   (pb, EBML_ID_EBMLVERSION        ,           1);
     put_ebml_uint   (pb, EBML_ID_EBMLREADVERSION    ,           1);
     put_ebml_uint   (pb, EBML_ID_EBMLMAXIDLENGTH    ,           4);
     put_ebml_uint   (pb, EBML_ID_EBMLMAXSIZELENGTH  ,           8);
-    put_ebml_string (pb, EBML_ID_DOCTYPE            ,  "matroska");
+    put_ebml_string (pb, EBML_ID_DOCTYPE            , s->oformat->name);
     put_ebml_uint   (pb, EBML_ID_DOCTYPEVERSION     ,           2);
     put_ebml_uint   (pb, EBML_ID_DOCTYPEREADVERSION ,           2);
     end_ebml_master(pb, ebml_header);
@@ -666,8 +821,7 @@ static int mkv_write_header(AVFormatContext *s)
     // isn't more than 10 elements if we only write one of each other
     // currently defined level 1 element
     mkv->main_seekhead    = mkv_start_seekhead(pb, mkv->segment_offset, 10);
-    mkv->cluster_seekhead = mkv_start_seekhead(pb, mkv->segment_offset, 0);
-    if (mkv->main_seekhead == NULL || mkv->cluster_seekhead == NULL)
+    if (!mkv->main_seekhead)
         return AVERROR(ENOMEM);
 
     ret = mkv_add_seekhead_entry(mkv->main_seekhead, MATROSKA_ID_INFO, url_ftell(pb));
@@ -675,15 +829,20 @@ static int mkv_write_header(AVFormatContext *s)
 
     segment_info = start_ebml_master(pb, MATROSKA_ID_INFO, 0);
     put_ebml_uint(pb, MATROSKA_ID_TIMECODESCALE, 1000000);
-    if (strlen(s->title))
-        put_ebml_string(pb, MATROSKA_ID_TITLE, s->title);
+    if ((tag = av_metadata_get(s->metadata, "title", NULL, 0)))
+        put_ebml_string(pb, MATROSKA_ID_TITLE, tag->value);
     if (!(s->streams[0]->codec->flags & CODEC_FLAG_BITEXACT)) {
+        uint32_t segment_uid[4];
+        AVLFG lfg;
+
+        av_lfg_init(&lfg, av_get_random_seed());
+
+        for (i = 0; i < 4; i++)
+            segment_uid[i] = av_lfg_get(&lfg);
+
         put_ebml_string(pb, MATROSKA_ID_MUXINGAPP , LIBAVFORMAT_IDENT);
         put_ebml_string(pb, MATROSKA_ID_WRITINGAPP, LIBAVFORMAT_IDENT);
-
-        // reserve space to write the segment UID later
-        mkv->segment_uid = url_ftell(pb);
-        put_ebml_void(pb, 19);
+        put_ebml_binary(pb, MATROSKA_ID_SEGMENTUID, segment_uid, 16);
     }
 
     // reserve space for the duration
@@ -695,18 +854,26 @@ static int mkv_write_header(AVFormatContext *s)
     ret = mkv_write_tracks(s);
     if (ret < 0) return ret;
 
-    ret = mkv_add_seekhead_entry(mkv->cluster_seekhead, MATROSKA_ID_CLUSTER, url_ftell(pb));
-    if (ret < 0) return ret;
+    if (mkv->mode != MODE_WEBM) {
+        ret = mkv_write_chapters(s);
+        if (ret < 0) return ret;
 
-    mkv->cluster_pos = url_ftell(pb);
-    mkv->cluster = start_ebml_master(pb, MATROSKA_ID_CLUSTER, 0);
-    put_ebml_uint(pb, MATROSKA_ID_CLUSTERTIMECODE, 0);
-    mkv->cluster_pts = 0;
+        ret = mkv_write_tags(s);
+        if (ret < 0) return ret;
+    }
+
+    if (url_is_streamed(s->pb))
+        mkv_write_seekhead(pb, mkv->main_seekhead);
 
     mkv->cues = mkv_start_cues(mkv->segment_offset);
     if (mkv->cues == NULL)
         return AVERROR(ENOMEM);
 
+    av_init_packet(&mkv->cur_audio_pkt);
+    mkv->cur_audio_pkt.size = 0;
+    mkv->audio_buffer_size  = 0;
+
+    put_flush_packet(pb);
     return 0;
 }
 
@@ -734,10 +901,9 @@ static int ass_get_duration(const uint8_t *p)
     return end - start;
 }
 
-static int mkv_write_ass_blocks(AVFormatContext *s, AVPacket *pkt)
+static int mkv_write_ass_blocks(AVFormatContext *s, ByteIOContext *pb, AVPacket *pkt)
 {
     MatroskaMuxContext *mkv = s->priv_data;
-    ByteIOContext *pb = s->pb;
     int i, layer = 0, max_duration = 0, size, line_size, data_size = pkt->size;
     uint8_t *start, *end, *data = pkt->data;
     ebml_master blockgroup;
@@ -780,94 +946,217 @@ static int mkv_write_ass_blocks(AVFormatContext *s, AVPacket *pkt)
     return max_duration;
 }
 
-static void mkv_write_block(AVFormatContext *s, unsigned int blockid, AVPacket *pkt, int flags)
+static void mkv_write_block(AVFormatContext *s, ByteIOContext *pb,
+                            unsigned int blockid, AVPacket *pkt, int flags)
 {
     MatroskaMuxContext *mkv = s->priv_data;
-    ByteIOContext *pb = s->pb;
+    AVCodecContext *codec = s->streams[pkt->stream_index]->codec;
+    uint8_t *data = NULL;
+    int size = pkt->size;
+    int64_t ts = mkv->tracks[pkt->stream_index].write_dts ? pkt->dts : pkt->pts;
 
     av_log(s, AV_LOG_DEBUG, "Writing block at offset %" PRIu64 ", size %d, "
            "pts %" PRId64 ", dts %" PRId64 ", duration %d, flags %d\n",
            url_ftell(pb), pkt->size, pkt->pts, pkt->dts, pkt->duration, flags);
+    if (codec->codec_id == CODEC_ID_H264 && codec->extradata_size > 0 &&
+        (AV_RB24(codec->extradata) == 1 || AV_RB32(codec->extradata) == 1))
+        ff_avc_parse_nal_units_buf(pkt->data, &data, &size);
+    else
+        data = pkt->data;
     put_ebml_id(pb, blockid);
-    put_ebml_num(pb, pkt->size+4, 0);
+    put_ebml_num(pb, size+4, 0);
     put_byte(pb, 0x80 | (pkt->stream_index + 1));     // this assumes stream_index is less than 126
-    put_be16(pb, pkt->pts - mkv->cluster_pts);
+    put_be16(pb, ts - mkv->cluster_pts);
     put_byte(pb, flags);
-    put_buffer(pb, pkt->data, pkt->size);
+    put_buffer(pb, data, size);
+    if (data != pkt->data)
+        av_free(data);
+}
+
+static int srt_get_duration(uint8_t **buf)
+{
+    int i, duration = 0;
+
+    for (i=0; i<2 && !duration; i++) {
+        int s_hour, s_min, s_sec, s_hsec, e_hour, e_min, e_sec, e_hsec;
+        if (sscanf(*buf, "%d:%2d:%2d%*1[,.]%3d --> %d:%2d:%2d%*1[,.]%3d",
+                   &s_hour, &s_min, &s_sec, &s_hsec,
+                   &e_hour, &e_min, &e_sec, &e_hsec) == 8) {
+            s_min  +=   60*s_hour;      e_min  +=   60*e_hour;
+            s_sec  +=   60*s_min;       e_sec  +=   60*e_min;
+            s_hsec += 1000*s_sec;       e_hsec += 1000*e_sec;
+            duration = e_hsec - s_hsec;
+        }
+        *buf += strcspn(*buf, "\n") + 1;
+    }
+    return duration;
+}
+
+static int mkv_write_srt_blocks(AVFormatContext *s, ByteIOContext *pb, AVPacket *pkt)
+{
+    ebml_master blockgroup;
+    AVPacket pkt2 = *pkt;
+    int64_t duration = srt_get_duration(&pkt2.data);
+    pkt2.size -= pkt2.data - pkt->data;
+
+    blockgroup = start_ebml_master(pb, MATROSKA_ID_BLOCKGROUP,
+                                   mkv_blockgroup_size(pkt2.size));
+    mkv_write_block(s, pb, MATROSKA_ID_BLOCK, &pkt2, 0);
+    put_ebml_uint(pb, MATROSKA_ID_BLOCKDURATION, duration);
+    end_ebml_master(pb, blockgroup);
+
+    return duration;
+}
+
+static void mkv_flush_dynbuf(AVFormatContext *s)
+{
+    MatroskaMuxContext *mkv = s->priv_data;
+    int bufsize;
+    uint8_t *dyn_buf;
+
+    if (!mkv->dyn_bc)
+        return;
+
+    bufsize = url_close_dyn_buf(mkv->dyn_bc, &dyn_buf);
+    put_buffer(s->pb, dyn_buf, bufsize);
+    av_free(dyn_buf);
+    mkv->dyn_bc = NULL;
+}
+
+static int mkv_write_packet_internal(AVFormatContext *s, AVPacket *pkt)
+{
+    MatroskaMuxContext *mkv = s->priv_data;
+    ByteIOContext *pb = s->pb;
+    AVCodecContext *codec = s->streams[pkt->stream_index]->codec;
+    int keyframe = !!(pkt->flags & AV_PKT_FLAG_KEY);
+    int duration = pkt->duration;
+    int ret;
+    int64_t ts = mkv->tracks[pkt->stream_index].write_dts ? pkt->dts : pkt->pts;
+
+    if (ts == AV_NOPTS_VALUE) {
+        av_log(s, AV_LOG_ERROR, "Can't write packet with unknown timestamp\n");
+        return AVERROR(EINVAL);
+    }
+
+    if (url_is_streamed(s->pb)) {
+        if (!mkv->dyn_bc)
+            url_open_dyn_buf(&mkv->dyn_bc);
+        pb = mkv->dyn_bc;
+    }
+
+    if (!mkv->cluster_pos) {
+        mkv->cluster_pos = url_ftell(s->pb);
+        mkv->cluster = start_ebml_master(pb, MATROSKA_ID_CLUSTER, 0);
+        put_ebml_uint(pb, MATROSKA_ID_CLUSTERTIMECODE, FFMAX(0, ts));
+        mkv->cluster_pts = FFMAX(0, ts);
+    }
+
+    if (codec->codec_type != AVMEDIA_TYPE_SUBTITLE) {
+        mkv_write_block(s, pb, MATROSKA_ID_SIMPLEBLOCK, pkt, keyframe << 7);
+    } else if (codec->codec_id == CODEC_ID_SSA) {
+        duration = mkv_write_ass_blocks(s, pb, pkt);
+    } else if (codec->codec_id == CODEC_ID_SRT) {
+        duration = mkv_write_srt_blocks(s, pb, pkt);
+    } else {
+        ebml_master blockgroup = start_ebml_master(pb, MATROSKA_ID_BLOCKGROUP, mkv_blockgroup_size(pkt->size));
+        duration = pkt->convergence_duration;
+        mkv_write_block(s, pb, MATROSKA_ID_BLOCK, pkt, 0);
+        put_ebml_uint(pb, MATROSKA_ID_BLOCKDURATION, duration);
+        end_ebml_master(pb, blockgroup);
+    }
+
+    if (codec->codec_type == AVMEDIA_TYPE_VIDEO && keyframe) {
+        ret = mkv_add_cuepoint(mkv->cues, pkt->stream_index, ts, mkv->cluster_pos);
+        if (ret < 0) return ret;
+    }
+
+    mkv->duration = FFMAX(mkv->duration, ts + duration);
+    return 0;
+}
+
+static int mkv_copy_packet(MatroskaMuxContext *mkv, const AVPacket *pkt)
+{
+    uint8_t *data           = mkv->cur_audio_pkt.data;
+    mkv->cur_audio_pkt      = *pkt;
+    mkv->cur_audio_pkt.data = av_fast_realloc(data, &mkv->audio_buffer_size, pkt->size);
+    if (!mkv->cur_audio_pkt.data)
+        return AVERROR(ENOMEM);
+
+    memcpy(mkv->cur_audio_pkt.data, pkt->data, pkt->size);
+    mkv->cur_audio_pkt.size = pkt->size;
+    return 0;
 }
 
 static int mkv_write_packet(AVFormatContext *s, AVPacket *pkt)
 {
     MatroskaMuxContext *mkv = s->priv_data;
-    ByteIOContext *pb = s->pb;
+    ByteIOContext *pb = url_is_streamed(s->pb) ? mkv->dyn_bc : s->pb;
     AVCodecContext *codec = s->streams[pkt->stream_index]->codec;
-    int keyframe = !!(pkt->flags & PKT_FLAG_KEY);
-    int duration = pkt->duration;
-    int ret;
+    int ret, keyframe = !!(pkt->flags & AV_PKT_FLAG_KEY);
+    int64_t ts = mkv->tracks[pkt->stream_index].write_dts ? pkt->dts : pkt->pts;
+    int cluster_size = url_ftell(pb) - (url_is_streamed(s->pb) ? 0 : mkv->cluster_pos);
 
-    // start a new cluster every 5 MB or 5 sec
-    if (url_ftell(pb) > mkv->cluster_pos + 5*1024*1024 || pkt->pts > mkv->cluster_pts + 5000) {
+    // start a new cluster every 5 MB or 5 sec, or 32k / 1 sec for streaming or
+    // after 4k and on a keyframe
+    if (mkv->cluster_pos &&
+        ((url_is_streamed(s->pb) && (cluster_size > 32*1024 || ts > mkv->cluster_pts + 1000))
+         ||                      cluster_size > 5*1024*1024 || ts > mkv->cluster_pts + 5000
+         || (codec->codec_type == AVMEDIA_TYPE_VIDEO && keyframe && cluster_size > 4*1024))) {
         av_log(s, AV_LOG_DEBUG, "Starting new cluster at offset %" PRIu64
-               " bytes, pts %" PRIu64 "\n", url_ftell(pb), pkt->pts);
+               " bytes, pts %" PRIu64 "\n", url_ftell(pb), ts);
         end_ebml_master(pb, mkv->cluster);
-
-        ret = mkv_add_seekhead_entry(mkv->cluster_seekhead, MATROSKA_ID_CLUSTER, url_ftell(pb));
-        if (ret < 0) return ret;
-
-        mkv->cluster_pos = url_ftell(pb);
-        mkv->cluster = start_ebml_master(pb, MATROSKA_ID_CLUSTER, 0);
-        put_ebml_uint(pb, MATROSKA_ID_CLUSTERTIMECODE, pkt->pts);
-        mkv->cluster_pts = pkt->pts;
-        av_md5_update(mkv->md5_ctx, pkt->data, FFMIN(200, pkt->size));
+        mkv->cluster_pos = 0;
+        if (mkv->dyn_bc)
+            mkv_flush_dynbuf(s);
     }
 
-    if (codec->codec_id == CODEC_ID_H264 &&
-        codec->extradata_size > 0 && AV_RB32(codec->extradata) == 0x00000001) {
-        /* from x264 or from bytestream h264 */
-        /* nal reformating needed */
-        int ret = ff_avc_parse_nal_units(pkt->data, &pkt->data, &pkt->size);
-        if (ret < 0)
+    // check if we have an audio packet cached
+    if (mkv->cur_audio_pkt.size > 0) {
+        ret = mkv_write_packet_internal(s, &mkv->cur_audio_pkt);
+        mkv->cur_audio_pkt.size = 0;
+        if (ret < 0) {
+            av_log(s, AV_LOG_ERROR, "Could not write cached audio packet ret:%d\n", ret);
             return ret;
-        assert(pkt->size);
+        }
     }
 
-    if (codec->codec_type != CODEC_TYPE_SUBTITLE) {
-        mkv_write_block(s, MATROSKA_ID_SIMPLEBLOCK, pkt, keyframe << 7);
-    } else if (codec->codec_id == CODEC_ID_SSA) {
-        duration = mkv_write_ass_blocks(s, pkt);
-    } else {
-        ebml_master blockgroup = start_ebml_master(pb, MATROSKA_ID_BLOCKGROUP, mkv_blockgroup_size(pkt->size));
-        duration = pkt->convergence_duration;
-        mkv_write_block(s, MATROSKA_ID_BLOCK, pkt, 0);
-        put_ebml_uint(pb, MATROSKA_ID_BLOCKDURATION, duration);
-        end_ebml_master(pb, blockgroup);
-    }
-
-    if (codec->codec_type == CODEC_TYPE_VIDEO && keyframe) {
-        ret = mkv_add_cuepoint(mkv->cues, pkt, mkv->cluster_pos);
-        if (ret < 0) return ret;
-    }
-
-    mkv->duration = FFMAX(mkv->duration, pkt->pts + duration);
-    return 0;
+    // buffer an audio packet to ensure the packet containing the video
+    // keyframe's timecode is contained in the same cluster for WebM
+    if (codec->codec_type == AVMEDIA_TYPE_AUDIO)
+        ret = mkv_copy_packet(mkv, pkt);
+    else
+        ret = mkv_write_packet_internal(s, pkt);
+    return ret;
 }
 
 static int mkv_write_trailer(AVFormatContext *s)
 {
     MatroskaMuxContext *mkv = s->priv_data;
     ByteIOContext *pb = s->pb;
-    int64_t currentpos, second_seekhead, cuespos;
+    int64_t currentpos, cuespos;
     int ret;
 
-    end_ebml_master(pb, mkv->cluster);
+    // check if we have an audio packet cached
+    if (mkv->cur_audio_pkt.size > 0) {
+        ret = mkv_write_packet_internal(s, &mkv->cur_audio_pkt);
+        mkv->cur_audio_pkt.size = 0;
+        if (ret < 0) {
+            av_log(s, AV_LOG_ERROR, "Could not write cached audio packet ret:%d\n", ret);
+            return ret;
+        }
+    }
+
+    if (mkv->dyn_bc) {
+        end_ebml_master(mkv->dyn_bc, mkv->cluster);
+        mkv_flush_dynbuf(s);
+    } else if (mkv->cluster_pos) {
+        end_ebml_master(pb, mkv->cluster);
+    }
 
     if (!url_is_streamed(pb)) {
         cuespos = mkv_write_cues(pb, mkv->cues, s->nb_streams);
-        second_seekhead = mkv_write_seekhead(pb, mkv->cluster_seekhead);
 
         ret = mkv_add_seekhead_entry(mkv->main_seekhead, MATROSKA_ID_CUES    , cuespos);
-        if (ret < 0) return ret;
-        ret = mkv_add_seekhead_entry(mkv->main_seekhead, MATROSKA_ID_SEEKHEAD, second_seekhead);
         if (ret < 0) return ret;
         mkv_write_seekhead(pb, mkv->main_seekhead);
 
@@ -877,21 +1166,17 @@ static int mkv_write_trailer(AVFormatContext *s)
         url_fseek(pb, mkv->duration_offset, SEEK_SET);
         put_ebml_float(pb, MATROSKA_ID_DURATION, mkv->duration);
 
-        // write the md5sum of some frames as the segment UID
-        if (!(s->streams[0]->codec->flags & CODEC_FLAG_BITEXACT)) {
-            uint8_t segment_uid[16];
-            av_md5_final(mkv->md5_ctx, segment_uid);
-            url_fseek(pb, mkv->segment_uid, SEEK_SET);
-            put_ebml_binary(pb, MATROSKA_ID_SEGMENTUID, segment_uid, 16);
-        }
         url_fseek(pb, currentpos, SEEK_SET);
     }
 
     end_ebml_master(pb, mkv->segment);
-    av_free(mkv->md5_ctx);
+    av_free(mkv->tracks);
+    av_destruct_packet(&mkv->cur_audio_pkt);
+    put_flush_packet(pb);
     return 0;
 }
 
+#if CONFIG_MATROSKA_MUXER
 AVOutputFormat matroska_muxer = {
     "matroska",
     NULL_IF_CONFIG_SMALL("Matroska file format"),
@@ -903,11 +1188,29 @@ AVOutputFormat matroska_muxer = {
     mkv_write_header,
     mkv_write_packet,
     mkv_write_trailer,
-    .flags = AVFMT_GLOBALHEADER,
-    .codec_tag = (const AVCodecTag* const []){codec_bmp_tags, codec_wav_tags, 0},
+    .flags = AVFMT_GLOBALHEADER | AVFMT_VARIABLE_FPS,
+    .codec_tag = (const AVCodecTag* const []){ff_codec_bmp_tags, ff_codec_wav_tags, 0},
     .subtitle_codec = CODEC_ID_TEXT,
 };
+#endif
 
+#if CONFIG_WEBM_MUXER
+AVOutputFormat webm_muxer = {
+    "webm",
+    NULL_IF_CONFIG_SMALL("WebM file format"),
+    "video/webm",
+    "webm",
+    sizeof(MatroskaMuxContext),
+    CODEC_ID_VORBIS,
+    CODEC_ID_VP8,
+    mkv_write_header,
+    mkv_write_packet,
+    mkv_write_trailer,
+    .flags = AVFMT_GLOBALHEADER | AVFMT_VARIABLE_FPS,
+};
+#endif
+
+#if CONFIG_MATROSKA_AUDIO_MUXER
 AVOutputFormat matroska_audio_muxer = {
     "matroska",
     NULL_IF_CONFIG_SMALL("Matroska file format"),
@@ -920,5 +1223,6 @@ AVOutputFormat matroska_audio_muxer = {
     mkv_write_packet,
     mkv_write_trailer,
     .flags = AVFMT_GLOBALHEADER,
-    .codec_tag = (const AVCodecTag* const []){codec_wav_tags, 0},
+    .codec_tag = (const AVCodecTag* const []){ff_codec_wav_tags, 0},
 };
+#endif

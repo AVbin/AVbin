@@ -20,14 +20,16 @@
  */
 
 /**
- * @file eacmv.c
+ * @file
  * Electronic Arts CMV Video Decoder
- * by Peter Ross (suxen_drol at hotmail dot com)
+ * by Peter Ross (pross@xvid.org)
  *
  * Technical details here:
  * http://wiki.multimedia.cx/index.php?title=Electronic_Arts_CMV
  */
 
+#include "libavutil/intreadwrite.h"
+#include "libavcore/imgutils.h"
 #include "avcodec.h"
 
 typedef struct CmvContext {
@@ -143,8 +145,10 @@ static void cmv_process_header(CmvContext *s, const uint8_t *buf, const uint8_t 
 
 static int cmv_decode_frame(AVCodecContext *avctx,
                             void *data, int *data_size,
-                            const uint8_t *buf, int buf_size)
+                            AVPacket *avpkt)
 {
+    const uint8_t *buf = avpkt->data;
+    int buf_size = avpkt->size;
     CmvContext *s = avctx->priv_data;
     const uint8_t *buf_end = buf + buf_size;
 
@@ -153,7 +157,7 @@ static int cmv_decode_frame(AVCodecContext *avctx,
         return buf_size;
     }
 
-    if (avcodec_check_dimensions(s->avctx, s->width, s->height))
+    if (av_image_check_size(s->width, s->height, 0, s->avctx))
         return -1;
 
     /* shuffle */
@@ -202,7 +206,7 @@ static av_cold int cmv_decode_end(AVCodecContext *avctx){
 
 AVCodec eacmv_decoder = {
     "eacmv",
-    CODEC_TYPE_VIDEO,
+    AVMEDIA_TYPE_VIDEO,
     CODEC_ID_CMV,
     sizeof(CmvContext),
     cmv_decode_init,
@@ -210,5 +214,5 @@ AVCodec eacmv_decoder = {
     cmv_decode_end,
     cmv_decode_frame,
     CODEC_CAP_DR1,
-    .long_name = NULL_IF_CONFIG_SMALL("Electronic Arts CMV Video"),
+    .long_name = NULL_IF_CONFIG_SMALL("Electronic Arts CMV video"),
 };

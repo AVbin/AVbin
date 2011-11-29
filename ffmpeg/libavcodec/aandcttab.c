@@ -17,7 +17,7 @@
  */
 
 /**
- * @file aandcttab.c
+ * @file
  * AAN (Arai Agui Aakajima) (I)DCT tables
  */
 

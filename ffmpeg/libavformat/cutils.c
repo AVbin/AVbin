@@ -19,12 +19,14 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 #include "avformat.h"
+#include "internal.h"
 
 /* add one element to a dynamic array */
-void ff_dynarray_add(unsigned long **tab_ptr, int *nb_ptr, unsigned long elem)
+void ff_dynarray_add(intptr_t **tab_ptr, int *nb_ptr, intptr_t elem)
 {
+    /* see similar ffmpeg.c:grow_array() */
     int nb, nb_alloc;
-    unsigned long *tab;
+    intptr_t *tab;
 
     nb = *nb_ptr;
     tab = *tab_ptr;
@@ -33,7 +35,7 @@ void ff_dynarray_add(unsigned long **tab_ptr, int *nb_ptr, unsigned long elem)
             nb_alloc = 1;
         else
             nb_alloc = nb * 2;
-        tab = av_realloc(tab, nb_alloc * sizeof(unsigned long));
+        tab = av_realloc(tab, nb_alloc * sizeof(intptr_t));
         *tab_ptr = tab;
     }
     tab[nb++] = elem;

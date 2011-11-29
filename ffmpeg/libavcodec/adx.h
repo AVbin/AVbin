@@ -20,7 +20,7 @@
  */
 
 /**
- * @file adx.h
+ * @file
  * SEGA CRI adx codecs.
  *
  * Reference documents:

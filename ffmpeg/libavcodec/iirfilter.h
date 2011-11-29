@@ -20,7 +20,7 @@
  */
 
 /**
- * @file iirfilter.h
+ * @file
  * IIR filter interface
  */
 

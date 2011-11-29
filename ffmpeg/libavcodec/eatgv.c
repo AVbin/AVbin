@@ -20,9 +20,9 @@
  */
 
 /**
- * @file eatgv.c
+ * @file
  * Electronic Arts TGV Video Decoder
- * by Peter Ross (suxen_drol at hotmail dot com)
+ * by Peter Ross (pross@xvid.org)
  *
  * Technical details here:
  * http://wiki.multimedia.cx/index.php?title=Electronic_Arts_TGV
@@ -30,8 +30,9 @@
 
 #include "avcodec.h"
 #define ALT_BITSTREAM_READER_LE
-#include "bitstream.h"
-#include <libavutil/lzo.h>
+#include "get_bits.h"
+#include "libavutil/lzo.h"
+#include "libavcore/imgutils.h"
 
 #define EA_PREAMBLE_SIZE    8
 #define kVGT_TAG MKTAG('k', 'V', 'G', 'T')
@@ -63,7 +64,7 @@ static av_cold int tgv_decode_init(AVCodecContext *avctx){
  */
 static int unpack(const uint8_t *src, const uint8_t *src_end, unsigned char *dst, int width, int height) {
     unsigned char *dst_end = dst + width*height;
-    int size,size1,size2,offset,run;
+    int size, size1, size2, av_uninit(offset), run;
     unsigned char *dst_start = dst;
 
     if (src[0] & 0x01)
@@ -192,6 +193,10 @@ static int tgv_decode_inter(TgvContext * s, const uint8_t *buf, const uint8_t *b
             s->block_codebook[i][15-j] = tmp[get_bits(&gb, 2)];
     }
 
+    if (get_bits_left(&gb) < vector_bits *
+        (s->avctx->height/4) * (s->avctx->width/4))
+        return -1;
+
     /* read vectors and build frame */
     for(y=0; y<s->avctx->height/4; y++)
     for(x=0; x<s->avctx->width/4; x++) {
@@ -237,8 +242,10 @@ static void cond_release_buffer(AVFrame *pic)
 
 static int tgv_decode_frame(AVCodecContext *avctx,
                             void *data, int *data_size,
-                            const uint8_t *buf, int buf_size)
+                            AVPacket *avpkt)
 {
+    const uint8_t *buf = avpkt->data;
+    int buf_size = avpkt->size;
     TgvContext *s = avctx->priv_data;
     const uint8_t *buf_end = buf + buf_size;
     int chunk_type;
@@ -269,7 +276,7 @@ static int tgv_decode_frame(AVCodecContext *avctx,
         }
     }
 
-    if (avcodec_check_dimensions(avctx, s->width, s->height))
+    if (av_image_check_size(s->width, s->height, 0, avctx))
         return -1;
 
     /* shuffle */
@@ -282,11 +289,11 @@ static int tgv_decode_frame(AVCodecContext *avctx,
         /* allocate additional 12 bytes to accomodate av_memcpy_backptr() OUTBUF_PADDED optimisation */
         s->frame.data[0] = av_malloc(s->width*s->height + 12);
         if (!s->frame.data[0])
-            return AVERROR_NOMEM;
+            return AVERROR(ENOMEM);
         s->frame.data[1] = av_malloc(AVPALETTE_SIZE);
         if (!s->frame.data[1]) {
             av_freep(&s->frame.data[0]);
-            return AVERROR_NOMEM;
+            return AVERROR(ENOMEM);
         }
     }
     memcpy(s->frame.data[1], s->palette, AVPALETTE_SIZE);
@@ -329,12 +336,12 @@ static av_cold int tgv_decode_end(AVCodecContext *avctx)
 
 AVCodec eatgv_decoder = {
     "eatgv",
-    CODEC_TYPE_VIDEO,
+    AVMEDIA_TYPE_VIDEO,
     CODEC_ID_TGV,
     sizeof(TgvContext),
     tgv_decode_init,
     NULL,
     tgv_decode_end,
     tgv_decode_frame,
-    .long_name = NULL_IF_CONFIG_SMALL("Electronic Arts TGV Video"),
+    .long_name = NULL_IF_CONFIG_SMALL("Electronic Arts TGV video"),
 };

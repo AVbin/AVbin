@@ -1,6 +1,6 @@
 /*
  * Filter layer - format negotiation
- * copyright (c) 2007 Bobby Bingham
+ * Copyright (c) 2007 Bobby Bingham
  *
  * This file is part of FFmpeg.
  *
@@ -19,6 +19,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#include "libavutil/pixdesc.h"
 #include "avfilter.h"
 
 /**
@@ -69,35 +70,50 @@ AVFilterFormats *avfilter_merge_formats(AVFilterFormats *a, AVFilterFormats *b)
     return ret;
 }
 
-AVFilterFormats *avfilter_make_format_list(int len, ...)
+AVFilterFormats *avfilter_make_format_list(const int *fmts)
 {
-    AVFilterFormats *ret;
-    int i;
-    va_list vl;
+    AVFilterFormats *formats;
+    int count;
 
-    ret = av_mallocz(sizeof(AVFilterFormats));
-    ret->formats = av_malloc(sizeof(*ret->formats) * len);
-    ret->format_count = len;
+    for (count = 0; fmts[count] != -1; count++)
+        ;
 
-    va_start(vl, len);
-    for(i = 0; i < len; i ++)
-        ret->formats[i] = va_arg(vl, int);
-    va_end(vl);
+    formats               = av_mallocz(sizeof(AVFilterFormats));
+    formats->formats      = av_malloc(sizeof(*formats->formats) * count);
+    formats->format_count = count;
+    memcpy(formats->formats, fmts, sizeof(*formats->formats) * count);
 
-    return ret;
+    return formats;
 }
 
-AVFilterFormats *avfilter_all_colorspaces(void)
+int avfilter_add_format(AVFilterFormats **avff, int fmt)
 {
-    AVFilterFormats *ret;
-    int i;
+    int *fmts;
 
-    ret = av_mallocz(sizeof(AVFilterFormats));
-    ret->formats = av_malloc(sizeof(*ret->formats) * PIX_FMT_NB);
-    ret->format_count = PIX_FMT_NB;
+    if (!(*avff) && !(*avff = av_mallocz(sizeof(AVFilterFormats))))
+        return AVERROR(ENOMEM);
 
-    for(i = 0; i < PIX_FMT_NB; i ++)
-        ret->formats[i] = i;
+    fmts = av_realloc((*avff)->formats,
+                      sizeof((*avff)->formats) * ((*avff)->format_count+1));
+    if (!fmts)
+        return AVERROR(ENOMEM);
+
+    (*avff)->formats = fmts;
+    (*avff)->formats[(*avff)->format_count++] = fmt;
+    return 0;
+}
+
+AVFilterFormats *avfilter_all_formats(enum AVMediaType type)
+{
+    AVFilterFormats *ret = NULL;
+    int fmt;
+    int num_formats = type == AVMEDIA_TYPE_VIDEO ? PIX_FMT_NB    :
+                      type == AVMEDIA_TYPE_AUDIO ? AV_SAMPLE_FMT_NB : 0;
+
+    for (fmt = 0; fmt < num_formats; fmt++)
+        if ((type != AVMEDIA_TYPE_VIDEO) ||
+            (type == AVMEDIA_TYPE_VIDEO && !(av_pix_fmt_descriptors[fmt].flags & PIX_FMT_HWACCEL)))
+            avfilter_add_format(&ret, fmt);
 
     return ret;
 }
@@ -120,7 +136,12 @@ static int find_ref_index(AVFilterFormats **ref)
 
 void avfilter_formats_unref(AVFilterFormats **ref)
 {
-    int idx = find_ref_index(ref);
+    int idx;
+
+    if (!*ref)
+        return;
+
+    idx = find_ref_index(ref);
 
     if(idx >= 0)
         memmove((*ref)->refs + idx, (*ref)->refs + idx+1,

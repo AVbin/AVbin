@@ -21,21 +21,40 @@
 
 #include <stdint.h>
 #include "config.h"
-#include "libavutil/common.h"
+#include "libavutil/attributes.h"
 
-#ifdef HAVE_ARMV6
-#define bswap_16 bswap_16
-static av_always_inline av_const uint16_t bswap_16(uint16_t x)
+#ifdef __ARMCC_VERSION
+
+#if HAVE_ARMV6
+#define av_bswap16 av_bswap16
+static av_always_inline av_const unsigned av_bswap16(unsigned x)
+{
+    __asm { rev16 x, x }
+    return x;
+}
+
+#define av_bswap32 av_bswap32
+static av_always_inline av_const uint32_t av_bswap32(uint32_t x)
+{
+    return __rev(x);
+}
+#endif /* HAVE_ARMV6 */
+
+#elif HAVE_INLINE_ASM
+
+#if HAVE_ARMV6
+#define av_bswap16 av_bswap16
+static av_always_inline av_const unsigned av_bswap16(unsigned x)
 {
     __asm__("rev16 %0, %0" : "+r"(x));
     return x;
 }
 #endif
 
-#define bswap_32 bswap_32
-static av_always_inline av_const uint32_t bswap_32(uint32_t x)
+#define av_bswap32 av_bswap32
+static av_always_inline av_const uint32_t av_bswap32(uint32_t x)
 {
-#ifdef HAVE_ARMV6
+#if HAVE_ARMV6
     __asm__("rev %0, %0" : "+r"(x));
 #else
     uint32_t t;
@@ -47,5 +66,7 @@ static av_always_inline av_const uint32_t bswap_32(uint32_t x)
 #endif /* HAVE_ARMV6 */
     return x;
 }
+
+#endif /* __ARMCC_VERSION */
 
 #endif /* AVUTIL_ARM_BSWAP_H */

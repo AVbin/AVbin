@@ -1,6 +1,6 @@
 /*
  * MXF
- * Copyright (c) 2006 SmartJog S.A., Baptiste Coudurier <baptiste dot coudurier at smartjog dot com>.
+ * Copyright (c) 2006 SmartJog S.A., Baptiste Coudurier <baptiste dot coudurier at smartjog dot com>
  *
  * This file is part of FFmpeg.
  *
@@ -21,8 +21,8 @@
 #ifndef AVFORMAT_MXF_H
 #define AVFORMAT_MXF_H
 
-#include "avformat.h"
-#include "libavcodec/bytestream.h"
+#include "libavcodec/avcodec.h"
+#include <stdint.h>
 
 typedef uint8_t UID[16];
 
@@ -41,6 +41,8 @@ enum MXFMetadataSetType {
     Identification,
     ContentStorage,
     SubDescriptor,
+    IndexTableSegment,
+    EssenceContainerData,
     TypeBottom,// add metadata type before this
 };
 
@@ -53,16 +55,20 @@ typedef struct {
 typedef struct {
     UID uid;
     unsigned matching_len;
-    enum CodecID id;
+    int id;
 } MXFCodecUL;
 
-typedef struct {
-    UID uid;
-    enum CodecType type;
-} MXFDataDefinitionUL;
-
-extern const MXFDataDefinitionUL ff_mxf_data_definition_uls[];
+extern const MXFCodecUL ff_mxf_data_definition_uls[];
 extern const MXFCodecUL ff_mxf_codec_uls[];
+
+typedef struct {
+    enum PixelFormat pix_fmt;
+    const char data[16];
+} MXFPixelLayout;
+
+extern const MXFPixelLayout ff_mxf_pixel_layouts[];
+
+int ff_mxf_decode_pixel_layout(const char pixel_layout[16], enum PixelFormat *pix_fmt);
 
 #ifdef DEBUG
 #define PRINT_KEY(pc, s, x) dprintf(pc, "%s %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X\n", s, \

@@ -23,15 +23,47 @@
 #define AVCODEC_QCELPDATA_H
 
 /**
- * @file qcelpdata.h
+ * @file
  * Data tables for the QCELP decoder
  * @author Reynaldo H. Verdejo Pinochet
  * @remark FFmpeg merging spearheaded by Kenan Gillet
+ * @remark Development mentored by Benjamin Larson
  */
 
 #include <stddef.h>
 #include <stdint.h>
 #include "libavutil/common.h"
+
+/**
+ * QCELP unpacked data frame
+ */
+typedef struct {
+/// @defgroup qcelp_codebook_parameters QCELP excitation codebook parameters
+/// @{
+    uint8_t cbsign[16]; ///!< sign of the codebook gain for each codebook subframe
+    uint8_t cbgain[16]; ///!< unsigned codebook gain for each codebook subframe
+    uint8_t cindex[16]; ///!< codebook index for each codebook subframe
+/// @}
+
+/// @defgroup qcelp_pitch_parameters QCELP pitch prediction parameters
+/// @{
+    uint8_t plag[4];    ///!< pitch lag for each pitch subframe
+    uint8_t pfrac[4];   ///!< fractional pitch lag for each pitch subframe
+    uint8_t pgain[4];   ///!< pitch gain for each pitch subframe
+/// @}
+
+    /**
+     * line spectral pair frequencies (LSP) for RATE_OCTAVE,
+     * line spectral pair frequencies grouped into five vectors
+     * of dimension two (LSPV) for other rates
+     */
+    uint8_t lspv[10];
+
+    /**
+     * reserved bits only present in bitrate 1, 1/4 and 1/8 packets
+     */
+    uint8_t reserved;
+} QCELPFrame;
 
 /**
  * pre-calculated table for hammsinc function
@@ -47,10 +79,8 @@ typedef struct {
     uint8_t bitlen; /*!< number of bits to read */
 } QCELPBitmap;
 
-#define QCELP_OF(variable, bit, len) {offsetof(QCELPContext, variable), bit, len}
+#define QCELP_OF(variable, bit, len) {offsetof(QCELPFrame, variable), bit, len}
 
-/* Disable the below code for now to allow 'make checkheaders' to pass. */
-#if 0
 /**
  * bitmap unpacking tables for RATE_FULL
  *
@@ -243,14 +273,13 @@ static const QCELPBitmap * const qcelp_unpacking_bitmaps_per_rate[5] = {
     qcelp_rate_full_bitmap,
 };
 
-static const uint16_t qcelp_bits_per_rate[5] = {
+static const uint16_t qcelp_unpacking_bitmaps_lengths[5] = {
     0, ///!< for SILENCE rate
     FF_ARRAY_ELEMS(qcelp_rate_octave_bitmap),
     FF_ARRAY_ELEMS(qcelp_rate_quarter_bitmap),
     FF_ARRAY_ELEMS(qcelp_rate_half_bitmap),
     FF_ARRAY_ELEMS(qcelp_rate_full_bitmap),
 };
-#endif
 
 typedef uint16_t qcelp_vector[2];
 
@@ -396,16 +425,6 @@ static const qcelp_vector * const qcelp_lspvq[5] = {
 #define QCELP_SCALE 8192.
 
 /**
- * the upper boundary of the clipping, depends on QCELP_SCALE
- */
-#define QCELP_CLIP_UPPER_BOUND (8191.75/8192.)
-
-/**
- * the lower boundary of the clipping, depends on QCELP_SCALE
- */
-#define QCELP_CLIP_LOWER_BOUND -1.
-
-/**
  * table for computing Ga (decoded linear codebook gain magnitude)
  *
  * @note The table could fit in int16_t in x*8 form, but it seems
@@ -520,5 +539,14 @@ static const double qcelp_rnd_fir_coefs[11] = {
  * TIA/EIA/IS-733 2.4.3.2.7-2
  */
 #define QCELP_LSP_OCTAVE_PREDICTOR 29.0/32
+
+/**
+ * initial coefficient to perform bandwidth expansion on LPC
+ *
+ * @note: 0.9883 looks like an approximation of 253/256.
+ *
+ * TIA/EIA/IS-733 2.4.3.3.6 6
+ */
+#define QCELP_BANDWIDTH_EXPANSION_COEFF 0.9883
 
 #endif /* AVCODEC_QCELPDATA_H */

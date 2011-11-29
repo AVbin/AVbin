@@ -24,7 +24,8 @@
 #include <stdint.h>
 #include "config.h"
 
-#ifdef ARCH_X86_64
+#if ARCH_X86_64
+#    define OPSIZE "q"
 #    define REG_a "rax"
 #    define REG_b "rbx"
 #    define REG_c "rcx"
@@ -45,6 +46,7 @@ typedef int64_t x86_reg;
 
 #elif ARCH_X86_32
 
+#    define OPSIZE "l"
 #    define REG_a "eax"
 #    define REG_b "ebx"
 #    define REG_c "ecx"
@@ -62,18 +64,35 @@ typedef int32_t x86_reg;
 #    define REGc    ecx
 #    define REGd    edx
 #    define REGSP   esp
+#else
+typedef int x86_reg;
 #endif
 
-#if defined(ARCH_X86_64) || (defined(ARCH_X86_32) && defined(HAVE_EBX_AVAILABLE) && defined(HAVE_EBP_AVAILABLE))
-#    define HAVE_7REGS 1
-#endif
+#define HAVE_7REGS (ARCH_X86_64 || (HAVE_EBX_AVAILABLE && HAVE_EBP_AVAILABLE))
+#define HAVE_6REGS (ARCH_X86_64 || (HAVE_EBX_AVAILABLE || HAVE_EBP_AVAILABLE))
 
-#if defined(ARCH_X86_64) || (defined(ARCH_X86_32) && (defined(HAVE_EBX_AVAILABLE) || defined(HAVE_EBP_AVAILABLE)))
-#    define HAVE_6REGS 1
-#endif
-
-#if defined(ARCH_X86_64) && defined(PIC)
+#if ARCH_X86_64 && defined(PIC)
 #    define BROKEN_RELOCATIONS 1
+#endif
+
+/*
+ * If gcc is not set to support sse (-msse) it will not accept xmm registers
+ * in the clobber list for inline asm. XMM_CLOBBERS takes a list of xmm
+ * registers to be marked as clobbered and evaluates to nothing if they are
+ * not supported, or to the list itself if they are supported. Since a clobber
+ * list may not be empty, XMM_CLOBBERS_ONLY should be used if the xmm
+ * registers are the only in the clobber list.
+ * For example a list with "eax" and "xmm0" as clobbers should become:
+ * : XMM_CLOBBERS("xmm0",) "eax"
+ * and a list with only "xmm0" should become:
+ * XMM_CLOBBERS_ONLY("xmm0")
+ */
+#if HAVE_XMM_CLOBBERS
+#    define XMM_CLOBBERS(...)        __VA_ARGS__
+#    define XMM_CLOBBERS_ONLY(...) : __VA_ARGS__
+#else
+#    define XMM_CLOBBERS(...)
+#    define XMM_CLOBBERS_ONLY(...)
 #endif
 
 #endif /* AVUTIL_X86_CPU_H */

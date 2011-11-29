@@ -20,6 +20,7 @@
  */
 
 #include "avformat.h"
+#include "internal.h"
 
 #define MAX_LINESIZE 2000
 
@@ -29,20 +30,6 @@ typedef struct ASSContext{
     unsigned int event_count;
     unsigned int event_index;
 }ASSContext;
-
-static void get_line(ByteIOContext *s, char *buf, int maxlen)
-{
-    int i = 0;
-    char c;
-
-    do{
-        c = get_byte(s);
-        if (i < maxlen-1)
-            buf[i++] = c;
-    }while(c != '\n' && c);
-
-    buf[i] = 0;
-}
 
 static int probe(AVProbeData *p)
 {
@@ -87,7 +74,7 @@ static int event_cmp(uint8_t **a, uint8_t **b)
 
 static int read_header(AVFormatContext *s, AVFormatParameters *ap)
 {
-    int i, header_remaining;
+    int i, len, header_remaining;
     ASSContext *ass = s->priv_data;
     ByteIOContext *pb = s->pb;
     AVStream *st;
@@ -99,7 +86,7 @@ static int read_header(AVFormatContext *s, AVFormatParameters *ap)
     if (!st)
         return -1;
     av_set_pts_info(st, 64, 1, 100);
-    st->codec->codec_type = CODEC_TYPE_SUBTITLE;
+    st->codec->codec_type = AVMEDIA_TYPE_SUBTITLE;
     st->codec->codec_id= CODEC_ID_SSA;
 
     header_remaining= INT_MAX;
@@ -108,7 +95,7 @@ static int read_header(AVFormatContext *s, AVFormatParameters *ap)
     while(!url_feof(pb)){
         uint8_t line[MAX_LINESIZE];
 
-        get_line(pb, line, sizeof(line));
+        len = ff_get_line(pb, line, sizeof(line));
 
         if(!memcmp(line, "[Events]", 8))
             header_remaining= 2;
@@ -124,8 +111,8 @@ static int read_header(AVFormatContext *s, AVFormatParameters *ap)
         if(!p)
             goto fail;
         *(dst[i])= p;
-        memcpy(p + pos[i], line, strlen(line)+1);
-        pos[i] += strlen(line);
+        memcpy(p + pos[i], line, len+1);
+        pos[i] += len;
         if(i) ass->event_count++;
         else  header_remaining--;
     }
@@ -143,7 +130,7 @@ static int read_header(AVFormatContext *s, AVFormatParameters *ap)
         p++;
     }
 
-    qsort(ass->event, ass->event_count, sizeof(*ass->event), event_cmp);
+    qsort(ass->event, ass->event_count, sizeof(*ass->event), (void*)event_cmp);
 
     return 0;
 
@@ -165,7 +152,7 @@ static int read_packet(AVFormatContext *s, AVPacket *pkt)
 
     end= strchr(p, '\n');
     av_new_packet(pkt, end ? end-p+1 : strlen(p));
-    pkt->flags |= PKT_FLAG_KEY;
+    pkt->flags |= AV_PKT_FLAG_KEY;
     pkt->pos= p - ass->event_buffer + s->streams[0]->codec->extradata_size;
     pkt->pts= pkt->dts= get_pts(p);
     memcpy(pkt->data, p, pkt->size);
@@ -175,13 +162,53 @@ static int read_packet(AVFormatContext *s, AVPacket *pkt)
     return 0;
 }
 
+static int read_seek2(AVFormatContext *s, int stream_index,
+                      int64_t min_ts, int64_t ts, int64_t max_ts, int flags)
+{
+    ASSContext *ass = s->priv_data;
+
+    if (flags & AVSEEK_FLAG_BYTE) {
+        return AVERROR_NOTSUPP;
+    } else if (flags & AVSEEK_FLAG_FRAME) {
+        if (ts < 0 || ts >= ass->event_count)
+            return AVERROR(ERANGE);
+        ass->event_index = ts;
+    } else {
+        int i, idx = -1;
+        int64_t min_ts_diff = INT64_MAX;
+        if (stream_index == -1) {
+            AVRational time_base = s->streams[0]->time_base;
+            ts = av_rescale_q(ts, AV_TIME_BASE_Q, time_base);
+            min_ts = av_rescale_rnd(min_ts, time_base.den,
+                                    time_base.num * (int64_t)AV_TIME_BASE,
+                                    AV_ROUND_UP);
+            max_ts = av_rescale_rnd(max_ts, time_base.den,
+                                    time_base.num * (int64_t)AV_TIME_BASE,
+                                    AV_ROUND_DOWN);
+        }
+        /* TODO: ass->event[] is sorted by pts so we could do a binary search */
+        for (i=0; i<ass->event_count; i++) {
+            int64_t pts = get_pts(ass->event[i]);
+            int64_t ts_diff = FFABS(pts - ts);
+            if (pts >= min_ts && pts <= max_ts && ts_diff < min_ts_diff) {
+                min_ts_diff = ts_diff;
+                idx = i;
+            }
+        }
+        if (idx < 0)
+            return AVERROR(ERANGE);
+        ass->event_index = idx;
+    }
+    return 0;
+}
+
 AVInputFormat ass_demuxer = {
     "ass",
-    NULL_IF_CONFIG_SMALL("SSA/ASS format"),
+    NULL_IF_CONFIG_SMALL("Advanced SubStation Alpha subtitle format"),
     sizeof(ASSContext),
     probe,
     read_header,
     read_packet,
     read_close,
-//    read_seek,
+    .read_seek2  = read_seek2,
 };

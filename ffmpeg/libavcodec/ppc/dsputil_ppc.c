@@ -20,98 +20,9 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#include "libavutil/cpu.h"
 #include "libavcodec/dsputil.h"
-
-#include "dsputil_ppc.h"
-
-#ifdef HAVE_ALTIVEC
 #include "dsputil_altivec.h"
-
-extern void fdct_altivec(int16_t *block);
-extern void gmc1_altivec(uint8_t *dst, uint8_t *src, int stride, int h,
-                         int x16, int y16, int rounder);
-extern void idct_put_altivec(uint8_t *dest, int line_size, int16_t *block);
-extern void idct_add_altivec(uint8_t *dest, int line_size, int16_t *block);
-
-void dsputil_h264_init_ppc(DSPContext* c, AVCodecContext *avctx);
-
-void dsputil_init_altivec(DSPContext* c, AVCodecContext *avctx);
-void vc1dsp_init_altivec(DSPContext* c, AVCodecContext *avctx);
-void snow_init_altivec(DSPContext* c, AVCodecContext *avctx);
-void float_init_altivec(DSPContext* c, AVCodecContext *avctx);
-void int_init_altivec(DSPContext* c, AVCodecContext *avctx);
-
-#endif
-
-int mm_flags = 0;
-
-int mm_support(void)
-{
-    int result = 0;
-#ifdef HAVE_ALTIVEC
-    if (has_altivec()) {
-        result |= FF_MM_ALTIVEC;
-    }
-#endif /* result */
-    return result;
-}
-
-#ifdef CONFIG_POWERPC_PERF
-unsigned long long perfdata[POWERPC_NUM_PMC_ENABLED][powerpc_perf_total][powerpc_data_total];
-/* list below must match enum in dsputil_ppc.h */
-static unsigned char* perfname[] = {
-    "ff_fft_calc_altivec",
-    "gmc1_altivec",
-    "dct_unquantize_h263_altivec",
-    "fdct_altivec",
-    "idct_add_altivec",
-    "idct_put_altivec",
-    "put_pixels16_altivec",
-    "avg_pixels16_altivec",
-    "avg_pixels8_altivec",
-    "put_pixels8_xy2_altivec",
-    "put_no_rnd_pixels8_xy2_altivec",
-    "put_pixels16_xy2_altivec",
-    "put_no_rnd_pixels16_xy2_altivec",
-    "hadamard8_diff8x8_altivec",
-    "hadamard8_diff16_altivec",
-    "avg_pixels8_xy2_altivec",
-    "clear_blocks_dcbz32_ppc",
-    "clear_blocks_dcbz128_ppc",
-    "put_h264_chroma_mc8_altivec",
-    "avg_h264_chroma_mc8_altivec",
-    "put_h264_qpel16_h_lowpass_altivec",
-    "avg_h264_qpel16_h_lowpass_altivec",
-    "put_h264_qpel16_v_lowpass_altivec",
-    "avg_h264_qpel16_v_lowpass_altivec",
-    "put_h264_qpel16_hv_lowpass_altivec",
-    "avg_h264_qpel16_hv_lowpass_altivec",
-    ""
-};
-#include <stdio.h>
-#endif
-
-#ifdef CONFIG_POWERPC_PERF
-void powerpc_display_perf_report(void)
-{
-    int i, j;
-    av_log(NULL, AV_LOG_INFO, "PowerPC performance report\n Values are from the PMC registers, and represent whatever the registers are set to record.\n");
-    for(i = 0 ; i < powerpc_perf_total ; i++) {
-        for (j = 0; j < POWERPC_NUM_PMC_ENABLED ; j++) {
-            if (perfdata[j][i][powerpc_data_num] != (unsigned long long)0)
-                av_log(NULL, AV_LOG_INFO,
-                       " Function \"%s\" (pmc%d):\n\tmin: %"PRIu64"\n\tmax: %"PRIu64"\n\tavg: %1.2lf (%"PRIu64")\n",
-                       perfname[i],
-                       j+1,
-                       perfdata[j][i][powerpc_data_min],
-                       perfdata[j][i][powerpc_data_max],
-                       (double)perfdata[j][i][powerpc_data_sum] /
-                       (double)perfdata[j][i][powerpc_data_num],
-                       perfdata[j][i][powerpc_data_num]);
-        }
-    }
-}
-#endif /* CONFIG_POWERPC_PERF */
 
 /* ***** WARNING ***** WARNING ***** WARNING ***** */
 /*
@@ -133,12 +44,10 @@ distinguish, and use dcbz (32 bytes) or dcbzl (one cache line) as required.
 see <http://developer.apple.com/technotes/tn/tn2087.html>
 and <http://developer.apple.com/technotes/tn/tn2086.html>
 */
-void clear_blocks_dcbz32_ppc(DCTELEM *blocks)
+static void clear_blocks_dcbz32_ppc(DCTELEM *blocks)
 {
-POWERPC_PERF_DECLARE(powerpc_clear_blocks_dcbz32, 1);
     register int misal = ((unsigned long)blocks & 0x00000010);
     register int i = 0;
-POWERPC_PERF_START_COUNT(powerpc_clear_blocks_dcbz32, 1);
 #if 1
     if (misal) {
         ((unsigned long*)blocks)[0] = 0L;
@@ -160,18 +69,15 @@ POWERPC_PERF_START_COUNT(powerpc_clear_blocks_dcbz32, 1);
 #else
     memset(blocks, 0, sizeof(DCTELEM)*6*64);
 #endif
-POWERPC_PERF_STOP_COUNT(powerpc_clear_blocks_dcbz32, 1);
 }
 
 /* same as above, when dcbzl clear a whole 128B cache line
    i.e. the PPC970 aka G5 */
-#ifdef HAVE_DCBZL
-void clear_blocks_dcbz128_ppc(DCTELEM *blocks)
+#if HAVE_DCBZL
+static void clear_blocks_dcbz128_ppc(DCTELEM *blocks)
 {
-POWERPC_PERF_DECLARE(powerpc_clear_blocks_dcbz128, 1);
     register int misal = ((unsigned long)blocks & 0x0000007f);
     register int i = 0;
-POWERPC_PERF_START_COUNT(powerpc_clear_blocks_dcbz128, 1);
 #if 1
     if (misal) {
         // we could probably also optimize this case,
@@ -186,22 +92,21 @@ POWERPC_PERF_START_COUNT(powerpc_clear_blocks_dcbz128, 1);
 #else
     memset(blocks, 0, sizeof(DCTELEM)*6*64);
 #endif
-POWERPC_PERF_STOP_COUNT(powerpc_clear_blocks_dcbz128, 1);
 }
 #else
-void clear_blocks_dcbz128_ppc(DCTELEM *blocks)
+static void clear_blocks_dcbz128_ppc(DCTELEM *blocks)
 {
     memset(blocks, 0, sizeof(DCTELEM)*6*64);
 }
 #endif
 
-#ifdef HAVE_DCBZL
+#if HAVE_DCBZL
 /* check dcbz report how many bytes are set to 0 by dcbz */
 /* update 24/06/2003 : replace dcbz by dcbzl to get
    the intended effect (Apple "fixed" dcbz)
    unfortunately this cannot be used unless the assembler
    knows about dcbzl ... */
-long check_dcbzl_effect(void)
+static long check_dcbzl_effect(void)
 {
     register char *fakedata = av_malloc(1024);
     register char *fakedata_middle;
@@ -231,7 +136,7 @@ long check_dcbzl_effect(void)
     return count;
 }
 #else
-long check_dcbzl_effect(void)
+static long check_dcbzl_effect(void)
 {
   return 0;
 }
@@ -261,21 +166,18 @@ void dsputil_init_ppc(DSPContext* c, AVCodecContext *avctx)
             break;
     }
 
-#ifdef HAVE_ALTIVEC
-    if(ENABLE_H264_DECODER) dsputil_h264_init_ppc(c, avctx);
+#if HAVE_ALTIVEC
+    if(CONFIG_H264_DECODER) dsputil_h264_init_ppc(c, avctx);
 
-    if (has_altivec()) {
-        mm_flags |= FF_MM_ALTIVEC;
-
+    if (av_get_cpu_flags() & AV_CPU_FLAG_ALTIVEC) {
         dsputil_init_altivec(c, avctx);
-        if(ENABLE_SNOW_DECODER) snow_init_altivec(c, avctx);
-        if(ENABLE_VC1_DECODER || ENABLE_WMV3_DECODER)
+        if(CONFIG_VC1_DECODER)
             vc1dsp_init_altivec(c, avctx);
         float_init_altivec(c, avctx);
         int_init_altivec(c, avctx);
         c->gmc1 = gmc1_altivec;
 
-#ifdef CONFIG_ENCODERS
+#if CONFIG_ENCODERS
         if (avctx->dct_algo == FF_DCT_AUTO ||
             avctx->dct_algo == FF_DCT_ALTIVEC) {
             c->fdct = fdct_altivec;
@@ -288,22 +190,15 @@ void dsputil_init_ppc(DSPContext* c, AVCodecContext *avctx)
                 c->idct_put = idct_put_altivec;
                 c->idct_add = idct_add_altivec;
                 c->idct_permutation_type = FF_TRANSPOSE_IDCT_PERM;
+            }else if((CONFIG_VP3_DECODER || CONFIG_VP5_DECODER || CONFIG_VP6_DECODER) &&
+                     avctx->idct_algo==FF_IDCT_VP3){
+                c->idct_put = ff_vp3_idct_put_altivec;
+                c->idct_add = ff_vp3_idct_add_altivec;
+                c->idct     = ff_vp3_idct_altivec;
+                c->idct_permutation_type = FF_TRANSPOSE_IDCT_PERM;
             }
         }
 
-#ifdef CONFIG_POWERPC_PERF
-        {
-            int i, j;
-            for (i = 0 ; i < powerpc_perf_total ; i++) {
-                for (j = 0; j < POWERPC_NUM_PMC_ENABLED ; j++) {
-                    perfdata[j][i][powerpc_data_min] = 0xFFFFFFFFFFFFFFFFULL;
-                    perfdata[j][i][powerpc_data_max] = 0x0000000000000000ULL;
-                    perfdata[j][i][powerpc_data_sum] = 0x0000000000000000ULL;
-                    perfdata[j][i][powerpc_data_num] = 0x0000000000000000ULL;
-                }
-            }
-        }
-#endif /* CONFIG_POWERPC_PERF */
     }
 #endif /* HAVE_ALTIVEC */
 }

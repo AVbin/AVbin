@@ -22,13 +22,35 @@
 #include "libavutil/avstring.h"
 #include "avformat.h"
 #include <fcntl.h>
+#if HAVE_SETMODE
+#include <io.h>
+#endif
 #include <unistd.h>
-#include <sys/time.h>
+#include <sys/stat.h>
 #include <stdlib.h>
 #include "os_support.h"
 
 
 /* standard file protocol */
+
+static int file_read(URLContext *h, unsigned char *buf, int size)
+{
+    int fd = (intptr_t) h->priv_data;
+    return read(fd, buf, size);
+}
+
+static int file_write(URLContext *h, const unsigned char *buf, int size)
+{
+    int fd = (intptr_t) h->priv_data;
+    return write(fd, buf, size);
+}
+
+static int file_get_handle(URLContext *h)
+{
+    return (intptr_t) h->priv_data;
+}
+
+#if CONFIG_FILE_PROTOCOL
 
 static int file_open(URLContext *h, const char *filename, int flags)
 {
@@ -48,34 +70,27 @@ static int file_open(URLContext *h, const char *filename, int flags)
     access |= O_BINARY;
 #endif
     fd = open(filename, access, 0666);
-    if (fd < 0)
-        return AVERROR(ENOENT);
-    h->priv_data = (void *)(size_t)fd;
+    if (fd == -1)
+        return AVERROR(errno);
+    h->priv_data = (void *) (intptr_t) fd;
     return 0;
-}
-
-static int file_read(URLContext *h, unsigned char *buf, int size)
-{
-    int fd = (size_t)h->priv_data;
-    return read(fd, buf, size);
-}
-
-static int file_write(URLContext *h, unsigned char *buf, int size)
-{
-    int fd = (size_t)h->priv_data;
-    return write(fd, buf, size);
 }
 
 /* XXX: use llseek */
 static int64_t file_seek(URLContext *h, int64_t pos, int whence)
 {
-    int fd = (size_t)h->priv_data;
+    int fd = (intptr_t) h->priv_data;
+    if (whence == AVSEEK_SIZE) {
+        struct stat st;
+        int ret = fstat(fd, &st);
+        return ret < 0 ? AVERROR(errno) : st.st_size;
+    }
     return lseek(fd, pos, whence);
 }
 
 static int file_close(URLContext *h)
 {
-    int fd = (size_t)h->priv_data;
+    int fd = (intptr_t) h->priv_data;
     return close(fd);
 }
 
@@ -86,9 +101,12 @@ URLProtocol file_protocol = {
     file_write,
     file_seek,
     file_close,
+    .url_get_file_handle = file_get_handle,
 };
 
-/* pipe protocol */
+#endif /* CONFIG_FILE_PROTOCOL */
+
+#if CONFIG_PIPE_PROTOCOL
 
 static int pipe_open(URLContext *h, const char *filename, int flags)
 {
@@ -104,10 +122,10 @@ static int pipe_open(URLContext *h, const char *filename, int flags)
             fd = 0;
         }
     }
-#ifdef O_BINARY
+#if HAVE_SETMODE
     setmode(fd, O_BINARY);
 #endif
-    h->priv_data = (void *)(size_t)fd;
+    h->priv_data = (void *) (intptr_t) fd;
     h->is_streamed = 1;
     return 0;
 }
@@ -117,4 +135,7 @@ URLProtocol pipe_protocol = {
     pipe_open,
     file_read,
     file_write,
+    .url_get_file_handle = file_get_handle,
 };
+
+#endif /* CONFIG_PIPE_PROTOCOL */

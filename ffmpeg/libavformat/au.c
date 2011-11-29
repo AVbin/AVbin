@@ -1,6 +1,6 @@
 /*
  * AU muxer and demuxer
- * Copyright (c) 2001 Fabrice Bellard.
+ * Copyright (c) 2001 Fabrice Bellard
  *
  * This file is part of FFmpeg.
  *
@@ -28,7 +28,7 @@
  */
 
 #include "avformat.h"
-#include "raw.h"
+#include "pcm.h"
 #include "riff.h"
 
 /* if we don't know the size in advance */
@@ -44,10 +44,10 @@ static const AVCodecTag codec_au_tags[] = {
     { CODEC_ID_PCM_F32BE, 6 },
     { CODEC_ID_PCM_F64BE, 7 },
     { CODEC_ID_PCM_ALAW, 27 },
-    { 0, 0 },
+    { CODEC_ID_NONE, 0 },
 };
 
-#ifdef CONFIG_AU_MUXER
+#if CONFIG_AU_MUXER
 /* AUDIO_FILE header */
 static int put_au_header(ByteIOContext *pb, AVCodecContext *enc)
 {
@@ -137,7 +137,12 @@ static int au_read_header(AVFormatContext *s,
     rate = get_be32(pb);
     channels = get_be32(pb);
 
-    codec = codec_get_id(codec_au_tags, id);
+    codec = ff_codec_get_id(codec_au_tags, id);
+
+    if (!av_get_bits_per_sample(codec)) {
+        av_log_ask_for_sample(s, "could not determine bits per sample\n");
+        return AVERROR_INVALIDDATA;
+    }
 
     if (size >= 24) {
         /* skip unused data */
@@ -148,7 +153,7 @@ static int au_read_header(AVFormatContext *s,
     st = av_new_stream(s, 0);
     if (!st)
         return -1;
-    st->codec->codec_type = CODEC_TYPE_AUDIO;
+    st->codec->codec_type = AVMEDIA_TYPE_AUDIO;
     st->codec->codec_tag = id;
     st->codec->codec_id = codec;
     st->codec->channels = channels;
@@ -157,18 +162,18 @@ static int au_read_header(AVFormatContext *s,
     return 0;
 }
 
-#define MAX_SIZE 4096
+#define BLOCK_SIZE 1024
 
 static int au_read_packet(AVFormatContext *s,
                           AVPacket *pkt)
 {
     int ret;
 
-    if (url_feof(s->pb))
-        return AVERROR(EIO);
-    ret= av_get_packet(s->pb, pkt, MAX_SIZE);
+    ret= av_get_packet(s->pb, pkt, BLOCK_SIZE *
+                       s->streams[0]->codec->channels *
+                       av_get_bits_per_sample(s->streams[0]->codec->codec_id) >> 3);
     if (ret < 0)
-        return AVERROR(EIO);
+        return ret;
     pkt->stream_index = 0;
 
     /* note: we need to modify the packet size here to handle the last
@@ -177,7 +182,7 @@ static int au_read_packet(AVFormatContext *s,
     return 0;
 }
 
-#ifdef CONFIG_AU_DEMUXER
+#if CONFIG_AU_DEMUXER
 AVInputFormat au_demuxer = {
     "au",
     NULL_IF_CONFIG_SMALL("SUN AU format"),
@@ -191,7 +196,7 @@ AVInputFormat au_demuxer = {
 };
 #endif
 
-#ifdef CONFIG_AU_MUXER
+#if CONFIG_AU_MUXER
 AVOutputFormat au_muxer = {
     "au",
     NULL_IF_CONFIG_SMALL("SUN AU format"),

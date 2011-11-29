@@ -20,7 +20,7 @@
  */
 
 /**
- * @file vqavideo.c
+ * @file
  * VQA Video Decoder by Mike Melanson (melanson@pcisys.net)
  * For more information about the VQA format, visit:
  *   http://wiki.multimedia.cx/index.php?title=VQA
@@ -66,8 +66,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
 
+#include "libavutil/intreadwrite.h"
+#include "libavcore/imgutils.h"
 #include "avcodec.h"
 
 #define PALETTE_COUNT 256
@@ -147,7 +148,7 @@ static av_cold int vqa_decode_init(AVCodecContext *avctx)
     s->vqa_version = vqa_header[0];
     s->width = AV_RL16(&vqa_header[6]);
     s->height = AV_RL16(&vqa_header[8]);
-    if(avcodec_check_dimensions(avctx, s->width, s->height)){
+    if(av_image_check_size(s->width, s->height, 0, avctx)){
         s->width= s->height= 0;
         return -1;
     }
@@ -564,8 +565,10 @@ static void vqa_decode_chunk(VqaContext *s)
 
 static int vqa_decode_frame(AVCodecContext *avctx,
                             void *data, int *data_size,
-                            const uint8_t *buf, int buf_size)
+                            AVPacket *avpkt)
 {
+    const uint8_t *buf = avpkt->data;
+    int buf_size = avpkt->size;
     VqaContext *s = avctx->priv_data;
 
     s->buf = buf;
@@ -608,7 +611,7 @@ static av_cold int vqa_decode_end(AVCodecContext *avctx)
 
 AVCodec vqa_decoder = {
     "vqavideo",
-    CODEC_TYPE_VIDEO,
+    AVMEDIA_TYPE_VIDEO,
     CODEC_ID_WS_VQA,
     sizeof(VqaContext),
     vqa_decode_init,

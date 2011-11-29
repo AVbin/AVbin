@@ -21,7 +21,7 @@
  */
 
 /**
- * @file golomb.h
+ * @file
  * @brief
  *     exp golomb vlc stuff
  * @author Michael Niedermayer <michaelni@gmx.at> and Alex Beregszaszi
@@ -31,7 +31,8 @@
 #define AVCODEC_GOLOMB_H
 
 #include <stdint.h>
-#include "bitstream.h"
+#include "get_bits.h"
+#include "put_bits.h"
 
 #define INVALID_VLC           0x80000000
 
@@ -72,6 +73,24 @@ static inline int get_ue_golomb(GetBitContext *gb){
 
         return buf;
     }
+}
+
+ /**
+ * read unsigned exp golomb code, constraint to a max of 31.
+ * the return value is undefined if the stored value exceeds 31.
+ */
+static inline int get_ue_golomb_31(GetBitContext *gb){
+    unsigned int buf;
+
+    OPEN_READER(re, gb);
+    UPDATE_CACHE(re, gb);
+    buf=GET_CACHE(re, gb);
+
+    buf >>= 32 - 9;
+    LAST_SKIP_BITS(re, gb, ff_golomb_vlc_len[buf]);
+    CLOSE_READER(re, gb);
+
+    return ff_ue_golomb_vlc_code[buf];
 }
 
 static inline int svq3_get_ue_golomb(GetBitContext *gb){
@@ -234,8 +253,12 @@ static inline int get_ur_golomb(GetBitContext *gb, int k, int limit, int esc_len
 
         return buf;
     }else{
-        buf >>= 32 - limit - esc_len;
-        LAST_SKIP_BITS(re, gb, esc_len + limit);
+        LAST_SKIP_BITS(re, gb, limit);
+        UPDATE_CACHE(re, gb);
+
+        buf = SHOW_UBITS(re, gb, esc_len);
+
+        LAST_SKIP_BITS(re, gb, esc_len);
         CLOSE_READER(re, gb);
 
         return buf + limit - 1;
@@ -255,7 +278,7 @@ static inline int get_ur_golomb_jpegls(GetBitContext *gb, int k, int limit, int 
 
     log= av_log2(buf);
 
-    if(log - k >= 32-MIN_CACHE_BITS && 32-log < limit){
+    if(log - k >= 32-MIN_CACHE_BITS+(MIN_CACHE_BITS==32) && 32-log < limit){
         buf >>= log - k;
         buf += (30-log)<<k;
         LAST_SKIP_BITS(re, gb, 32 + k - log);

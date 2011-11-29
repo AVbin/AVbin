@@ -20,7 +20,7 @@
  */
 
 /**
- * @file idcinvideo.c
+ * @file
  * id Quake II Cin Video Decoder by Dr. Tim Ferguson
  * For more information about the id CIN format, visit:
  *   http://www.csse.monash.edu.au/~timf/
@@ -47,7 +47,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
 
 #include "avcodec.h"
 
@@ -60,7 +59,7 @@ typedef struct
   int count;
   unsigned char used;
   int children[2];
-} hnode_t;
+} hnode;
 
 typedef struct IdcinContext {
 
@@ -70,7 +69,7 @@ typedef struct IdcinContext {
     const unsigned char *buf;
     int size;
 
-    hnode_t huff_nodes[256][HUF_TOKENS*2];
+    hnode huff_nodes[256][HUF_TOKENS*2];
     int num_huff_nodes[256];
 
 } IdcinContext;
@@ -78,10 +77,10 @@ typedef struct IdcinContext {
 /*
  * Find the lowest probability node in a Huffman table, and mark it as
  * being assigned to a higher probability.
- * Returns the node index of the lowest unused node, or -1 if all nodes
+ * @return the node index of the lowest unused node, or -1 if all nodes
  * are used.
  */
-static int huff_smallest_node(hnode_t *hnodes, int num_hnodes) {
+static int huff_smallest_node(hnode *hnodes, int num_hnodes) {
     int i;
     int best, best_node;
 
@@ -114,7 +113,7 @@ static int huff_smallest_node(hnode_t *hnodes, int num_hnodes) {
  *    That is: huff_nodes[prev][num_huff_nodes[prev]] is the root node.
  */
 static av_cold void huff_build_tree(IdcinContext *s, int prev) {
-    hnode_t *node, *hnodes;
+    hnode *node, *hnodes;
      int num_hnodes, i;
 
     num_hnodes = HUF_TOKENS;
@@ -173,7 +172,7 @@ static av_cold int idcin_decode_init(AVCodecContext *avctx)
 
 static void idcin_decode_vlcs(IdcinContext *s)
 {
-    hnode_t *hnodes;
+    hnode *hnodes;
     long x, y;
     int prev;
     unsigned char v = 0;
@@ -209,8 +208,10 @@ static void idcin_decode_vlcs(IdcinContext *s)
 
 static int idcin_decode_frame(AVCodecContext *avctx,
                               void *data, int *data_size,
-                              const uint8_t *buf, int buf_size)
+                              AVPacket *avpkt)
 {
+    const uint8_t *buf = avpkt->data;
+    int buf_size = avpkt->size;
     IdcinContext *s = avctx->priv_data;
     AVPaletteControl *palette_control = avctx->palctrl;
 
@@ -254,7 +255,7 @@ static av_cold int idcin_decode_end(AVCodecContext *avctx)
 
 AVCodec idcin_decoder = {
     "idcinvideo",
-    CODEC_TYPE_VIDEO,
+    AVMEDIA_TYPE_VIDEO,
     CODEC_ID_IDCIN,
     sizeof(IdcinContext),
     idcin_decode_init,

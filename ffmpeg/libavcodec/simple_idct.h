@@ -21,7 +21,7 @@
  */
 
 /**
- * @file simple_idct.h
+ * @file
  * simple idct header.
  */
 

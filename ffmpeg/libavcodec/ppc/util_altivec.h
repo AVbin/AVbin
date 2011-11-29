@@ -17,7 +17,7 @@
  */
 
 /**
- * @file util_altivec.h
+ * @file
  * Contains misc utility macros and inline functions
  */
 
@@ -28,9 +28,11 @@
 
 #include "config.h"
 
-#ifdef HAVE_ALTIVEC_H
+#if HAVE_ALTIVEC_H
 #include <altivec.h>
 #endif
+
+#include "types_altivec.h"
 
 // used to build registers permutation vectors (vcprm)
 // the 's' are for words in the _s_econd vector
@@ -100,6 +102,17 @@ static inline vector unsigned char unaligned_load(int offset, uint8_t *src)
     register vector unsigned char second = vec_ld(offset+15, src);
     register vector unsigned char mask = vec_lvsl(offset, src);
     return vec_perm(first, second, mask);
+}
+
+/**
+ * loads vector known misalignment
+ * @param perm_vec the align permute vector to combine the two loads from lvsl
+ */
+static inline vec_u8 load_with_perm_vec(int offset, uint8_t *src, vec_u8 perm_vec)
+{
+    vec_u8 a = vec_ld(offset, src);
+    vec_u8 b = vec_ld(offset+15, src);
+    return vec_perm(a, b, perm_vec);
 }
 
 #endif /* AVCODEC_PPC_UTIL_ALTIVEC_H */

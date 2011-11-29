@@ -21,10 +21,15 @@
 
 #include "avcodec.h"
 #define ALT_BITSTREAM_READER_LE
-#include "bitstream.h"
+#include "get_bits.h"
 #include "ra288.h"
 #include "lpc.h"
 #include "celp_math.h"
+#include "celp_filters.h"
+
+#define MAX_BACKWARD_FILTER_ORDER  36
+#define MAX_BACKWARD_FILTER_LEN    40
+#define MAX_BACKWARD_FILTER_NONREC 35
 
 typedef struct {
     float sp_lpc[36];      ///< LPC coefficients for speech data (spec: A)
@@ -49,7 +54,7 @@ typedef struct {
 
 static av_cold int ra288_decode_init(AVCodecContext *avctx)
 {
-    avctx->sample_fmt = SAMPLE_FMT_FLT;
+    avctx->sample_fmt = AV_SAMPLE_FMT_FLT;
     return 0;
 }
 
@@ -68,7 +73,7 @@ static void convolve(float *tgt, const float *src, int len, int n)
 
 static void decode(RA288Context *ractx, float gain, int cb_coef)
 {
-    int i, j;
+    int i;
     double sumsum;
     float sum, buffer[5];
     float *block = ractx->sp_hist + 70 + 36; // current block
@@ -100,15 +105,7 @@ static void decode(RA288Context *ractx, float gain, int cb_coef)
 
     gain_block[9] = 10 * log10(sum) - 32;
 
-    for (i=0; i < 5; i++) {
-        block[i] = buffer[i];
-        for (j=0; j < 36; j++)
-            block[i] -= block[i-1-j]*ractx->sp_lpc[j];
-    }
-
-    /* output */
-    for (i=0; i < 5; i++)
-        block[i] = av_clipf(block[i], -4095./4096., 4095./4096.);
+    ff_celp_lp_synthesis_filterf(block, ractx->sp_lpc, buffer, 5, 36);
 }
 
 /**
@@ -127,9 +124,9 @@ static void do_hybrid_window(int order, int n, int non_rec, float *out,
                              float *hist, float *out2, const float *window)
 {
     int i;
-    float buffer1[order + 1];
-    float buffer2[order + 1];
-    float work[order + n + non_rec];
+    float buffer1[MAX_BACKWARD_FILTER_ORDER + 1];
+    float buffer2[MAX_BACKWARD_FILTER_ORDER + 1];
+    float work[MAX_BACKWARD_FILTER_ORDER + MAX_BACKWARD_FILTER_LEN + MAX_BACKWARD_FILTER_NONREC];
 
     apply_window(work, window, hist, order + n + non_rec);
 
@@ -152,7 +149,7 @@ static void backward_filter(float *hist, float *rec, const float *window,
                             float *lpc, const float *tab,
                             int order, int n, int non_rec, int move_size)
 {
-    float temp[order+1];
+    float temp[MAX_BACKWARD_FILTER_ORDER+1];
 
     do_hybrid_window(order, n, non_rec, temp, hist, rec, window);
 
@@ -163,9 +160,10 @@ static void backward_filter(float *hist, float *rec, const float *window,
 }
 
 static int ra288_decode_frame(AVCodecContext * avctx, void *data,
-                              int *data_size, const uint8_t * buf,
-                              int buf_size)
+                              int *data_size, AVPacket *avpkt)
 {
+    const uint8_t *buf = avpkt->data;
+    int buf_size = avpkt->size;
     float *out = data;
     int i, j;
     RA288Context *ractx = avctx->priv_data;
@@ -208,7 +206,7 @@ static int ra288_decode_frame(AVCodecContext * avctx, void *data,
 AVCodec ra_288_decoder =
 {
     "real_288",
-    CODEC_TYPE_AUDIO,
+    AVMEDIA_TYPE_AUDIO,
     CODEC_ID_RA_288,
     sizeof(RA288Context),
     ra288_decode_init,

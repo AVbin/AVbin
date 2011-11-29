@@ -20,7 +20,7 @@
  */
 
 /**
- * @file dnxhd_parser.c
+ * @file
  * DNxHD/VC-3 parser
  */
 

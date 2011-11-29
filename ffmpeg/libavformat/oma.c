@@ -22,12 +22,13 @@
  */
 
 /**
- * @file oma.c
+ * @file
  * This is a demuxer for Sony OpenMG Music files
  *
  * Known file extensions: ".oma", "aa3"
  * The format of such files consists of three parts:
- * - "ea3" header carrying overall info and metadata.
+ * - "ea3" header carrying overall info and metadata. Except for starting with
+ *   "ea" instead of "ID", it's an ID3v2 header.
  * - "EA3" header is a Sony-specific header containing information about
  *   the OpenMG file: codec type (usually ATRAC, can also be MP3 or WMA),
  *   codec specific info (packet size, sample rate, channels and so on)
@@ -44,8 +45,9 @@
 
 #include "avformat.h"
 #include "libavutil/intreadwrite.h"
-#include "raw.h"
+#include "pcm.h"
 #include "riff.h"
+#include "id3v2.h"
 
 #define EA3_HEADER_SIZE 96
 
@@ -63,33 +65,23 @@ static const AVCodecTag codec_oma_tags[] = {
     { CODEC_ID_MP3,     OMA_CODECID_MP3 },
 };
 
+#define ID3v2_EA3_MAGIC "ea3"
+
 static int oma_read_header(AVFormatContext *s,
                            AVFormatParameters *ap)
 {
     static const uint16_t srate_tab[6] = {320,441,480,882,960,0};
-    int     ret, ea3_taglen, EA3_pos, framesize, jsflag, samplerate;
+    int     ret, framesize, jsflag, samplerate;
     uint32_t codec_params;
     int16_t eid;
     uint8_t buf[EA3_HEADER_SIZE];
     uint8_t *edata;
     AVStream *st;
 
-    ret = get_buffer(s->pb, buf, 10);
-    if (ret != 10)
-        return -1;
-
-    ea3_taglen = ((buf[6] & 0x7f) << 21) | ((buf[7] & 0x7f) << 14) | ((buf[8] & 0x7f) << 7) | (buf[9] & 0x7f);
-
-    EA3_pos = ea3_taglen + 10;
-    if (buf[5] & 0x10)
-        EA3_pos += 10;
-
-    url_fseek(s->pb, EA3_pos, SEEK_SET);
+    ff_id3v2_read(s, ID3v2_EA3_MAGIC);
     ret = get_buffer(s->pb, buf, EA3_HEADER_SIZE);
-    if (ret != EA3_HEADER_SIZE)
-        return -1;
 
-    if (memcmp(buf, (const uint8_t[]){'E', 'A', '3'},3) || buf[4] != 0 || buf[5] != EA3_HEADER_SIZE) {
+    if (memcmp(buf, ((const uint8_t[]){'E', 'A', '3'}),3) || buf[4] != 0 || buf[5] != EA3_HEADER_SIZE) {
         av_log(s, AV_LOG_ERROR, "Couldn't find the EA3 header !\n");
         return -1;
     }
@@ -107,9 +99,9 @@ static int oma_read_header(AVFormatContext *s,
         return AVERROR(ENOMEM);
 
     st->start_time = 0;
-    st->codec->codec_type  = CODEC_TYPE_AUDIO;
+    st->codec->codec_type  = AVMEDIA_TYPE_AUDIO;
     st->codec->codec_tag   = buf[32];
-    st->codec->codec_id    = codec_get_id(codec_oma_tags, st->codec->codec_tag);
+    st->codec->codec_id    = ff_codec_get_id(codec_oma_tags, st->codec->codec_tag);
 
     switch (buf[32]) {
         case OMA_CODECID_ATRAC3:
@@ -158,7 +150,6 @@ static int oma_read_header(AVFormatContext *s,
     }
 
     st->codec->block_align = framesize;
-    url_fseek(s->pb, EA3_pos + EA3_HEADER_SIZE, SEEK_SET);
 
     return 0;
 }
@@ -177,7 +168,21 @@ static int oma_read_packet(AVFormatContext *s, AVPacket *pkt)
 
 static int oma_read_probe(AVProbeData *p)
 {
-    if (!memcmp(p->buf, (const uint8_t[]){'e', 'a', '3', 3, 0},5))
+    const uint8_t *buf;
+    unsigned tag_len = 0;
+
+    buf = p->buf;
+    /* version must be 3 and flags byte zero */
+    if (ff_id3v2_match(buf, ID3v2_EA3_MAGIC) && buf[3] == 3 && !buf[4])
+        tag_len = ff_id3v2_tag_len(buf);
+
+    // This check cannot overflow as tag_len has at most 28 bits
+    if (p->buf_size < tag_len + 5)
+        return 0;
+
+    buf += tag_len;
+
+    if (!memcmp(buf, "EA3", 3) && !buf[4] && buf[5] == EA3_HEADER_SIZE)
         return AVPROBE_SCORE_MAX;
     else
         return 0;

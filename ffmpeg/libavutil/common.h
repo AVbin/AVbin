@@ -19,91 +19,31 @@
  */
 
 /**
- * @file common.h
+ * @file
  * common internal and external API header
  */
 
 #ifndef AVUTIL_COMMON_H
 #define AVUTIL_COMMON_H
 
+#include <ctype.h>
+#include <errno.h>
 #include <inttypes.h>
+#include <limits.h>
+#include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include "attributes.h"
+#include "libavutil/avconfig.h"
 
-#ifdef HAVE_AV_CONFIG_H
-/* only include the following when compiling package */
-#    include "config.h"
-
-#    include <stdlib.h>
-#    include <stdio.h>
-#    include <string.h>
-#    include <ctype.h>
-#    include <limits.h>
-#    include <errno.h>
-#    include <math.h>
-#endif /* HAVE_AV_CONFIG_H */
-
-#ifndef av_always_inline
-#if defined(__GNUC__) && (__GNUC__ > 3 || __GNUC__ == 3 && __GNUC_MINOR__ > 0)
-#    define av_always_inline __attribute__((always_inline)) inline
+#if AV_HAVE_BIGENDIAN
+#   define AV_NE(be, le) (be)
 #else
-#    define av_always_inline inline
-#endif
-#endif
-
-#ifndef av_noinline
-#if defined(__GNUC__) && (__GNUC__ > 3 || __GNUC__ == 3 && __GNUC_MINOR__ > 0)
-#    define av_noinline __attribute__((noinline))
-#else
-#    define av_noinline
-#endif
+#   define AV_NE(be, le) (le)
 #endif
 
-#ifndef av_pure
-#if defined(__GNUC__) && (__GNUC__ > 3 || __GNUC__ == 3 && __GNUC_MINOR__ > 0)
-#    define av_pure __attribute__((pure))
-#else
-#    define av_pure
-#endif
-#endif
-
-#ifndef av_const
-#if defined(__GNUC__) && (__GNUC__ > 2 || __GNUC__ == 2 && __GNUC_MINOR__ > 5)
-#    define av_const __attribute__((const))
-#else
-#    define av_const
-#endif
-#endif
-
-#ifndef av_cold
-#if defined(__GNUC__) && (__GNUC__ > 4 || __GNUC__ == 4 && __GNUC_MINOR__ > 2)
-#    define av_cold __attribute__((cold))
-#else
-#    define av_cold
-#endif
-#endif
-
-#ifdef HAVE_AV_CONFIG_H
-#    include "internal.h"
-#endif /* HAVE_AV_CONFIG_H */
-
-#ifndef attribute_deprecated
-#if defined(__GNUC__) && (__GNUC__ > 3 || __GNUC__ == 3 && __GNUC_MINOR__ > 0)
-#    define attribute_deprecated __attribute__((deprecated))
-#else
-#    define attribute_deprecated
-#endif
-#endif
-
-#ifndef av_unused
-#if defined(__GNUC__)
-#    define av_unused __attribute__((unused))
-#else
-#    define av_unused
-#endif
-#endif
-
-#include "mem.h"
-
-//rounded divison & shift
+//rounded division & shift
 #define RSHIFT(a,b) ((a) > 0 ? ((a) + ((1<<(b))>>1))>>(b) : ((a) + ((1<<(b))>>1)-1)>>(b))
 /* assume b>0 */
 #define ROUNDED_DIV(a,b) (((a)>0 ? (a) + ((b)>>1) : (a) - ((b)>>1))/(b))
@@ -117,11 +57,14 @@
 
 #define FFSWAP(type,a,b) do{type SWAP_tmp= b; b= a; a= SWAP_tmp;}while(0)
 #define FF_ARRAY_ELEMS(a) (sizeof(a) / sizeof((a)[0]))
+#define FFALIGN(x, a) (((x)+(a)-1)&~((a)-1))
 
 /* misc math functions */
 extern const uint8_t ff_log2_tab[256];
 
-static inline av_const int av_log2(unsigned int v)
+extern const uint8_t av_reverse[256];
+
+static inline av_const int av_log2_c(unsigned int v)
 {
     int n = 0;
     if (v & 0xffff0000) {
@@ -137,7 +80,7 @@ static inline av_const int av_log2(unsigned int v)
     return n;
 }
 
-static inline av_const int av_log2_16bit(unsigned int v)
+static inline av_const int av_log2_16bit_c(unsigned int v)
 {
     int n = 0;
     if (v & 0xff00) {
@@ -149,126 +92,133 @@ static inline av_const int av_log2_16bit(unsigned int v)
     return n;
 }
 
-/* median of 3 */
-static inline av_const int mid_pred(int a, int b, int c)
-{
-#ifdef HAVE_CMOV
-    int i=b;
-    __asm__ volatile(
-        "cmp    %2, %1 \n\t"
-        "cmovg  %1, %0 \n\t"
-        "cmovg  %2, %1 \n\t"
-        "cmp    %3, %1 \n\t"
-        "cmovl  %3, %1 \n\t"
-        "cmp    %1, %0 \n\t"
-        "cmovg  %1, %0 \n\t"
-        :"+&r"(i), "+&r"(a)
-        :"r"(b), "r"(c)
-    );
-    return i;
-#elif 0
-    int t= (a-b)&((a-b)>>31);
-    a-=t;
-    b+=t;
-    b-= (b-c)&((b-c)>>31);
-    b+= (a-b)&((a-b)>>31);
-
-    return b;
-#else
-    if(a>b){
-        if(c>b){
-            if(c>a) b=a;
-            else    b=c;
-        }
-    }else{
-        if(b>c){
-            if(c>a) b=c;
-            else    b=a;
-        }
-    }
-    return b;
-#endif
-}
-
-/**
- * clip a signed integer value into the amin-amax range
- * @param a value to clip
- * @param amin minimum value of the clip range
- * @param amax maximum value of the clip range
- * @return clipped value
- */
-static inline av_const int av_clip(int a, int amin, int amax)
-{
-    if      (a < amin) return amin;
-    else if (a > amax) return amax;
-    else               return a;
-}
-
-/**
- * clip a signed integer value into the 0-255 range
- * @param a value to clip
- * @return clipped value
- */
-static inline av_const uint8_t av_clip_uint8(int a)
-{
-    if (a&(~255)) return (-a)>>31;
-    else          return a;
-}
-
-/**
- * clip a signed integer value into the -32768,32767 range
- * @param a value to clip
- * @return clipped value
- */
-static inline av_const int16_t av_clip_int16(int a)
-{
-    if ((a+32768) & ~65535) return (a>>31) ^ 32767;
-    else                    return a;
-}
-
-/**
- * clip a float value into the amin-amax range
- * @param a value to clip
- * @param amin minimum value of the clip range
- * @param amax maximum value of the clip range
- * @return clipped value
- */
-static inline av_const float av_clipf(float a, float amin, float amax)
-{
-    if      (a < amin) return amin;
-    else if (a > amax) return amax;
-    else               return a;
-}
-
-/* math */
-int64_t av_const ff_gcd(int64_t a, int64_t b);
-
-/**
- * converts fourcc string to int
- */
-static inline av_pure int ff_get_fourcc(const char *s){
 #ifdef HAVE_AV_CONFIG_H
-    assert( strlen(s)==4 );
+#   include "config.h"
+#   include "intmath.h"
 #endif
 
-    return (s[0]) + (s[1]<<8) + (s[2]<<16) + (s[3]<<24);
+/* Pull in unguarded fallback defines at the end of this file. */
+#include "common.h"
+
+/**
+ * Clip a signed integer value into the amin-amax range.
+ * @param a value to clip
+ * @param amin minimum value of the clip range
+ * @param amax maximum value of the clip range
+ * @return clipped value
+ */
+static inline av_const int av_clip_c(int a, int amin, int amax)
+{
+    if      (a < amin) return amin;
+    else if (a > amax) return amax;
+    else               return a;
 }
 
-#define MKTAG(a,b,c,d) (a | (b << 8) | (c << 16) | (d << 24))
-#define MKBETAG(a,b,c,d) (d | (c << 8) | (b << 16) | (a << 24))
+/**
+ * Clip a signed integer value into the 0-255 range.
+ * @param a value to clip
+ * @return clipped value
+ */
+static inline av_const uint8_t av_clip_uint8_c(int a)
+{
+    if (a&(~0xFF)) return (-a)>>31;
+    else           return a;
+}
 
-/*!
- * \def GET_UTF8(val, GET_BYTE, ERROR)
- * converts a UTF-8 character (up to 4 bytes long) to its 32-bit UCS-4 encoded form
- * \param val is the output and should be of type uint32_t. It holds the converted
- * UCS-4 character and should be a left value.
- * \param GET_BYTE gets UTF-8 encoded bytes from any proper source. It can be
- * a function or a statement whose return value or evaluated value is of type
- * uint8_t. It will be executed up to 4 times for values in the valid UTF-8 range,
- * and up to 7 times in the general case.
- * \param ERROR action that should be taken when an invalid UTF-8 byte is returned
- * from GET_BYTE. It should be a statement that jumps out of the macro,
- * like exit(), goto, return, break, or continue.
+/**
+ * Clip a signed integer value into the -128,127 range.
+ * @param a value to clip
+ * @return clipped value
+ */
+static inline av_const int8_t av_clip_int8_c(int a)
+{
+    if ((a+0x80) & ~0xFF) return (a>>31) ^ 0x7F;
+    else                  return a;
+}
+
+/**
+ * Clip a signed integer value into the 0-65535 range.
+ * @param a value to clip
+ * @return clipped value
+ */
+static inline av_const uint16_t av_clip_uint16_c(int a)
+{
+    if (a&(~0xFFFF)) return (-a)>>31;
+    else             return a;
+}
+
+/**
+ * Clip a signed integer value into the -32768,32767 range.
+ * @param a value to clip
+ * @return clipped value
+ */
+static inline av_const int16_t av_clip_int16_c(int a)
+{
+    if ((a+0x8000) & ~0xFFFF) return (a>>31) ^ 0x7FFF;
+    else                      return a;
+}
+
+/**
+ * Clip a signed 64-bit integer value into the -2147483648,2147483647 range.
+ * @param a value to clip
+ * @return clipped value
+ */
+static inline av_const int32_t av_clipl_int32_c(int64_t a)
+{
+    if ((a+0x80000000u) & ~UINT64_C(0xFFFFFFFF)) return (a>>63) ^ 0x7FFFFFFF;
+    else                                         return a;
+}
+
+/**
+ * Clip a float value into the amin-amax range.
+ * @param a value to clip
+ * @param amin minimum value of the clip range
+ * @param amax maximum value of the clip range
+ * @return clipped value
+ */
+static inline av_const float av_clipf_c(float a, float amin, float amax)
+{
+    if      (a < amin) return amin;
+    else if (a > amax) return amax;
+    else               return a;
+}
+
+/** Compute ceil(log2(x)).
+ * @param x value used to compute ceil(log2(x))
+ * @return computed ceiling of log2(x)
+ */
+static inline av_const int av_ceil_log2_c(int x)
+{
+    return av_log2((x - 1) << 1);
+}
+
+/**
+ * Count number of bits set to one in x
+ * @param x value to count bits of
+ * @return the number of bits set to one in x
+ */
+static inline av_const int av_popcount_c(uint32_t x)
+{
+    x -= (x >> 1) & 0x55555555;
+    x = (x & 0x33333333) + ((x >> 2) & 0x33333333);
+    x = (x + (x >> 4)) & 0x0F0F0F0F;
+    x += x >> 8;
+    return (x + (x >> 16)) & 0x3F;
+}
+
+#define MKTAG(a,b,c,d) ((a) | ((b) << 8) | ((c) << 16) | ((d) << 24))
+#define MKBETAG(a,b,c,d) ((d) | ((c) << 8) | ((b) << 16) | ((a) << 24))
+
+/**
+ * Convert a UTF-8 character (up to 4 bytes) to its 32-bit UCS-4 encoded form.
+ *
+ * @param val      Output value, must be an lvalue of type uint32_t.
+ * @param GET_BYTE Expression reading one byte from the input.
+ *                 Evaluated up to 7 times (4 for the currently
+ *                 assigned Unicode range).  With a memory buffer
+ *                 input, this could be *ptr++.
+ * @param ERROR    Expression to be evaluated on invalid input,
+ *                 typically a goto statement.
  */
 #define GET_UTF8(val, GET_BYTE, ERROR)\
     val= GET_BYTE;\
@@ -285,21 +235,42 @@ static inline av_pure int ff_get_fourcc(const char *s){
         }\
     }
 
+/**
+ * Convert a UTF-16 character (2 or 4 bytes) to its 32-bit UCS-4 encoded form.
+ *
+ * @param val       Output value, must be an lvalue of type uint32_t.
+ * @param GET_16BIT Expression returning two bytes of UTF-16 data converted
+ *                  to native byte order.  Evaluated one or two times.
+ * @param ERROR     Expression to be evaluated on invalid input,
+ *                  typically a goto statement.
+ */
+#define GET_UTF16(val, GET_16BIT, ERROR)\
+    val = GET_16BIT;\
+    {\
+        unsigned int hi = val - 0xD800;\
+        if (hi < 0x800) {\
+            val = GET_16BIT - 0xDC00;\
+            if (val > 0x3FFU || hi > 0x3FFU)\
+                ERROR\
+            val += (hi<<10) + 0x10000;\
+        }\
+    }\
+
 /*!
  * \def PUT_UTF8(val, tmp, PUT_BYTE)
- * converts a 32-bit unicode character to its UTF-8 encoded form (up to 4 bytes long).
- * \param val is an input only argument and should be of type uint32_t. It holds
- * a ucs4 encoded unicode character that is to be converted to UTF-8. If
- * val is given as a function it's executed only once.
+ * Convert a 32-bit Unicode character to its UTF-8 encoded form (up to 4 bytes long).
+ * \param val is an input-only argument and should be of type uint32_t. It holds
+ * a UCS-4 encoded Unicode character that is to be converted to UTF-8. If
+ * val is given as a function it is executed only once.
  * \param tmp is a temporary variable and should be of type uint8_t. It
  * represents an intermediate value during conversion that is to be
- * outputted by PUT_BYTE.
+ * output by PUT_BYTE.
  * \param PUT_BYTE writes the converted UTF-8 bytes to any proper destination.
  * It could be a function or a statement, and uses tmp as the input byte.
  * For example, PUT_BYTE could be "*output++ = tmp;" PUT_BYTE will be
  * executed up to 4 times for values in the valid UTF-8 range and up to
  * 7 times in the general case, depending on the length of the converted
- * unicode character.
+ * Unicode character.
  */
 #define PUT_UTF8(val, tmp, PUT_BYTE)\
     {\
@@ -321,88 +292,79 @@ static inline av_pure int ff_get_fourcc(const char *s){
         }\
     }
 
-#if defined(ARCH_X86) || defined(ARCH_POWERPC) || defined(ARCH_BFIN)
-#define AV_READ_TIME read_time
-#if defined(ARCH_X86)
-static inline uint64_t read_time(void)
-{
-    uint32_t a, d;
-    __asm__ volatile("rdtsc\n\t"
-                 : "=a" (a), "=d" (d));
-    return ((uint64_t)d << 32) + a;
-}
-#elif ARCH_BFIN
-static inline uint64_t read_time(void)
-{
-    union {
-        struct {
-            unsigned lo;
-            unsigned hi;
-        } p;
-        unsigned long long c;
-    } t;
-    __asm__ volatile ("%0=cycles; %1=cycles2;" : "=d" (t.p.lo), "=d" (t.p.hi));
-    return t.c;
-}
-#else //FIXME check ppc64
-static inline uint64_t read_time(void)
-{
-    uint32_t tbu, tbl, temp;
-
-     /* from section 2.2.1 of the 32-bit PowerPC PEM */
-     __asm__ volatile(
-         "1:\n"
-         "mftbu  %2\n"
-         "mftb   %0\n"
-         "mftbu  %1\n"
-         "cmpw   %2,%1\n"
-         "bne    1b\n"
-     : "=r"(tbl), "=r"(tbu), "=r"(temp)
-     :
-     : "cc");
-
-     return (((uint64_t)tbu)<<32) | (uint64_t)tbl;
-}
-#endif
-#elif defined(HAVE_GETHRTIME)
-#define AV_READ_TIME gethrtime
-#endif
-
-#ifdef AV_READ_TIME
-#define START_TIMER \
-uint64_t tend;\
-uint64_t tstart= AV_READ_TIME();\
-
-#define STOP_TIMER(id) \
-tend= AV_READ_TIME();\
-{\
-    static uint64_t tsum=0;\
-    static int tcount=0;\
-    static int tskip_count=0;\
-    if(tcount<2 || tend - tstart < FFMAX(8*tsum/tcount, 2000)){\
-        tsum+= tend - tstart;\
-        tcount++;\
-    }else\
-        tskip_count++;\
-    if(((tcount+tskip_count)&(tcount+tskip_count-1))==0){\
-        av_log(NULL, AV_LOG_ERROR, "%"PRIu64" dezicycles in %s, %d runs, %d skips\n",\
-               tsum*10/tcount, id, tcount, tskip_count);\
-    }\
-}
-#else
-#define START_TIMER
-#define STOP_TIMER(id) {}
-#endif
-
-/**
- * Returns NULL if CONFIG_SMALL is defined otherwise the argument
- * without modifications, used to disable the definition of strings
- * (for example AVCodec long_names).
+/*!
+ * \def PUT_UTF16(val, tmp, PUT_16BIT)
+ * Convert a 32-bit Unicode character to its UTF-16 encoded form (2 or 4 bytes).
+ * \param val is an input-only argument and should be of type uint32_t. It holds
+ * a UCS-4 encoded Unicode character that is to be converted to UTF-16. If
+ * val is given as a function it is executed only once.
+ * \param tmp is a temporary variable and should be of type uint16_t. It
+ * represents an intermediate value during conversion that is to be
+ * output by PUT_16BIT.
+ * \param PUT_16BIT writes the converted UTF-16 data to any proper destination
+ * in desired endianness. It could be a function or a statement, and uses tmp
+ * as the input byte.  For example, PUT_BYTE could be "*output++ = tmp;"
+ * PUT_BYTE will be executed 1 or 2 times depending on input character.
  */
-#ifdef CONFIG_SMALL
-#   define NULL_IF_CONFIG_SMALL(x) NULL
-#else
-#   define NULL_IF_CONFIG_SMALL(x) x
-#endif
+#define PUT_UTF16(val, tmp, PUT_16BIT)\
+    {\
+        uint32_t in = val;\
+        if (in < 0x10000) {\
+            tmp = in;\
+            PUT_16BIT\
+        } else {\
+            tmp = 0xD800 | ((in - 0x10000) >> 10);\
+            PUT_16BIT\
+            tmp = 0xDC00 | ((in - 0x10000) & 0x3FF);\
+            PUT_16BIT\
+        }\
+    }\
+
+
+
+#include "mem.h"
+
+#ifdef HAVE_AV_CONFIG_H
+#    include "internal.h"
+#endif /* HAVE_AV_CONFIG_H */
 
 #endif /* AVUTIL_COMMON_H */
+
+/*
+ * The following definitions are outside the multiple inclusion guard
+ * to ensure they are immediately available in intmath.h.
+ */
+
+#ifndef av_log2
+#   define av_log2       av_log2_c
+#endif
+#ifndef av_log2_16bit
+#   define av_log2_16bit av_log2_16bit_c
+#endif
+#ifndef av_ceil_log2
+#   define av_ceil_log2     av_ceil_log2_c
+#endif
+#ifndef av_clip
+#   define av_clip          av_clip_c
+#endif
+#ifndef av_clip_uint8
+#   define av_clip_uint8    av_clip_uint8_c
+#endif
+#ifndef av_clip_int8
+#   define av_clip_int8     av_clip_int8_c
+#endif
+#ifndef av_clip_uint16
+#   define av_clip_uint16   av_clip_uint16_c
+#endif
+#ifndef av_clip_int16
+#   define av_clip_int16    av_clip_int16_c
+#endif
+#ifndef av_clipl_int32
+#   define av_clipl_int32   av_clipl_int32_c
+#endif
+#ifndef av_clipf
+#   define av_clipf         av_clipf_c
+#endif
+#ifndef av_popcount
+#   define av_popcount      av_popcount_c
+#endif

@@ -1,6 +1,6 @@
 /*
  * Ratecontrol
- * Copyright (c) 2000, 2001, 2002 Fabrice Bellard.
+ * Copyright (c) 2000, 2001, 2002 Fabrice Bellard
  * Copyright (c) 2002-2004 Michael Niedermayer
  *
  * This file is part of FFmpeg.
@@ -24,13 +24,13 @@
 #define AVCODEC_RATECONTROL_H
 
 /**
- * @file ratecontrol.h
+ * @file
  * ratecontrol header.
  */
 
 #include <stdio.h>
 #include <stdint.h>
-#include "eval.h"
+#include "libavutil/eval.h"
 
 typedef struct Predictor{
     double coeff;
@@ -84,7 +84,7 @@ typedef struct RateControlContext{
     void *non_lavc_opaque;        ///< context for non lavc rc code (for example xvid)
     float dry_run_qscale;         ///< for xvid rc
     int last_picture_number;      ///< for xvid rc
-    AVEvalExpr * rc_eq_eval;
+    AVExpr * rc_eq_eval;
 }RateControlContext;
 
 struct MpegEncContext;

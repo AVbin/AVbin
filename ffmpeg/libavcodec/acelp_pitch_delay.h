@@ -24,6 +24,7 @@
 #define AVCODEC_ACELP_PITCH_DELAY_H
 
 #include <stdint.h>
+#include "dsputil.h"
 
 #define PITCH_DELAY_MIN             20
 #define PITCH_DELAY_MAX             143
@@ -53,8 +54,8 @@ int ff_acelp_decode_8bit_to_1st_delay3(int ac_index);
  * Pitch delay is coded:
  *    with 1/3 resolution, -6 < pitch_delay - int(prev_pitch_delay) < 5
  *
- * \remark The routine is used in G.729 @8k, AMR @10.2k, AMR @7.95k,
- *         AMR @7.4k for the second subframe.
+ * \remark The routine is used in G.729 @@8k, AMR @@10.2k, AMR @@7.95k,
+ *         AMR @@7.4k for the second subframe.
  */
 int ff_acelp_decode_5_6_bit_to_2nd_delay3(
         int ac_index,
@@ -73,8 +74,8 @@ int ff_acelp_decode_5_6_bit_to_2nd_delay3(
  *    with 1/3 resolution,    -2  < pitch_delay - int(prev_pitch_delay) <  1
  *    integers only,           1 <= pitch_delay - int(prev_pitch_delay) <  5
  *
- * \remark The routine is used in G.729 @6.4k, AMR @6.7k, AMR @5.9k,
- *         AMR @5.15k, AMR @4.75k for the second subframe.
+ * \remark The routine is used in G.729 @@6.4k, AMR @@6.7k, AMR @@5.9k,
+ *         AMR @@5.15k, AMR @@4.75k for the second subframe.
  */
 int ff_acelp_decode_4bit_to_2nd_delay3(
         int ac_index,
@@ -84,8 +85,6 @@ int ff_acelp_decode_4bit_to_2nd_delay3(
  * \brief Decode pitch delay of the first subframe encoded by 9 bits
  *        with 1/6 precision.
  * \param ac_index adaptive codebook index (9 bits)
- * \param pitch_delay_min lower bound (integer) of pitch delay interval for
- *                      second subframe
  *
  * \return pitch delay in 1/6 units
  *
@@ -93,7 +92,7 @@ int ff_acelp_decode_4bit_to_2nd_delay3(
  *    with 1/6 resolution,  17  < pitch_delay <  95
  *    integers only,        95 <= pitch_delay <= 143
  *
- * \remark The routine is used in AMR @12.2k for the first and third subframes.
+ * \remark The routine is used in AMR @@12.2k for the first and third subframes.
  */
 int ff_acelp_decode_9bit_to_1st_delay6(int ac_index);
 
@@ -109,7 +108,7 @@ int ff_acelp_decode_9bit_to_1st_delay6(int ac_index);
  * Pitch delay is coded:
  *    with 1/6 resolution, -6 < pitch_delay - int(prev_pitch_delay) < 5
  *
- * \remark The routine is used in AMR @12.2k for the second and fourth subframes.
+ * \remark The routine is used in AMR @@12.2k for the second and fourth subframes.
  */
 int ff_acelp_decode_6bit_to_2nd_delay6(
         int ac_index,
@@ -117,7 +116,7 @@ int ff_acelp_decode_6bit_to_2nd_delay6(
 
 /**
  * \brief Update past quantized energies
- * \param quant_energy [in/out] past quantized energies (5.10)
+ * \param[in,out]  quant_energy  past quantized energies (5.10)
  * \param gain_corr_factor gain correction factor
  * \param log2_ma_pred_order log2() of MA prediction order
  * \param erasure frame erasure flag
@@ -140,12 +139,12 @@ void ff_acelp_update_past_gain(
 /**
  * \brief Decode the adaptive codebook gain and add
  *        correction (4.1.5 and 3.9.1 of G.729).
+ * \param dsp initialized dsputil context
  * \param gain_corr_factor gain correction factor (2.13)
  * \param fc_v fixed-codebook vector (2.13)
  * \param mr_energy mean innovation energy and fixed-point correction (7.13)
- * \param quant_energy [in/out] past quantized energies (5.10)
+ * \param[in,out]  quant_energy  past quantized energies (5.10)
  * \param subframe_size length of subframe
- * \param ma_pred_order MA prediction order
  *
  * \return quantized fixed-codebook gain (14.1)
  *
@@ -209,6 +208,7 @@ void ff_acelp_update_past_gain(
  * \remark The routine is used in G.729 and AMR (all modes).
  */
 int16_t ff_acelp_decode_gain_code(
+    DSPContext *dsp,
     int gain_corr_factor,
     const int16_t* fc_v,
     int mr_energy,
@@ -216,5 +216,37 @@ int16_t ff_acelp_decode_gain_code(
     const int16_t* ma_prediction_coeff,
     int subframe_size,
     int max_pred_order);
+
+/**
+ * Calculate fixed gain (part of section 6.1.3 of AMR spec)
+ *
+ * @param fixed_gain_factor gain correction factor
+ * @param fixed_mean_energy mean decoded algebraic codebook vector energy
+ * @param prediction_error vector of the quantified predictor errors of
+ *        the four previous subframes. It is updated by this function.
+ * @param energy_mean desired mean innovation energy
+ * @param pred_table table of four moving average coefficients
+ */
+float ff_amr_set_fixed_gain(float fixed_gain_factor, float fixed_mean_energy,
+                            float *prediction_error, float energy_mean,
+                            const float *pred_table);
+
+
+/**
+ * Decode the adaptive codebook index to the integer and fractional parts
+ * of the pitch lag for one subframe at 1/3 fractional precision.
+ *
+ * The choice of pitch lag is described in 3GPP TS 26.090 section 5.6.1.
+ *
+ * @param lag_int             integer part of pitch lag of the current subframe
+ * @param lag_frac            fractional part of pitch lag of the current subframe
+ * @param pitch_index         parsed adaptive codebook (pitch) index
+ * @param prev_lag_int        integer part of pitch lag for the previous subframe
+ * @param subframe            current subframe number
+ * @param third_as_first      treat the third frame the same way as the first
+ */
+void ff_decode_pitch_lag(int *lag_int, int *lag_frac, int pitch_index,
+                         const int prev_lag_int, const int subframe,
+                         int third_as_first, int resolution);
 
 #endif /* AVCODEC_ACELP_PITCH_DELAY_H */

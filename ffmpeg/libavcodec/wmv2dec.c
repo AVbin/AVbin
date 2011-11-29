@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002 The FFmpeg Project.
+ * Copyright (c) 2002 The FFmpeg Project
  *
  * This file is part of FFmpeg.
  *
@@ -21,6 +21,8 @@
 #include "avcodec.h"
 #include "dsputil.h"
 #include "mpegvideo.h"
+#include "h263.h"
+#include "mathops.h"
 #include "msmpeg4.h"
 #include "msmpeg4data.h"
 #include "intrax8.h"
@@ -464,7 +466,7 @@ static av_cold int wmv2_decode_init(AVCodecContext *avctx){
         avctx->idct_algo=FF_IDCT_WMV2;
     }
 
-    if(ff_h263_decode_init(avctx) < 0)
+    if(ff_msmpeg4_decode_init(avctx) < 0)
         return -1;
 
     ff_wmv2_common_init(w);
@@ -484,7 +486,7 @@ static av_cold int wmv2_decode_end(AVCodecContext *avctx)
 
 AVCodec wmv2_decoder = {
     "wmv2",
-    CODEC_TYPE_VIDEO,
+    AVMEDIA_TYPE_VIDEO,
     CODEC_ID_WMV2,
     sizeof(Wmv2Context),
     wmv2_decode_init,
@@ -492,5 +494,7 @@ AVCodec wmv2_decoder = {
     wmv2_decode_end,
     ff_h263_decode_frame,
     CODEC_CAP_DRAW_HORIZ_BAND | CODEC_CAP_DR1,
+    .max_lowres = 3,
     .long_name = NULL_IF_CONFIG_SMALL("Windows Media Video 8"),
+    .pix_fmts= ff_pixfmt_list_420,
 };
