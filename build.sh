@@ -43,6 +43,8 @@ build_ffmpeg() {
         make distclean
         cat $config $common | egrep -v '^#' | xargs ./configure || exit 1
     fi
+    cat config.mak | sed -e s/-Werror=implicit-function-declaration//g | sed -e s/-Werror=missing-prototypes//g > config.mak2
+    mv config.mak2 config.mak
     make || exit 1
     popd
 }
