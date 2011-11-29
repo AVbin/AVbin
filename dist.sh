@@ -20,57 +20,53 @@
 # <http://www.gnu.org/licenses/>.
 
 AVBIN_VERSION=`cat VERSION`
-FFMPEG_REVISION=`cat ffmpeg.revision`
 
 dist_common() {
-    rm -rf $1
-    mkdir -p $1
+    rm -rf $DIR
+    mkdir -p $DIR
 }
 
 dist_linux() {
-    BASEDIR=avbin-$PLATFORM-$AVBIN_VERSION
-    DIR=dist/$BASEDIR
-    dist_common $DIR
+    dist_common
     cp dist/$PLATFORM/libavbin.so.$AVBIN_VERSION $DIR/
     cp README.linux $DIR/README
     sed s/@AVBIN_VERSION@/$AVBIN_VERSION/ install.sh.linux > $DIR/install.sh
     chmod a+x $DIR/install.sh
     pushd dist
-    tar czf $BASEDIR.tar.gz $BASEDIR
+    tar cjf $BASEDIR.tar.bz2 $BASEDIR
     popd
     rm -rf $DIR
 }
 
 dist_darwin() {
-    BASEDIR=avbin-$PLATFORM-$AVBIN_VERSION
-    DIR=dist/$BASEDIR
-    dist_common $DIR
+    dist_common
     cp README.darwin $DIR/readme.txt
     cp dist/$PLATFORM/libavbin.$AVBIN_VERSION.dylib $DIR/
     sed s/@AVBIN_VERSION@/$AVBIN_VERSION/ install.sh.darwin > $DIR/install.sh
     chmod a+x $DIR/install.sh
     pushd dist
-    zip -r $BASEDIR.zip $BASEDIR
+    tar cjf $BASEDIR.tar.bz2 $BASEDIR
     popd
     rm -rf $DIR
 }
 
 dist_win32() {
-    BASEDIR=avbin-$PLATFORM-$AVBIN_VERSION
-    DIR=dist/$BASEDIR
-    dist_common $DIR
+    dist_common
     cp dist/$PLATFORM/avbin.dll $DIR/
     cp README.win32 $DIR/readme.txt
     pushd dist
-    #zip -r $BASEDIR.zip $BASEDIR
+    7z a -tzip $BASEDIR.zip $BASEDIR
     popd
-    #rm -rf $DIR
+    rm -rf $DIR
+}
+
+dist_win64() {
+    echo "NOT IMPLEMENTED"
+    exit -1
 }
 
 dist_source() {
-    BASEDIR=avbin-src-$AVBIN_VERSION
-    DIR=dist/$BASEDIR
-    dist_common $DIR
+    dist_common
     cat MANIFEST | xargs -I{} cp {} $DIR
     mkdir -p $DIR/src
     cp src/avbin.c $DIR/src
@@ -79,7 +75,7 @@ dist_source() {
     mkdir -p $DIR/doc/html
     cp doc/html/* $DIR/doc/html
     pushd dist
-    tar czf $BASEDIR.tar.gz $BASEDIR
+    tar cjf $BASEDIR.tar.bz2 $BASEDIR
     popd
     rm -rf $DIR
 }
@@ -93,20 +89,27 @@ if [ ! "$platforms" ]; then
     echo "  source"
     echo "  linux-x86-32"
     echo "  linux-x86-64"
+    echo "  darwin-x86-32"
+    echo "  darwin-x86-64"
     echo "  darwin-universal"
     echo "  win32"
+    echo "  win64"
     exit 1
 fi
 
 for PLATFORM in $platforms; do
+    BASEDIR=avbin-$PLATFORM-v$AVBIN_VERSION
+    DIR=dist/$BASEDIR
     if [ $PLATFORM == "source" ]; then
         dist_source
     elif [ $PLATFORM == "linux-x86-32" -o $PLATFORM == "linux-x86-64" ]; then
         dist_linux
-    elif [ $PLATFORM == "darwin-universal" ]; then
+    elif [ $PLATFORM == "darwin-universal" -o $PLATFORM == "darwin-x86-32" -o $PLATFORM == "darwin-x86-64" ]; then
         dist_darwin
     elif [ $PLATFORM == "win32" ]; then
         dist_win32
+    elif [ $PLATFORM == "win64" ]; then
+        dist_win64
     else
         echo "Unsupported platform $PLATFORM"
         exit 1

@@ -1,15 +1,20 @@
 LIBNAME=$(OUTDIR)/avbin.dll
 
 CFLAGS += -O3
-LDFLAGS += -shared
+LDFLAGS += -shared -mno-cygwin
 
 STATIC_LIBS = -Wl,-whole-archive \
               -Wl,$(FFMPEG)/libavformat/libavformat.a \
               -Wl,$(FFMPEG)/libavcodec/libavcodec.a \
               -Wl,$(FFMPEG)/libavutil/libavutil.a \
-              -Wl,-no-whole-archive
+              -Wl,$(FFMPEG)/libavcore/libavcore.a \
+              -Wl,$(FFMPEG)/libswscale/libswscale.a \
+              -Wl,-no-whole-archive \
+              -Wl,--out-implib,$(OUTDIR)/avbin.lib
 
-LIBS = -lm
+# Linking crashes when -lbz2 is present
+#LIBS = -lm -lws2_32 -lvfw32 -lbz2
+LIBS = -lm -lws2_32 -lvfw32
 
 $(LIBNAME) : $(OBJNAME) $(OUTDIR)
 	$(CC) $(LDFLAGS) -o $@ $< $(STATIC_LIBS) $(LIBS)

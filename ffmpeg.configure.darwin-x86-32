@@ -1,10 +1,11 @@
 --enable-static
---enable-shared
+--disable-shared
 --enable-pthreads
 
---arch=i386
+--arch=x86_32
+--cpu=i686
 --extra-cflags='-isysroot /Developer/SDKs/MacOSX10.4u.sdk -mmacosx-version-min=10.3.9'
 --extra-ldflags='-isysroot /Developer/SDKs/MacOSX10.4u.sdk -mmacosx-version-min=10.3.9'
 
 # Currently broken on Darwin
---disable-mmx
+#--disable-mmx
