@@ -32,6 +32,23 @@ or on a 32-bit Windows run::
 Run ``build.sh --help`` for more information.
 
 
+Building on OS X Lion
+_____________________
+
+- Install yasm (You can install MacPorts and then run 'sudo port install yasm')
+
+Building on Win32
+-----------------
+
+- Install MinGW, MSYS using the MSYS installer.
+- Install Git
+- Download yasm win32 binary, from the yasm web site, rename it "yasm.exe" and
+  place it in c:\MinGW\bin
+
+(For distribution...)
+- Download/Install 7-Zip in c:\7-Zip -- then add /c/7-Zip to the MinGW path.
+
+
 Caveats
 -------
 
