@@ -22,29 +22,37 @@
 AVBIN_VERSION=`cat VERSION`
 FFMPEG_REVISION=`cat ffmpeg.revision`
 
-# Directory holding ffmpeg checkout.
+# Directory holding ffmpeg source code.
 FFMPEG=ffmpeg
 
-patch_ffmpeg() {
-    patch -d $FFMPEG -p0 < $1
+fail() {
+    echo "AVbin: Fatal error: $1"
+    exit 1
 }
 
 build_ffmpeg() {
-    if [ ! -d $FFMPEG ]; then
-        echo "$FFMPEG does not exist, please symlink to your local checkout."
-        exit 1
-    fi
-
     config=`pwd`/ffmpeg.configure.$PLATFORM
     common=`pwd`/ffmpeg.configure.common
 
     pushd $FFMPEG
+
+    # If we're not rebuilding, then we need to configure FFmpeg
     if [ ! $REBUILD ]; then
         make distclean
         cat $config $common | egrep -v '^#' | xargs ./configure || exit 1
+
+	# Patch the generated config.h file if a patch for this build exists
+	if [ -e ../patch.config.h-${PLATFORM} ] ; then
+	    echo "AVbin: Found config.h patch."
+	    patch -p0 < ../patch.config.h-${PLATFORM} || fail "Failed applying config.h patch"
+	fi
     fi
+
+    # Remove -Werror options from config.mak that break builds on some platforms
     cat config.mak | sed -e s/-Werror=implicit-function-declaration//g | sed -e s/-Werror=missing-prototypes//g > config.mak2
     mv config.mak2 config.mak
+
+    # Actually build FFmpeg
     make || exit 1
     popd
 }
@@ -97,15 +105,6 @@ while [ "${1:0:2}" == "--" ]; do
             rm -rf build
             exit
             ;;
-        "--patch") 
-            shift
-            if [ ! "$1" -o ! -f "$1" ]; then
-                echo "No patch file specified or file does not exist."
-                exit 1
-            fi
-            patch_ffmpeg $1
-            exit
-            ;;
         *)           echo "Unrecognised option: $1" && exit 1;;
     esac
     shift
@@ -115,12 +114,10 @@ platforms=$*
 
 if [ ! "$platforms" ]; then
     echo "Usage: ./build.sh [options] <platform> [<platform> [<platform> ...]]"
-    echo "   or: ./build.sh --patch <patchfile>"
     echo
     echo "Options"
     echo "  --clean             Don't build, just clean up all generated files and directories."
-    echo "  --rebuild           Don't reconfigure, just run make."
-    echo "  --patch <file>      Apply a patch to ffmpeg."
+    echo "  --rebuild           Don't reconfigure, just run make again."
     echo
     echo "Supported platforms:"
     echo "  linux-x86-32"
