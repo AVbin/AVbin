@@ -73,18 +73,11 @@ build_darwin_universal() {
         build_avbin
     fi
 
-    if [ ! -e dist/darwin-ppc-32/libavbin.$AVBIN_VERSION.dylib ]; then
-        PLATFORM=darwin-ppc-32
-        build_ffmpeg
-        build_avbin
-    fi
-
     mkdir -p dist/darwin-universal
     lipo -create \
         -output dist/darwin-universal/libavbin.$AVBIN_VERSION.dylib \
         dist/darwin-x86-32/libavbin.$AVBIN_VERSION.dylib \
-        dist/darwin-x86-64/libavbin.$AVBIN_VERSION.dylib \
-        dist/darwin-ppc-32/libavbin.$AVBIN_VERSION.dylib
+        dist/darwin-x86-64/libavbin.$AVBIN_VERSION.dylib
 }
 
 while [ "${1:0:2}" == "--" ]; do
@@ -132,10 +125,9 @@ if [ ! "$platforms" ]; then
     echo "Supported platforms:"
     echo "  linux-x86-32"
     echo "  linux-x86-64"
-    echo "  darwin-ppc-32"
     echo "  darwin-x86-32"
     echo "  darwin-x86-64"
-    echo "  darwin-universal"
+    echo "  darwin-universal (builds all supported darwin architectures into one library)"
     echo "  win32"
     echo "  win64"
     exit 1
