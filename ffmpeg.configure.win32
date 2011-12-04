@@ -1,21 +1,28 @@
+# gcc is already the default compiler
 #--cc=gcc
+
 --target-os=mingw32
 --extra-libs=-mno-cygwin
---extra-cflags="-mno-cygwin -mms-bitfields"
+
+# This option causes configure to crash
+#--extra-cflags="-mno-cygwin -mms-bitfields"
+
+# This was useful for debugging.  The diagnostics one show what option caused the warning, -v adds verbose output
+#--extra-cflags="-fdiagnostics-show-option -v"
+
 --extra-ldflags="-Wl,--add-stdcall-alias"
 --enable-memalign-hack
---cpu=i586
- 
 
-#--extra-cflags="-DHAVE_WINSOCK2_H"
+# Why target an ancient cpu?
+#--cpu=i586
 
 --enable-static
 --disable-shared
 
 --enable-w32threads
+
+# This doesn't appear to be necessary.
 #--enable-cross-compile
 
 --disable-avisynth
 --disable-demuxer=vfwcap
-#--enable-avisynth
-#--enable-demuxer=vfwcap
