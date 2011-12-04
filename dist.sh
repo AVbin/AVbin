@@ -55,9 +55,9 @@ dist_win32() {
     cp dist/$PLATFORM/avbin.dll $DIR/
     cp README.win32 $DIR/readme.txt
     pushd dist
-    #zip -r $BASEDIR.zip $BASEDIR
+    7z a -tzip $BASEDIR.zip $BASEDIR
     popd
-    #rm -rf $DIR
+    rm -rf $DIR
 }
 
 dist_win64() {
