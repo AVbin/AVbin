@@ -8,5 +8,5 @@
 #--cpu=i686
 
 --enable-pthreads
---disable-bzlib
+#--disable-bzlib
 #--disable-bz2lib

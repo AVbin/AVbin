@@ -61,8 +61,13 @@ dist_win32() {
 }
 
 dist_win64() {
-    echo "NOT IMPLEMENTED"
-    exit -1
+    dist_common
+    cp dist/$PLATFORM/avbin64.dll $DIR/
+    cp README.win64 $DIR/readme.txt
+    pushd dist
+    7z a -tzip $BASEDIR.zip $BASEDIR
+    popd
+    rm -rf $DIR
 }
 
 dist_source() {

@@ -13,4 +13,4 @@
 
 # These are usually disabled, but make sure
 --disable-network
---disable-zlib
+#--disable-zlib
