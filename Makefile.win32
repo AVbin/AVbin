@@ -10,11 +10,11 @@ STATIC_LIBS = -Wl,-whole-archive \
               -Wl,$(FFMPEG)/libavcore/libavcore.a \
               -Wl,$(FFMPEG)/libswscale/libswscale.a \
               -Wl,-no-whole-archive \
-              -Wl,--out-implib,$(OUTDIR)/avbin.lib
+              -Wl,-out-implib,$(OUTDIR)/avbin.lib
 
 # Linking crashes when -lbz2 is present
-#LIBS = -lm -lws2_32 -lvfw32 -lbz2
-LIBS = -lm -lws2_32 -lvfw32
+LIBS = -lm -lws2_32 -lvfw32 -lbz2
+#LIBS = -lm -lws2_32 -lvfw32
 
 $(LIBNAME) : $(OBJNAME) $(OUTDIR)
 	$(CC) $(LDFLAGS) -o $@ $< $(STATIC_LIBS) $(LIBS)
