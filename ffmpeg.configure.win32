@@ -2,6 +2,8 @@
 #--cc=gcc
 
 --target-os=mingw32
+--arch=x86
+--cross-prefix=i586-mingw32msvc-
 --extra-libs=-mno-cygwin
 
 # This option causes configure to crash
@@ -10,19 +12,23 @@
 # This was useful for debugging.  The diagnostics one show what option caused the warning, -v adds verbose output
 #--extra-cflags="-fdiagnostics-show-option -v"
 
---extra-ldflags="-Wl,--add-stdcall-alias"
+#--extra-cflags="-D__MINGW32_MAJOR_VERSION=4 -DHAVE_WINSOCK2_H"
+
+#--extra-ldflags="-Wl,--add-stdcall-alias"
 --enable-memalign-hack
 
 # Why target an ancient cpu?
-#--cpu=i586
+--cpu=i586
 
 --enable-static
 --disable-shared
 
 --enable-w32threads
 
-# This doesn't appear to be necessary.
-#--enable-cross-compile
+# This doesn't appear to be necessary on actual windows.  Very necessary when cross-compiling on Ubuntu.
+--enable-cross-compile
 
 --disable-avisynth
 --disable-demuxer=vfwcap
+--disable-demuxer=aacdec
+--disable-demuxer=fourxm
