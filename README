@@ -33,9 +33,21 @@ Run ``build.sh --help`` for more information.
 
 
 Building on OS X Lion
-_____________________
+---------------------
 
+- Install Xcode (from Apple's App Store)
 - Install yasm (You can install MacPorts and then run 'sudo port install yasm')
+
+
+Cross-compiling for Win64 ON Linux
+---------------------------
+
+(Instructions are for Ubuntu 11.10 amd64)
+- Install MinGW-64: sudo apt-get install mingw-64
+
+(If you will be creating a release distribution)
+- Install 7-Zip: sudo apt-get install p7zip-full
+
 
 Building on Win32
 -----------------
@@ -55,7 +67,7 @@ Caveats
 AVbin is currently supported only on the following platforms
 
 * Linux
-  - x86 (cross-compiled from x86-64)
+  - x86
   - x86-64
 * Mac OS X 10.6 - 10.7
   - x86
@@ -68,7 +80,8 @@ The configuration scripts currently assume cross-compilation for Linux-x86-32.
 Minor changes should be needed to to compile on the target platform.  Patches 
 for this or other platforms are welcome.
 
-Darwin compilation currently requires OS X 10.6 or greater.
+Darwin currently requires OS X 10.6 or greater.
+
 
 Installation and usage
 ----------------------
@@ -80,6 +93,7 @@ The AVbin dynamic library exports all of FFmpeg's functions from libavcodec,
 libavutil and libavformat.  It also exports some higher-level functions which
 have a fixed ABI (they will not change in incompatible ways in future
 releases), documented in ``include/avbin.h``.
+
 
 License
 -------
@@ -93,7 +107,8 @@ In summary, you must note the usage of FFmpeg and AVbin within the
 documentation of your application.  If you make changes to either library, you
 must include the sources of these changes within your application.
 
+
 Contributions
 -------------
 
-darwin-x86-64 and win64 targets contributed by Micah Richert.
+Original darwin-x86-64 and win64 builds contributed by Micah Richert.
