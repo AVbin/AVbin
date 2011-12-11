@@ -25,7 +25,8 @@ To build on your platform, run...
 
    linux-x86-32
    linux-x86-64
-   darwin-universal
+   darwin-x86-32
+   darwin-x86-64
    win32
    win64
 
