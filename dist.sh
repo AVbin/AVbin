@@ -72,17 +72,8 @@ dist_win64() {
 
 dist_source() {
     dist_common
-    cat MANIFEST | xargs -I{} cp {} $DIR
-    mkdir -p $DIR/src
-    cp src/avbin.c $DIR/src
-    mkdir -p $DIR/include
-    cp include/avbin.h $DIR/include
-    mkdir -p $DIR/doc/html
-    cp doc/html/* $DIR/doc/html
-    pushd dist
-    tar cjf $BASEDIR.tar.bz2 $BASEDIR
-    popd
-    rm -rf $DIR
+    echo "Creating source archive from master branch (NOT the current working directory)"
+    git archive master | bzip2 -9 > dist/avbin-$BASEDIR.tar.bz2
 }
 
 platforms=$*
