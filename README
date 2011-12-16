@@ -40,11 +40,31 @@ Building on OS X Lion
 - Install yasm (You can install MacPorts and then run 'sudo port install yasm')
 
 
-Cross-compiling for Win64 ON Linux
----------------------------
+Cross-compiling for Win64 or Win32 on Linux
+-------------------------------------------
 
-(Instructions are for Ubuntu 11.10 amd64)
+Instructions are for Ubuntu 11.10 amd64
+
 - Install MinGW-64: sudo apt-get install mingw-64
+- Cross-compile zlib and install it:
+
+  wget http://zlib.net/zlib-1.2.5.tar.gz
+  tar zxvf zlib-1.2.5.tar.gz
+  cd zlib-1.2.5
+  make PREFIX=i686-w64-mingw32- -f win32/Makefile.gcc
+  sudo make PREFIX=i686-w64-mingw32- LIBRARY_PATH=/usr/i686-w64-mingw32/lib \
+    INCLUDE_PATH=/usr/i686-w64-mingw32/include/ BIN_PATH=/dev/null -f \
+    win32/Makefile.gcc install
+
+- Cross-compile bzlib and install it
+
+  wget http://bzip.org/1.0.6/bzip2-1.0.6.tar.gz
+  tar zxvf bzip2-1.0.6.tar.gz
+  cd bzip2-1.0.6/
+  make CC=i686-w64-mingw32-gcc AR=i686-w64-mingw32-ar \
+    RANLIB=i686-w64-mingw32-ranlib PREFIX=/usr/i686-w64-mingw32 libbz2.a
+  sudo cp libbz2.a /usr/i686-w64-mingw32/lib/
+  sudo cp bzlib.h /usr/i686-w64-mingw32/include/
 
 (If you will be creating a release distribution)
 - Install 7-Zip: sudo apt-get install p7zip-full
