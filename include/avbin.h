@@ -65,6 +65,14 @@
  * avbin_close_file() on the open file.
  */
 
+/**
+ * This stuff is required to use avbin.h in C++ programs
+ * (yes, compilers are unable to distinguish C code from C++)
+ */
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #ifndef AVBIN_H
 #define AVBIN_H
 
@@ -576,4 +584,8 @@ int avbin_decode_video(AVbinStream *stream,
 
 /*@}*/
 
+#endif
+
+#ifdef __cplusplus
+}
 #endif
