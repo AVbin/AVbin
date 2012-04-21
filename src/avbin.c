@@ -299,6 +299,8 @@ int avbin_stream_info(AVbinFile *file, int stream_index,
                 	info->audio.sample_format = -1;
                 	info->audio.sample_bits = -1;
                 	break;
+
+                // TODO: support planar formats
             }
             break;
 
@@ -323,14 +325,14 @@ AVbinStream *avbin_open_stream(AVbinFile *file, int index)
     if (!codec)
         return NULL;
 
-    if (avcodec_open(codec_context, codec) < 0)
+    if (avcodec_open2(codec_context, codec, NULL) < 0)
         return NULL;
 
     AVbinStream *stream = malloc(sizeof *stream);
     stream->format_context = file->context;
     stream->codec_context = codec_context;
     stream->type = codec_context->codec_type;
-    if (stream->type == CODEC_TYPE_VIDEO)
+    if (stream->type == AVMEDIA_TYPE_VIDEO)
         stream->frame = avcodec_alloc_frame();
     else
         stream->frame = NULL;
@@ -373,7 +375,7 @@ int avbin_decode_audio(AVbinStream *stream,
                        uint8_t *data_out, int *size_out)
 {
     int used;
-    if (stream->type != CODEC_TYPE_AUDIO)
+    if (stream->type != AVMEDIA_TYPE_AUDIO)
         return AVBIN_RESULT_ERROR;
 
     AVPacket packet;
@@ -381,12 +383,30 @@ int avbin_decode_audio(AVbinStream *stream,
     packet.data = data_in;
     packet.size = size_in;
 
-    used = avcodec_decode_audio3(stream->codec_context,
-                                 (int16_t *) data_out, size_out,
-                                 &packet);
+    AVFrame frame;
+    int ret, got_frame = 0;
+    used = avcodec_decode_audio4(stream->codec_context, &frame, &got_frame, &packet);
 
     if (used < 0)
         return AVBIN_RESULT_ERROR;
+
+    // TODO: support planar formats
+    if (used >= 0 && got_frame) {
+    	int plane_size;
+    	int data_size = av_samples_get_buffer_size(&plane_size,
+    											   stream->codec_context->channels,
+    											   frame.nb_samples,
+    											   stream->codec_context->sample_fmt, 1);
+    	if (*size_out < data_size) {
+    		av_log(stream->codec_context, AV_LOG_ERROR, "Output audio buffer is too small for current audio frame!");
+    		return AVBIN_RESULT_ERROR;
+    	}
+
+    	memcpy(data_out, frame.extended_data[0], data_size);
+    	*size_out = data_size;
+    } else {
+    	*size_out = 0;
+    }
 
     return used;
 }
