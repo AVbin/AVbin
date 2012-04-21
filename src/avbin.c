@@ -251,7 +251,7 @@ int avbin_stream_info(AVbinFile *file, int stream_index,
 
     switch (context->codec_type)
     {
-        case CODEC_TYPE_VIDEO:
+        case AVMEDIA_TYPE_VIDEO:
             info->type = AVBIN_STREAM_TYPE_VIDEO;
             info->video.width = context->width;
             info->video.height = context->height;
@@ -272,33 +272,39 @@ int avbin_stream_info(AVbinFile *file, int stream_index,
                     info_8->video.frame_rate_den *= 1000;
             }
             break;
-        case CODEC_TYPE_AUDIO:
+        case AVMEDIA_TYPE_AUDIO:
             info->type = AVBIN_STREAM_TYPE_AUDIO;
             info->audio.sample_rate = context->sample_rate;
             info->audio.channels = context->channels;
             switch (context->sample_fmt)
             {
-                case SAMPLE_FMT_U8:
+                case AV_SAMPLE_FMT_U8:
                     info->audio.sample_rate = AVBIN_SAMPLE_FORMAT_U8;
                     info->audio.sample_bits = 8;
                     break;
-                case SAMPLE_FMT_S16:
+                case AV_SAMPLE_FMT_S16:
                     info->audio.sample_format = AVBIN_SAMPLE_FORMAT_S16;
                     info->audio.sample_bits = 16;
                     break;
-                case SAMPLE_FMT_S32:
+                case AV_SAMPLE_FMT_S32:
                     info->audio.sample_format = AVBIN_SAMPLE_FORMAT_S32;
                     info->audio.sample_bits = 32;
                     break;
-                case SAMPLE_FMT_FLT:
+                case AV_SAMPLE_FMT_FLT:
                     info->audio.sample_format = AVBIN_SAMPLE_FORMAT_FLOAT;
                     info->audio.sample_bits = 32;
                     break;
+                default:
+                	// Unknown sample format
+                	info->audio.sample_format = -1;
+                	info->audio.sample_bits = -1;
+                	break;
             }
             break;
 
         default:
             info->type = AVBIN_STREAM_TYPE_UNKNOWN;
+            break;
     }
 
     return AVBIN_RESULT_OK;
