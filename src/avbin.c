@@ -28,6 +28,7 @@
 #include <libavformat/avformat.h>
 #include <libavcodec/avcodec.h>
 #include <libavutil/avutil.h>
+#include <libavutil/dict.h>
 #include <libswscale/swscale.h>
 
 struct _AVbinFile {
@@ -139,11 +140,11 @@ AVbinFile *avbin_open_filename_with_format(const char *filename, char* format)
     AVInputFormat *avformat = NULL;
     if (format) avformat = av_find_input_format(format);
 
-    if (av_open_input_file(&file->context, filename, avformat, 0, NULL) != 0)
+    if (avformat_open_input(&file->context, filename, avformat, NULL) != 0)
         goto error;
 
-    if (av_find_stream_info(file->context) < 0)
-        goto error;
+    if (avformat_find_stream_info(file->context, NULL) < 0)
+    	goto error;
 
     file->packet = NULL;
     return file;
@@ -160,7 +161,8 @@ void avbin_close_file(AVbinFile *file)
         av_free_packet(file->packet);
         free(file->packet);
     }
-    av_close_input_file(file->context);
+
+    avformat_close_input(&file->context);
     free(file);
 }
 
@@ -192,14 +194,43 @@ AVbinResult avbin_file_info(AVbinFile *file, AVbinFileInfo *info)
     info->n_streams = file->context->nb_streams;
     info->start_time = file->context->start_time;
     info->duration = file->context->duration;
-    memcpy(info->title, file->context->title, sizeof(info->title));
-    memcpy(info->author, file->context->author, sizeof(info->author));
-    memcpy(info->copyright, file->context->copyright, sizeof(info->copyright));
-    memcpy(info->comment, file->context->comment, sizeof(info->comment));
-    memcpy(info->album, file->context->album, sizeof(info->album));
-    info->year = file->context->year;
-    info->track = file->context->track;
-    memcpy(info->genre, file->context->genre, sizeof(info->genre));
+
+    // Zero-initialize fields first
+    memset(info->title, 0, sizeof(info->title));
+    memset(info->author, 0, sizeof(info->author));
+    memset(info->copyright, 0, sizeof(info->copyright));
+    memset(info->comment, 0, sizeof(info->comment));
+    memset(info->album, 0, sizeof(info->album));
+    memset(info->genre, 0, sizeof(info->genre));
+    info->year = 0;
+    info->track = 0;
+
+    AVDictionaryEntry* entry;
+    if ((entry = av_dict_get(file->context->metadata, "title", NULL, 0)) != NULL)  {
+    	strncpy(info->title, entry->value, sizeof(info->title));
+    }
+
+    if ((entry = av_dict_get(file->context->metadata, "artist", NULL, 0)) != NULL)  {
+    	strncpy(info->author, entry->value, sizeof(info->author));
+    }
+    if ((entry = av_dict_get(file->context->metadata, "copyright", NULL, 0)) != NULL)  {
+    	strncpy(info->copyright, entry->value, sizeof(info->copyright));
+    }
+    if ((entry = av_dict_get(file->context->metadata, "comment", NULL, 0)) != NULL)  {
+    	strncpy(info->comment, entry->value, sizeof(info->comment));
+    }
+    if ((entry = av_dict_get(file->context->metadata, "album", NULL, 0)) != NULL)  {
+    	strncpy(info->album, entry->value, sizeof(info->album));
+    }
+    if ((entry = av_dict_get(file->context->metadata, "date", NULL, 0)) != NULL)  {
+    	info->year = atoi(entry->value);
+    }
+    if ((entry = av_dict_get(file->context->metadata, "track", NULL, 0)) != NULL)  {
+    	info->track = atoi(entry->value);
+    }
+    if ((entry = av_dict_get(file->context->metadata, "genre", NULL, 0)) != NULL)  {
+    	strncpy(info->genre, entry->value, sizeof(info->genre));
+    }
 
     return AVBIN_RESULT_OK;
 }
