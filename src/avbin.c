@@ -105,8 +105,8 @@ int avbin_have_feature(const char *feature)
 
 AVbinResult avbin_init()
 {
-    avcodec_init();
-    av_register_all();    
+    av_register_all();
+    avcodec_register_all();
     return AVBIN_RESULT_OK;
 }
 
@@ -384,7 +384,7 @@ int avbin_decode_audio(AVbinStream *stream,
     packet.size = size_in;
 
     AVFrame frame;
-    int ret, got_frame = 0;
+    int got_frame = 0;
     used = avcodec_decode_audio4(stream->codec_context, &frame, &got_frame, &packet);
 
     if (used < 0)
@@ -421,7 +421,7 @@ int avbin_decode_video(AVbinStream *stream,
     int height = stream->codec_context->height;
     int used;
 
-    if (stream->type != CODEC_TYPE_VIDEO)
+    if (stream->type != AVMEDIA_TYPE_VIDEO)
         return AVBIN_RESULT_ERROR;
 
     AVPacket packet;
@@ -438,17 +438,7 @@ int avbin_decode_video(AVbinStream *stream,
 
 
     avpicture_fill(&picture_rgb, data_out, PIX_FMT_RGB24, width, height);
-
-    /* img_convert is marked deprecated in favour of swscale, don't
-     * be surprised if this stops working the next time the libav version
-     * is pushed.  Example use of the new API is in ffplay.c.
-    img_convert(&picture_rgb, PIX_FMT_RGB24, 
-                (AVPicture *) stream->frame, stream->codec_context->pix_fmt,
-                width, height);
- */
-
     static struct SwsContext *img_convert_ctx = NULL;
-
     img_convert_ctx = sws_getCachedContext(img_convert_ctx,width, height,stream->codec_context->pix_fmt,width, height,PIX_FMT_RGB24, SWS_FAST_BILINEAR, NULL, NULL, NULL);
     sws_scale(img_convert_ctx, stream->frame->data, stream->frame->linesize,0, height, picture_rgb.data, picture_rgb.linesize);
     
