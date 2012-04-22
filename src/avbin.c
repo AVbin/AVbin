@@ -211,7 +211,8 @@ AVbinResult avbin_file_info(AVbinFile *file, AVbinFileInfo *info)
     	strncpy(info->title, entry->value, sizeof(info->title));
     }
 
-    if ((entry = av_dict_get(file->context->metadata, "artist", NULL, 0)) != NULL)  {
+    if (((entry = av_dict_get(file->context->metadata, "artist", NULL, 0)) != NULL) ||
+    	 (entry = av_dict_get(file->context->metadata, "album_artist", NULL, 0)) != NULL) {
     	strncpy(info->author, entry->value, sizeof(info->author));
     }
     if ((entry = av_dict_get(file->context->metadata, "copyright", NULL, 0)) != NULL)  {

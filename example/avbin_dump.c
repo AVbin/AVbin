@@ -59,6 +59,15 @@ int main(int argc, char** argv)
         (fileinfo.duration / (1000000L * 60)) % 60,
         (fileinfo.duration / 1000000L) % 60);
 
+    printf("Title: %s\n", fileinfo.title);
+    printf("Author: %s\n", fileinfo.author);
+    printf("Copyright: %s\n", fileinfo.copyright);
+    printf("Comment: %s\n", fileinfo.comment);
+    printf("Album: %s\n", fileinfo.album);
+    printf("Track: %d\n", fileinfo.track);
+    printf("Year: %d\n", fileinfo.year);
+    printf("Genre: %s\n", fileinfo.genre);
+
     AVbinStream* video_stream = NULL;
     AVbinStream* audio_stream = NULL;
     int video_stream_index = -1;
