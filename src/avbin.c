@@ -140,6 +140,7 @@ AVbinFile *avbin_open_filename_with_format(const char *filename, char* format)
     AVInputFormat *avformat = NULL;
     if (format) avformat = av_find_input_format(format);
 
+    file->context = NULL;	// Zero-initialize
     if (avformat_open_input(&file->context, filename, avformat, NULL) != 0)
         goto error;
 
