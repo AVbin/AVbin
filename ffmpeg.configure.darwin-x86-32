@@ -4,8 +4,8 @@
 
 --arch=x86_32
 --cpu=i686
---extra-cflags='-isysroot %%SDKPATH%% -mmacosx-version-min=10.6'
---extra-ldflags='-isysroot %%SDKPATH%% -mmacosx-version-min=10.6'
+--extra-cflags='-isysroot %%SDKPATH%% -mmacosx-version-min=10.6 -arch i386'
+--extra-ldflags='-isysroot %%SDKPATH%% -mmacosx-version-min=10.6 -arch i386'
 
 # Currently broken on Darwin
 #--disable-mmx

@@ -1,7 +1,7 @@
 LIBNAME=$(OUTDIR)/libavbin.$(AVBIN_VERSION).dylib
 DARWIN_VERSION=$(shell uname -r | cut -d . -f 1)
 
-CFLAGS += -O3 -mmacosx-version-min=10.6
+CFLAGS += -O3 -mmacosx-version-min=10.6 -arch i386
 LDFLAGS += -dylib \
            -single_module \
            -macosx_version_min 10.6 \
