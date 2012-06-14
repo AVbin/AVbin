@@ -4,8 +4,8 @@
 
 --arch=x86_32
 --cpu=i686
---extra-cflags='-isysroot /Developer/SDKs/MacOSX10.6.sdk -mmacosx-version-min=10.6'
---extra-ldflags='-isysroot /Developer/SDKs/MacOSX10.6.sdk -mmacosx-version-min=10.6'
+--extra-cflags='-isysroot %%SDKPATH%% -mmacosx-version-min=10.6'
+--extra-ldflags='-isysroot %%SDKPATH%% -mmacosx-version-min=10.6'
 
 # Currently broken on Darwin
 #--disable-mmx
