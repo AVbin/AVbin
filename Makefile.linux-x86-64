@@ -8,13 +8,13 @@ STATIC_LIBS = -whole-archive \
               $(FFMPEG)/libavformat/libavformat.a \
               $(FFMPEG)/libavcodec/libavcodec.a \
               $(FFMPEG)/libavutil/libavutil.a \
+              $(FFMPEG)/libavcore/libavcore.a \
               $(FFMPEG)/libswscale/libswscale.a \
               -no-whole-archive \
               -R /usr/local/lib \
               -R .
 
-LIBS = 
-#-lbz2
+LIBS = -lbz2
 
 $(LIBNAME) : $(OBJNAME) $(OUTDIR)
 	$(LD) $(LDFLAGS) -o $@ $< $(STATIC_LIBS) $(LIBS)
