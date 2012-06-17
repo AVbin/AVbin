@@ -3,10 +3,10 @@ DARWIN_VERSION=$(shell uname -r | cut -d . -f 1)
 
 CFLAGS += -O3 -arch x86_64
 LDFLAGS += -dylib \
-           -read_only_relocs suppress \
            -single_module \
            -arch x86_64 \
-           -install_name @rpath/libavbin.dylib
+           -install_name @rpath/libavbin.dylib \
+           -macosx_version_min 10.6
 
 STATIC_LIBS = $(FFMPEG)/libavformat/libavformat.a \
               $(FFMPEG)/libavcodec/libavcodec.a \
