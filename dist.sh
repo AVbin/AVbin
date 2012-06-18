@@ -72,8 +72,9 @@ dist_win64() {
 
 dist_source() {
     dist_common
+    rmdir $DIR
     echo "Creating source archive from current commit."
-    git archive HEAD | bzip2 -9 > dist/$BASEDIR.tar.bz2
+    git archive --prefix=$BASEDIR/ HEAD | bzip2 -9 > dist/$BASEDIR.tar.bz2
 }
 
 platforms=$*
