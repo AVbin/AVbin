@@ -6,8 +6,8 @@ LDFLAGS += -dylib \
            -single_module \
            -macosx_version_min 10.6 \
            -arch i386 \
+           -read_only_relocs suppress \
            -install_name @rpath/libavbin.dylib
-#           -read_only_relocs suppress \
 
 STATIC_LIBS = $(FFMPEG)/libavformat/libavformat.a \
               $(FFMPEG)/libavcodec/libavcodec.a \
