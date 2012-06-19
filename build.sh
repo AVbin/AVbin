@@ -47,11 +47,11 @@ build_ffmpeg() {
         make distclean
         cat $config $common | egrep -v '^#' | sed s/%%SDKPATH%%/$SDKPATH/g | xargs ./configure || exit 1
 
-	# Patch the generated config.h file if a patch for this build exists
-	if [ -e ../patch.config.h-${PLATFORM} ] ; then
-	    echo "AVbin: Found config.h patch."
-	    patch -p0 < ../patch.config.h-${PLATFORM} || fail "Failed applying config.h patch"
-	fi
+	     # Patch the generated config.h file if a patch for this build exists
+	     if [ -e ../patch.config.h-${PLATFORM} ] ; then
+	         echo "AVbin: Found config.h patch."
+	         patch -p0 < ../patch.config.h-${PLATFORM} || fail "Failed applying config.h patch"
+	     fi
     fi
 
     # Remove -Werror options from config.mak that break builds on some platforms

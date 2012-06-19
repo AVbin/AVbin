@@ -1,6 +1,5 @@
 AVbin
 
-Copyright 2007 Alex Holkner <Alex.Holkner@gmail.com>
 AVbin incorporates FFmpeg, http://ffmpeg.mplayerhq.hu/
 
 To install, copy libavbin.so.* to a path such as /usr/lib and create
