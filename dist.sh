@@ -72,8 +72,9 @@ dist_win64() {
 
 dist_source() {
     dist_common
-    echo "Creating source archive from master branch (NOT the current working directory)"
-    git archive master | bzip2 -9 > dist/avbin-$BASEDIR.tar.bz2
+    rmdir $DIR
+    echo "Creating source archive from current commit."
+    git archive --prefix=$BASEDIR/ HEAD | bzip2 -9 > dist/$BASEDIR.tar.bz2
 }
 
 platforms=$*

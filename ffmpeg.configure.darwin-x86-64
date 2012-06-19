@@ -4,9 +4,5 @@
 
 --arch=x86_64
 #--cpu=i686
---extra-cflags='-arch x86_64'
---extra-ldflags='-arch x86_64'
-
-# Currently broken on Darwin
-#--disable-mmx
-#--enable-cross-compile
+--extra-cflags='-isysroot %%SDKPATH%% -arch x86_64 -mmacosx-version-min=10.6'
+--extra-ldflags='-isysroot %%SDKPATH%% -arch x86_64 -mmacosx_version_min=10.6'

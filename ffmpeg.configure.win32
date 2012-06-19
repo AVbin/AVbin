@@ -1,34 +1,22 @@
-# gcc is already the default compiler
-#--cc=gcc
-
+--enable-cross-compile
+--cross-prefix=i686-w64-mingw32-
 --target-os=mingw32
---arch=x86
---cross-prefix=i586-mingw32msvc-
---extra-libs=-mno-cygwin
-
-# This option causes configure to crash
-#--extra-cflags="-mno-cygwin -mms-bitfields"
-
-# This was useful for debugging.  The diagnostics one show what option caused the warning, -v adds verbose output
-#--extra-cflags="-fdiagnostics-show-option -v"
-
-#--extra-cflags="-D__MINGW32_MAJOR_VERSION=4 -DHAVE_WINSOCK2_H"
-
-#--extra-ldflags="-Wl,--add-stdcall-alias"
 --enable-memalign-hack
-
-# Why target an ancient cpu?
---cpu=i586
+--arch=x86_64
+#--cpu=i686
 
 --enable-static
 --disable-shared
 
 --enable-w32threads
 
-# This doesn't appear to be necessary on actual windows.  Very necessary when cross-compiling on Ubuntu.
---enable-cross-compile
+# trick the check for the right version of mingw32 into working...
+#--extra-cflags="-D__MINGW32_MAJOR_VERSION=4 -DHAVE_WINSOCK2_H"
 
---disable-avisynth
---disable-demuxer=vfwcap
---disable-demuxer=aacdec
---disable-demuxer=fourxm
+#these currently aren't supported by the version of w32api currently provided by mingw w64
+--disable-dxva2
+#--disable-network
+#--disable-avisynth
+#--disable-demuxer=vfwcap
+#--enable-avisynth
+#--enable-demuxer=vfwcap

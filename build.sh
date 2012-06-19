@@ -36,10 +36,16 @@ build_ffmpeg() {
 
     pushd $FFMPEG
 
+    case $OSX_VERSION in
+        "10.6") SDKPATH="\/Developer\/SDKs\/MacOSX10.6.sdk" ;;
+        "10.7") SDKPATH="\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/MacOSX.platform\/Developer\/SDKs\/MacOSX10.6.sdk" ;;
+        *)      SDKPATH="" ;;
+    esac
+
     # If we're not rebuilding, then we need to configure FFmpeg
     if [ ! $REBUILD ]; then
         make distclean
-        cat $config $common | egrep -v '^#' | xargs ./configure || exit 1
+        cat $config $common | egrep -v '^#' | sed s/%%SDKPATH%%/$SDKPATH/g | xargs ./configure || exit 1
 
 	# Patch the generated config.h file if a patch for this build exists
 	if [ -e ../patch.config.h-${PLATFORM} ] ; then
@@ -88,11 +94,31 @@ build_darwin_universal() {
         dist/darwin-x86-64/libavbin.$AVBIN_VERSION.dylib
 }
 
+die_usage() {
+    echo "Usage: ./build.sh [options] <platform> [<platform> [<platform> ...]]"
+    echo
+    echo "Options"
+    echo "  --clean     Don't build, just clean up all generated files and directories."
+    echo "  --help      Display this help text."
+    echo "  --rebuild   Don't reconfigure, just run make again."
+    echo
+    echo "Supported platforms:"
+    echo "  linux-x86-32"
+    echo "  linux-x86-64"
+    echo "  darwin-x86-32"
+    echo "  darwin-x86-64"
+    echo "  darwin-universal (builds all supported darwin architectures into one library)"
+    echo "  win32"
+    echo "  win64"
+    exit 1
+}
+
 while [ "${1:0:2}" == "--" ]; do
     case $1 in
-        "--help") # fall through
-            ;;
-        "--rebuild") REBUILD=1;;
+        "--help")
+            die_usage ;;
+        "--rebuild")
+            REBUILD=1;;
         "--clean")
             pushd $FFMPEG
             make clean
@@ -105,7 +131,9 @@ while [ "${1:0:2}" == "--" ]; do
             rm -rf build
             exit
             ;;
-        *)           echo "Unrecognised option: $1" && exit 1;;
+        *)
+            echo "Unrecognised option: $1.  Try Try ./build.sh --help" && exit 1
+            ;;
     esac
     shift
 done;
@@ -113,28 +141,26 @@ done;
 platforms=$*
 
 if [ ! "$platforms" ]; then
-    echo "Usage: ./build.sh [options] <platform> [<platform> [<platform> ...]]"
-    echo
-    echo "Options"
-    echo "  --clean             Don't build, just clean up all generated files and directories."
-    echo "  --rebuild           Don't reconfigure, just run make again."
-    echo
-    echo "Supported platforms:"
-    echo "  linux-x86-32"
-    echo "  linux-x86-64"
-    echo "  darwin-x86-32"
-    echo "  darwin-x86-64"
-    echo "  darwin-universal (builds all supported darwin architectures into one library)"
-    echo "  win32"
-    echo "  win64"
-    exit 1
+    die_usage
 fi
 
 for PLATFORM in $platforms; do
-    if [ $PLATFORM == "darwin-universal" ]; then
-        build_darwin_universal
-    else
-        build_ffmpeg
-        build_avbin
-    fi
+    case $PLATFORM in
+        "darwin-universal")
+            OSX_VERSION=`/usr/bin/sw_vers -productVersion | cut -b 1-4`
+            build_darwin_universal
+            ;;
+        "darwin-x86-32" | "darwin-x86-64")
+            OSX_VERSION=`/usr/bin/sw_vers -productVersion | cut -b 1-4`
+            build_ffmpeg
+            build_avbin
+            ;;
+        "linux-x86-32" | "linux-x86-64" | "win32" | "win64")
+            build_ffmpeg
+            build_avbin
+            ;;
+        *)
+            echo "Unrecognized platform: $PLATFORM.  Try ./build.sh --help" && exit 3
+            ;;
+    esac
 done
