@@ -23,7 +23,7 @@ AVBIN_VERSION=`cat VERSION`
 FFMPEG_REVISION=`cat ffmpeg.revision`
 
 # Directory holding ffmpeg source code.
-FFMPEG=ffmpeg
+FFMPEG=libav
 
 fail() {
     echo "AVbin: Fatal error: $1"
