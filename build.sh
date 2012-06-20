@@ -25,6 +25,11 @@ FFMPEG_REVISION=`cat ffmpeg.revision`
 # Directory holding ffmpeg source code.
 FFMPEG=libav
 
+if git rev-parse > /dev/null 2> /dev/null ; then
+    git submodule init
+    git submodule update
+fi
+
 fail() {
     echo "AVbin: Fatal error: $1"
     exit 1
@@ -59,7 +64,7 @@ build_ffmpeg() {
     mv config.mak2 config.mak
 
     # Actually build FFmpeg
-    make || exit 1
+    make -j3 || exit 1
     popd
 }
 
