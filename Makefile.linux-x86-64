@@ -2,7 +2,7 @@ SONAME=libavbin.so.$(AVBIN_VERSION)
 LIBNAME=$(OUTDIR)/$(SONAME)
 
 CFLAGS += -fPIC -fno-stack-protector -O3 -m64 --std=gnu89
-LDFLAGS += -shared -soname $(SONAME)
+LDFLAGS += -shared -soname $(SONAME) -Bsymbolic
 
 STATIC_LIBS = -whole-archive \
               $(FFMPEG)/libavformat/libavformat.a \
