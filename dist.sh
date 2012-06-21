@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # dist.sh
-# Copyright 2007 Alex Holkner
+# Copyright 2012 AVbin Team
 #
 # This file is part of AVbin.
 #
@@ -22,6 +22,7 @@
 AVBIN_VERSION=`cat VERSION`
 
 dist_common() {
+    echo "Creating distribution for $PLATFORM"
     rm -rf $DIR
     mkdir -p $DIR
 }
@@ -32,9 +33,9 @@ dist_linux() {
     cp README.linux $DIR/README
     sed s/@AVBIN_VERSION@/$AVBIN_VERSION/ install.sh.linux > $DIR/install.sh
     chmod a+x $DIR/install.sh
-    pushd dist
+    pushd dist > /dev/null
     tar cjf $BASEDIR.tar.bz2 $BASEDIR
-    popd
+    popd > /dev/null
     rm -rf $DIR
 }
 
@@ -112,3 +113,5 @@ for PLATFORM in $platforms; do
         exit 1
     fi
 done
+
+echo "Done.  File is in dist/"
