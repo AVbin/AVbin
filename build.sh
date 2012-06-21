@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # build.sh
-# Copyright 2007 Alex Holkner
+# Copyright 2012 AVbin Team
 #
 # This file is part of AVbin.
 #
@@ -26,7 +26,7 @@ FFMPEG_REVISION=`cat ffmpeg.revision`
 FFMPEG=libav
 
 if git rev-parse > /dev/null 2> /dev/null ; then
-    git submodule init
+    git submodule init --quiet
     git submodule update
 fi
 
@@ -35,28 +35,44 @@ fail() {
     exit 1
 }
 
+clean_libav() {
+    pushd $FFMPEG > /dev/null
+    echo -n "Cleaning up..."
+    make clean 2> /dev/null
+    make distclean 2> /dev/null
+    echo "done"
+    find . -name '*.d' -exec rm -f '{}' ';'
+    find . -name '*.pc' -exec rm -f '{}' ';'
+    rm -f config.log config.err config.h config.mak .config .version
+    popd > /dev/null
+}
+
 build_ffmpeg() {
     config=`pwd`/ffmpeg.configure.$PLATFORM
     common=`pwd`/ffmpeg.configure.common
 
-    pushd $FFMPEG
+    if [ ! $REBUILD ]; then
+	clean_libav
+    fi
 
-    case $OSX_VERSION in
-        "10.6") SDKPATH="\/Developer\/SDKs\/MacOSX10.6.sdk" ;;
-        "10.7") SDKPATH="\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/MacOSX.platform\/Developer\/SDKs\/MacOSX10.6.sdk" ;;
-        *)      SDKPATH="" ;;
-    esac
+    pushd $FFMPEG > /dev/null
 
     # If we're not rebuilding, then we need to configure FFmpeg
     if [ ! $REBUILD ]; then
-        make distclean
-        cat $config $common | egrep -v '^#' | sed s/%%SDKPATH%%/$SDKPATH/g | xargs ./configure || exit 1
+	case $OSX_VERSION in
+            "10.6") SDKPATH="\/Developer\/SDKs\/MacOSX10.6.sdk" ;;
+            "10.7") SDKPATH="\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/MacOSX.platform\/Developer\/SDKs\/MacOSX10.6.sdk" ;;
+            *)      SDKPATH="" ;;
+	esac
 
-	     # Patch the generated config.h file if a patch for this build exists
-	     if [ -e ../patch.config.h-${PLATFORM} ] ; then
-	         echo "AVbin: Found config.h patch."
-	         patch -p0 < ../patch.config.h-${PLATFORM} || fail "Failed applying config.h patch"
-	     fi
+        cat $config $common | egrep -v '^#' | sed s/%%SDKPATH%%/$SDKPATH/g | xargs ./configure || fail "Failed configuring libav."
+
+	# Patch the generated config.h file if a patch for this build exists
+	if [ -e ../patch.config.h-${PLATFORM} ] ; then
+	    echo "AVbin: Found custom config.h patch for this architecture."
+	    patch -p0 < ../patch.config.h-${PLATFORM} || fail "Failed applying config.h patch"
+	    echo "AVbin: Patch succeeded."
+	fi
     fi
 
     # Remove -Werror options from config.mak that break builds on some platforms
@@ -64,7 +80,7 @@ build_ffmpeg() {
     mv config.mak2 config.mak
 
     # Actually build FFmpeg
-    make -j3 || exit 1
+    make -j3 || fail "Failed to build libav."
     popd
 }
 
@@ -76,7 +92,7 @@ build_avbin() {
     if [ ! $REBUILD ]; then
         make clean
     fi
-    make || exit 1
+    make || fail "Failed to build AVbin."
 }
 
 build_darwin_universal() {
@@ -96,7 +112,7 @@ build_darwin_universal() {
     lipo -create \
         -output dist/darwin-universal/libavbin.$AVBIN_VERSION.dylib \
         dist/darwin-x86-32/libavbin.$AVBIN_VERSION.dylib \
-        dist/darwin-x86-64/libavbin.$AVBIN_VERSION.dylib
+        dist/darwin-x86-64/libavbin.$AVBIN_VERSION.dylib || fail "Failed to create universal shared library."
 }
 
 die_usage() {
@@ -125,13 +141,7 @@ while [ "${1:0:2}" == "--" ]; do
         "--rebuild")
             REBUILD=1;;
         "--clean")
-            pushd $FFMPEG
-            make clean
-            make distclean
-            find . -name '*.d' -exec rm -f '{}' ';'
-            find . -name '*.pc' -exec rm -f '{}' ';'
-            rm -f config.log config.err config.h config.mak .config .version
-            popd
+	    clean_libav
             rm -rf dist
             rm -rf build
             exit
@@ -169,3 +179,5 @@ for PLATFORM in $platforms; do
             ;;
     esac
 done
+
+echo "Build successful."
