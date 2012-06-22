@@ -1,0 +1,3 @@
+[submodule "libav"]
+	path = libav
+	url = git@github.com:AVbin/libav.git
