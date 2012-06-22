@@ -21,61 +21,31 @@
 
 AVBIN_VERSION=`cat VERSION`
 
+fail() {
+    echo "Fatal: $1"
+    exit 1
+}
+
 dist_common() {
     echo "Creating distribution for $PLATFORM"
     rm -rf $DIR
     mkdir -p $DIR
-}
-
-dist_linux() {
-    dist_common
-    cp dist/$PLATFORM/libavbin.so.$AVBIN_VERSION $DIR/
-    cp README.linux $DIR/README
-    sed s/@AVBIN_VERSION@/$AVBIN_VERSION/ install.sh.linux > $DIR/install.sh
-    chmod a+x $DIR/install.sh
+    cp README.$OS $DIR/README.txt || fail "Failed copying the README file"
+    cp $LIBRARY $DIR/ || fail "Failed copying the library"
+    if [ $PLATFORM == "linux-x86-32" -o $PLATFORM == "linux-x86-64" \
+            -o $PLATFORM == "darwin-universal" -o $PLATFORM == "darwin-x86-32" \
+            -o $PLATFORM == "darwin-x86-64" ]; then
+	sed s/@AVBIN_VERSION@/$AVBIN_VERSION/ install.sh.$OS > $DIR/install.sh || fail "Failed creating install.sh"
+	chmod a+x $DIR/install.sh || fail "Failed making install.sh executable"
+    fi
     pushd dist > /dev/null
-    tar cjf $BASEDIR.tar.bz2 $BASEDIR
+    if [ $PLATFORM == "win32" -o $PLATFORM == "win64" ]; then
+	7z a -tzip $BASEDIR.zip $BASEDIR || fail "Failed creating zip file - is the 7z binary from the 7zip package insalled?"
+    else
+	tar cjf $BASEDIR.tar.bz2 $BASEDIR || fail "Failed creating tarball"
+    fi
     popd > /dev/null
     rm -rf $DIR
-}
-
-dist_darwin() {
-    dist_common
-    cp README.darwin $DIR/readme.txt
-    cp dist/$PLATFORM/libavbin.$AVBIN_VERSION.dylib $DIR/
-    sed s/@AVBIN_VERSION@/$AVBIN_VERSION/ install.sh.darwin > $DIR/install.sh
-    chmod a+x $DIR/install.sh
-    pushd dist
-    tar cjf $BASEDIR.tar.bz2 $BASEDIR
-    popd
-    rm -rf $DIR
-}
-
-dist_win32() {
-    dist_common
-    cp dist/$PLATFORM/avbin.dll $DIR/
-    cp README.win32 $DIR/readme.txt
-    pushd dist
-    7z a -tzip $BASEDIR.zip $BASEDIR
-    popd
-    rm -rf $DIR
-}
-
-dist_win64() {
-    dist_common
-    cp dist/$PLATFORM/avbin64.dll $DIR/
-    cp README.win64 $DIR/readme.txt
-    pushd dist
-    7z a -tzip $BASEDIR.zip $BASEDIR
-    popd
-    rm -rf $DIR
-}
-
-dist_source() {
-    dist_common
-    rmdir $DIR
-    echo "Creating source archive from current commit."
-    git archive --prefix=$BASEDIR/ HEAD | bzip2 -9 > dist/$BASEDIR.tar.bz2
 }
 
 platforms=$*
@@ -84,7 +54,6 @@ if [ ! "$platforms" ]; then
     echo "Usage: ./dist.sh <platform> [<platform> [<platform> ...]]"
     echo
     echo "Supported platforms:"
-    echo "  source"
     echo "  linux-x86-32"
     echo "  linux-x86-64"
     echo "  darwin-x86-32"
@@ -98,20 +67,23 @@ fi
 for PLATFORM in $platforms; do
     BASEDIR=avbin-$PLATFORM-v$AVBIN_VERSION
     DIR=dist/$BASEDIR
-    if [ $PLATFORM == "source" ]; then
-        dist_source
-    elif [ $PLATFORM == "linux-x86-32" -o $PLATFORM == "linux-x86-64" ]; then
-        dist_linux
+    if [ $PLATFORM == "linux-x86-32" -o $PLATFORM == "linux-x86-64" ]; then
+	OS=linux
+	LIBRARY=dist/$PLATFORM/libavbin.so.$AVBIN_VERSION
     elif [ $PLATFORM == "darwin-universal" -o $PLATFORM == "darwin-x86-32" -o $PLATFORM == "darwin-x86-64" ]; then
-        dist_darwin
+	OS=darwin
+	LIBRARY=dist/$PLATFORM/libavbin.$AVBIN_VERSION.dylib
     elif [ $PLATFORM == "win32" ]; then
-        dist_win32
+	OS=win32
+	LIBRARY=dist/$PLATFORM/avbin.dll
     elif [ $PLATFORM == "win64" ]; then
-        dist_win64
+	OS=win64
+	LIBRARY=dist/$PLATFORM/avbin64.dll
     else
         echo "Unsupported platform $PLATFORM"
         exit 1
     fi
+    dist_common
 done
 
 echo "Done.  File is in dist/"
