@@ -1,7 +1,7 @@
 AVbin
 
-AVbin incorporates FFmpeg, http://ffmpeg.mplayerhq.hu/
+AVbin incorporates LGPL portions of Libav, http://libav.org
 
-To install, copy libavbin.*.dylib to a path such as /usr/local/lib and create
-a symlink without the version number.  Or, run the included ``install.sh``
-program.
+To install, run the included ``install.sh`` program.  Or, copy libavbin.*.dylib
+to a path such as /usr/local/lib and create a symlink from it to libavbin.dylib
+(without the version number). 

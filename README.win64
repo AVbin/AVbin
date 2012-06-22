@@ -2,4 +2,4 @@ AVbin
 
 AVbin incorporates LGPL portions of Libav, http://libav.org
 
-To install, copy avbin.dll to c:\Windows\System32
+To install, copy avbin64.dll to c:\Windows\System32
