@@ -42,7 +42,7 @@ dist_common() {
     if [ $PLATFORM == "win32" -o $PLATFORM == "win64" ]; then
 	7z a -tzip $BASEDIR.zip $BASEDIR || fail "Failed creating zip file - is the 7z binary from the 7zip package insalled?"
     else
-	tar cjf $BASEDIR.tar.bz2 $BASEDIR || fail "Failed creating tarball"
+	tar cjvf $BASEDIR.tar.bz2 $BASEDIR || fail "Failed creating tarball"
     fi
     popd > /dev/null
     rm -rf $DIR
