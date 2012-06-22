@@ -9,7 +9,6 @@ STATIC_LIBS = -Wl,-whole-archive \
               -Wl,$(FFMPEG)/libavformat/libavformat.a \
               -Wl,$(FFMPEG)/libavcodec/libavcodec.a \
               -Wl,$(FFMPEG)/libavutil/libavutil.a \
-              -Wl,$(FFMPEG)/libavcore/libavcore.a \
               -Wl,$(FFMPEG)/libswscale/libswscale.a \
               -Wl,-no-whole-archive
 
