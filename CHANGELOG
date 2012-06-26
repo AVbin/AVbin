@@ -16,7 +16,9 @@
     Refactored dist.sh:  One main codepath, more error checking, better output.
     Refactored build.sh: Less codepaths, more error checking, better output.
     Updated the copyright on code files.
-    Added a README for win64.
+    Added a README for the win64 release.
+    Discontinued support for packaging a "source release".
+    Updated the project README.
     
 
 8.1
