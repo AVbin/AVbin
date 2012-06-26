@@ -8,10 +8,10 @@ LDFLAGS += -dylib \
            -install_name @rpath/libavbin.dylib \
            -macosx_version_min 10.6
 
-STATIC_LIBS = $(FFMPEG)/libavformat/libavformat.a \
-              $(FFMPEG)/libavcodec/libavcodec.a \
-              $(FFMPEG)/libavutil/libavutil.a \
-              $(FFMPEG)/libswscale/libswscale.a
+STATIC_LIBS = $(LIBAV)/libavformat/libavformat.a \
+              $(LIBAV)/libavcodec/libavcodec.a \
+              $(LIBAV)/libavutil/libavutil.a \
+              $(LIBAV)/libswscale/libswscale.a
 
 LIBS = -lSystem \
        -lz \

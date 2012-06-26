@@ -7,6 +7,3 @@
 --cpu=i586
 --disable-bzlib
 --extra-cflags=-m32
-
-#--incdir=~/Common/matlab/graphics/mmread/avbin/ffmpeg
-#--extra-cflags=-static

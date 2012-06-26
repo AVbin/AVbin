@@ -22,8 +22,8 @@
 AVBIN_VERSION=`cat VERSION`
 FFMPEG_REVISION=`cat ffmpeg.revision`
 
-# Directory holding ffmpeg source code.
-FFMPEG=libav
+# Directory holding libav source code.
+LIBAV=libav
 
 if git rev-parse > /dev/null 2> /dev/null ; then
     if ! ls libav/Makefile >/dev/null 2> /dev/null ; then
@@ -38,7 +38,7 @@ fail() {
 }
 
 clean_libav() {
-    pushd $FFMPEG > /dev/null
+    pushd $LIBAV > /dev/null
     echo -n "Cleaning up..."
     make clean 2> /dev/null
     make distclean 2> /dev/null
@@ -49,17 +49,17 @@ clean_libav() {
     popd > /dev/null
 }
 
-build_ffmpeg() {
-    config=`pwd`/ffmpeg.configure.$PLATFORM
-    common=`pwd`/ffmpeg.configure.common
+build_libav() {
+    config=`pwd`/$PLATFORM.configure
+    common=`pwd`/common.configure
 
     if [ ! $REBUILD ]; then
 	clean_libav
     fi
 
-    pushd $FFMPEG > /dev/null
+    pushd $LIBAV > /dev/null
 
-    # If we're not rebuilding, then we need to configure FFmpeg
+    # If we're not rebuilding, then we need to configure Libav
     if [ ! $REBUILD ]; then
 	case $OSX_VERSION in
             "10.6") SDKPATH="\/Developer\/SDKs\/MacOSX10.6.sdk" ;;
@@ -70,9 +70,10 @@ build_ffmpeg() {
         cat $config $common | egrep -v '^#' | sed s/%%SDKPATH%%/$SDKPATH/g | xargs ./configure || fail "Failed configuring libav."
 
 	# Patch the generated config.h file if a patch for this build exists
-	if [ -e ../patch.config.h-${PLATFORM} ] ; then
-	    echo "AVbin: Found custom config.h patch for this architecture."
-	    patch -p0 < ../patch.config.h-${PLATFORM} || fail "Failed applying config.h patch"
+   PATCHFILE=../${PLATFORM}.config.h.patch
+	if [ -e $PATCHFILE ] ; then
+	    echo "AVbin: Found custom config.h patch for this architecture: $PATCHFILE"
+	    patch -p0 < $PATCHFILE || fail "Failed applying config.h patch"
 	    echo "AVbin: Patch succeeded."
 	fi
     fi
@@ -81,7 +82,7 @@ build_ffmpeg() {
     cat config.mak | sed -e s/-Werror=implicit-function-declaration//g | sed -e s/-Werror=missing-prototypes//g > config.mak2
     mv config.mak2 config.mak
 
-    # Actually build FFmpeg
+    # Actually build Libav
     make -j3 || fail "Failed to build libav."
     popd
 }
@@ -90,31 +91,31 @@ build_avbin() {
     export AVBIN_VERSION
     export FFMPEG_REVISION
     export PLATFORM
-    export FFMPEG
+    export LIBAV
     if [ ! $REBUILD ]; then
         make clean
     fi
     make || fail "Failed to build AVbin."
 }
 
-build_darwin_universal() {
-    if [ ! -e dist/darwin-x86-32/libavbin.$AVBIN_VERSION.dylib ]; then
-        PLATFORM=darwin-x86-32
-        build_ffmpeg
+build_macosx_universal() {
+    if [ ! -e dist/macosx-x86-32/libavbin.$AVBIN_VERSION.dylib ]; then
+        PLATFORM=macosx-x86-32
+        build_libav
         build_avbin
     fi
 
-    if [ ! -e dist/darwin-x86-64/libavbin.$AVBIN_VERSION.dylib ]; then
-        PLATFORM=darwin-x86-64
-        build_ffmpeg
+    if [ ! -e dist/macosx-x86-64/libavbin.$AVBIN_VERSION.dylib ]; then
+        PLATFORM=macosx-x86-64
+        build_libav
         build_avbin
     fi
 
-    mkdir -p dist/darwin-universal
+    mkdir -p dist/macosx-universal
     lipo -create \
-        -output dist/darwin-universal/libavbin.$AVBIN_VERSION.dylib \
-        dist/darwin-x86-32/libavbin.$AVBIN_VERSION.dylib \
-        dist/darwin-x86-64/libavbin.$AVBIN_VERSION.dylib || fail "Failed to create universal shared library."
+        -output dist/macosx-universal/libavbin.$AVBIN_VERSION.dylib \
+        dist/macosx-x86-32/libavbin.$AVBIN_VERSION.dylib \
+        dist/macosx-x86-64/libavbin.$AVBIN_VERSION.dylib || fail "Failed to create universal shared library."
 }
 
 die_usage() {
@@ -128,9 +129,9 @@ die_usage() {
     echo "Supported platforms:"
     echo "  linux-x86-32"
     echo "  linux-x86-64"
-    echo "  darwin-x86-32"
-    echo "  darwin-x86-64"
-    echo "  darwin-universal (builds all supported darwin architectures into one library)"
+    echo "  macosx-x86-32"
+    echo "  macosx-x86-64"
+    echo "  macosx-universal (builds all supported Mac OS X architectures into one library)"
     echo "  win32"
     echo "  win64"
     exit 1
@@ -163,17 +164,17 @@ fi
 
 for PLATFORM in $platforms; do
     case $PLATFORM in
-        "darwin-universal")
+        "macosx-universal")
             OSX_VERSION=`/usr/bin/sw_vers -productVersion | cut -b 1-4`
-            build_darwin_universal
+            build_macosx_universal
             ;;
-        "darwin-x86-32" | "darwin-x86-64")
+        "macosx-x86-32" | "macosx-x86-64")
             OSX_VERSION=`/usr/bin/sw_vers -productVersion | cut -b 1-4`
-            build_ffmpeg
+            build_libav
             build_avbin
             ;;
         "linux-x86-32" | "linux-x86-64" | "win32" | "win64")
-            build_ffmpeg
+            build_libav
             build_avbin
             ;;
         *)

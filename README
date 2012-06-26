@@ -109,7 +109,7 @@ Installation and usage
 Place the resulting avbin.so, avbin.dylib or avbin.dll from the ``dist``
 directory into the appropriate system directory.
 
-The AVbin dynamic library exports all of FFmpeg's functions from libavcodec,
+The AVbin dynamic library exports all of Libav's functions from libavcodec,
 libavutil and libavformat.  It also exports some higher-level functions which
 have a fixed ABI (they will not change in incompatible ways in future
 releases), documented in ``include/avbin.h``.
@@ -118,8 +118,8 @@ releases), documented in ``include/avbin.h``.
 License
 -------
 
-Due to the linkage between AVbin and FFmpeg, AVbin must be licensed under the
-LGPL or GPL.  Currently all GPL features of the FFmpeg configuration are
+Due to the linkage between AVbin and Libav, AVbin must be licensed under the
+LGPL or GPL.  Currently all GPL features of the Libav configuration are
 disabled, and AVbin is licensed under the LGPL.
 
 You should see the accompanying COPYING and COPYING.LESSER files for details.

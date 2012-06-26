@@ -30,12 +30,12 @@ dist_common() {
     echo "Creating distribution for $PLATFORM"
     rm -rf $DIR
     mkdir -p $DIR
-    cp README.$OS $DIR/README.txt || fail "Failed copying the README file"
+    cp $OS.README $DIR/README.txt || fail "Failed copying the README file"
     cp $LIBRARY $DIR/ || fail "Failed copying the library"
     if [ $PLATFORM == "linux-x86-32" -o $PLATFORM == "linux-x86-64" \
-            -o $PLATFORM == "darwin-universal" -o $PLATFORM == "darwin-x86-32" \
-            -o $PLATFORM == "darwin-x86-64" ]; then
-	sed s/@AVBIN_VERSION@/$AVBIN_VERSION/ install.sh.$OS > $DIR/install.sh || fail "Failed creating install.sh"
+            -o $PLATFORM == "macosx-universal" -o $PLATFORM == "macosx-x86-32" \
+            -o $PLATFORM == "macosx-x86-64" ]; then
+	sed s/@AVBIN_VERSION@/$AVBIN_VERSION/ $OS.install.sh > $DIR/install.sh || fail "Failed creating install.sh"
 	chmod a+x $DIR/install.sh || fail "Failed making install.sh executable"
     fi
     pushd dist > /dev/null
@@ -56,9 +56,9 @@ if [ ! "$platforms" ]; then
     echo "Supported platforms:"
     echo "  linux-x86-32"
     echo "  linux-x86-64"
-    echo "  darwin-x86-32"
-    echo "  darwin-x86-64"
-    echo "  darwin-universal"
+    echo "  macosx-x86-32"
+    echo "  macosx-x86-64"
+    echo "  macosx-universal"
     echo "  win32"
     echo "  win64"
     exit 1
@@ -68,17 +68,17 @@ for PLATFORM in $platforms; do
     BASEDIR=avbin-$PLATFORM-v$AVBIN_VERSION
     DIR=dist/$BASEDIR
     if [ $PLATFORM == "linux-x86-32" -o $PLATFORM == "linux-x86-64" ]; then
-	OS=linux
-	LIBRARY=dist/$PLATFORM/libavbin.so.$AVBIN_VERSION
-    elif [ $PLATFORM == "darwin-universal" -o $PLATFORM == "darwin-x86-32" -o $PLATFORM == "darwin-x86-64" ]; then
-	OS=darwin
-	LIBRARY=dist/$PLATFORM/libavbin.$AVBIN_VERSION.dylib
+	     OS=linux
+	     LIBRARY=dist/$PLATFORM/libavbin.so.$AVBIN_VERSION
+    elif [ $PLATFORM == "macosx-universal" -o $PLATFORM == "macosx-x86-32" -o $PLATFORM == "macosx-x86-64" ]; then
+	     OS=macosx
+	     LIBRARY=dist/$PLATFORM/libavbin.$AVBIN_VERSION.dylib
     elif [ $PLATFORM == "win32" ]; then
-	OS=win32
-	LIBRARY=dist/$PLATFORM/avbin.dll
+	     OS=win32
+	     LIBRARY=dist/$PLATFORM/avbin.dll
     elif [ $PLATFORM == "win64" ]; then
-	OS=win64
-	LIBRARY=dist/$PLATFORM/avbin64.dll
+	     OS=win64
+	     LIBRARY=dist/$PLATFORM/avbin64.dll
     else
         echo "Unsupported platform $PLATFORM"
         exit 1

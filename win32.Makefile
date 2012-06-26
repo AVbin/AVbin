@@ -6,12 +6,12 @@ CFLAGS += -O3
 LDFLAGS += -shared -mno-cygwin
 
 STATIC_LIBS = -Wl,-whole-archive \
-              -Wl,$(FFMPEG)/libavformat/libavformat.a \
-              -Wl,$(FFMPEG)/libavcodec/libavcodec.a \
-              -Wl,$(FFMPEG)/libavutil/libavutil.a \
-              -Wl,$(FFMPEG)/libswscale/libswscale.a \
-	      -Wl,/usr/i686-w64-mingw32/lib/libz.a \
-	      -Wl,/usr/i686-w64-mingw32/lib/libbz2.a \
+              -Wl,$(LIBAV)/libavformat/libavformat.a \
+              -Wl,$(LIBAV)/libavcodec/libavcodec.a \
+              -Wl,$(LIBAV)/libavutil/libavutil.a \
+              -Wl,$(LIBAV)/libswscale/libswscale.a \
+              -Wl,/usr/i686-w64-mingw32/lib/libz.a \
+              -Wl,/usr/i686-w64-mingw32/lib/libbz2.a \
               -Wl,-no-whole-archive \
               -Wl,-out-implib,$(OUTDIR)/avbin.lib
 

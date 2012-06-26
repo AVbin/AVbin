@@ -5,10 +5,10 @@ CFLAGS += -fPIC -fno-stack-protector -O3 -m64 --std=gnu89
 LDFLAGS += -shared -soname $(SONAME) -Bsymbolic
 
 STATIC_LIBS = -whole-archive \
-              $(FFMPEG)/libavformat/libavformat.a \
-              $(FFMPEG)/libavcodec/libavcodec.a \
-              $(FFMPEG)/libavutil/libavutil.a \
-              $(FFMPEG)/libswscale/libswscale.a \
+              $(LIBAV)/libavformat/libavformat.a \
+              $(LIBAV)/libavcodec/libavcodec.a \
+              $(LIBAV)/libavutil/libavutil.a \
+              $(LIBAV)/libswscale/libswscale.a \
               -no-whole-archive \
               -R /usr/local/lib \
               -R .
