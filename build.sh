@@ -26,8 +26,10 @@ FFMPEG_REVISION=`cat ffmpeg.revision`
 FFMPEG=libav
 
 if git rev-parse > /dev/null 2> /dev/null ; then
-    git submodule init --quiet
-    git submodule update
+    if ! ls libav/Makefile >/dev/null 2> /dev/null ; then
+        git submodule init --quiet
+        git submodule update
+    fi
 fi
 
 fail() {
