@@ -1,49 +1,69 @@
 AVbin
 =====
 
-:Home:       http://code.google.com/p/avbin
-:Creator:    Alex Holkner <Alex.Holkner@gmail.com>
+:Home:       http://avbin.github.com
 :Maintainer: Nathan Stocks <nathan.stocks@gmail.com>
+
+
+End-User Installation
+---------------------
+
+End-users should use the installers provided in the binary release.  That is one
+of the benefits of a binary distribution, after all...
+
+
+Developing
+----------
+
+AVbin is a C library folliwing standard conventions.
+
+Clone the git repository:
+
+  git clone https://github.com/AVbin/AVbin.git avbin
+
+See the header file ``include/avbin.h`` and the online API documentation at
+http://avbin.github.com/AVbin/Docs.html
+
 
 Building
 --------
 
-AVbin is designed to be used with a particular version of FFmpeg.  This version
-of FFmpeg is included in the AVbin project under the ``ffmpeg`` directory.  Note
-that this version of FFmpeg may contain avbin-specific patches.  See the file
-``ffmpeg/README.avbin`` for more details.
+If you are interested in testing, contributing code, or otherwise helping out,
+we encourage you to join the Pyglet mailing list (AVbin was originally created
+for the Pyglet project).  See http://pyglet.org/contribute.html
+
+AVbin is designed to be used with a particular version of Libav.  This version
+of Libav is included as a submodule of the AVbin project under the ``libav``
+directory.  Note that this version of Libav may contain AVbin-specific patches,
+though we try to get all patches accepted upstream.
 
 Use the included `build.sh` script to compile AVbin.  This takes care of
-configuring FFmpeg correctly, compiling it, then linking it with the AVbin
+configuring Libav correctly, compiling it, then linking it with the AVbin
 sources.  The final AVbin libraries are placed in the ``dist`` directory.
 
-To build on your platform, run...
-
-    ./build.sh $TARGET
-
-...where $TARGET is one of:
-
-   linux-x86-32
-   linux-x86-64
-   darwin-x86-32
-   darwin-x86-64
-   win32
-   win64
-
-Run ``build.sh --help`` for more information.
+To build on your platform, use the included ``build.sh`` script.  See
+``build.sh --help`` for usage information.
 
 
 Building on OS X Lion
 ---------------------
 
+Tested on OS X Lion
+
 - Install Xcode (from Apple's App Store)
 - Install yasm (You can install MacPorts and then run 'sudo port install yasm')
 
 
-Cross-compiling for Win64 or Win32 on Linux
--------------------------------------------
+Building on Linux
+-----------------
 
-Instructions are for Ubuntu 11.10 amd64
+(My setup worked out of the box.)
+
+
+Building (cross-compiling) for Win64 or Win32 on Linux
+------------------------------------------------------
+
+Tested on Ubuntu 11.10 amd64 (later upgraded to 12.04 LTS amd64)
 
 - Install MinGW-64: sudo apt-get install mingw-64
 - Cross-compile zlib and install it:
@@ -66,42 +86,21 @@ Instructions are for Ubuntu 11.10 amd64
   sudo cp libbz2.a /usr/i686-w64-mingw32/lib/
   sudo cp bzlib.h /usr/i686-w64-mingw32/include/
 
-(If you will be creating a release distribution)
 - Install 7-Zip: sudo apt-get install p7zip-full
-
-
-Building on Win32
------------------
-
-- Install MinGW, MSYS using the MSYS installer.
-- Install Git
-- Download yasm win32 binary, from the yasm web site, rename it "yasm.exe" and
-  place it in c:\MinGW\bin
-
-(For distribution...)
-- Download/Install 7-Zip in c:\7-Zip -- then add /c/7-Zip to the MinGW path.
 
 
 Caveats
 -------
 
-AVbin is currently supported only on the following platforms
+AVbin is currently known to function on the following platforms
 
-* Linux
-  - x86
-  - x86-64
-* Mac OS X 10.6 - 10.7
-  - x86
-  - x86-64
-* Windows XP, Vista, 7
-  - x86
-  - x86-64
+* Linux x86 (32- and 64-bit)
 
-The configuration scripts currently assume cross-compilation for Linux-x86-32. 
-Minor changes should be needed to to compile on the target platform.  Patches 
-for this or other platforms are welcome.
+* Mac OS X 10.6 - 10.7 (32- and 64-bit)
 
-Darwin currently requires OS X 10.6 or greater.
+* Windows XP (32-bit)
+
+* Windows 7 (64-bit)
 
 
 Installation and usage
@@ -121,15 +120,18 @@ License
 
 Due to the linkage between AVbin and FFmpeg, AVbin must be licensed under the
 LGPL or GPL.  Currently all GPL features of the FFmpeg configuration are
-disabled, permitting LGPL use.
+disabled, and AVbin is licensed under the LGPL.
 
 You should see the accompanying COPYING and COPYING.LESSER files for details.
-In summary, you must note the usage of FFmpeg and AVbin within the
-documentation of your application.  If you make changes to either library, you
-must include the sources of these changes within your application.
+In summary, you must note the usage of AVbin within the documentation of your
+application.  If you make changes to either library, you must either contribute
+said changes upstream or include the sources of these changes within your
+distributed application.
 
 
 Contributions
 -------------
 
-Original darwin-x86-64 and win64 builds contributed by Micah Richert.
+Alex Holkner      - Original author, original maintainer
+Micah Richert     - darwin-x86-64, win64 building
+Anatoly Techtonik - C++ integration
