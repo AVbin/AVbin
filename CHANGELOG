@@ -1,3 +1,32 @@
+9   *UNSTABLE RELEASE -- SEE BELOW*
+    "Updated" to Libav 0.6.6 -- despite the recentness of the latest release on
+        this branch, I believe the svn trunk revision we were using for 8.1
+        eventually became the 0.7 branch, which is unfortunately binary
+        incompatible because several deprecated functions we use were removed
+        in the 0.7 branch.  This release has notable audio glitches under Win64
+        in my testing compared to 8.1.  Other than that, I can't determine any
+        subjective quality differences from version 8.1.  YMMV.
+    Switched back to a universal build for OS X.
+    Added libav as a git submodule -- we have our own github libav fork.
+    Removed the old ffmpeg svn trunk code.
+    build.sh automatically inits and updates the libav module if necessary.
+    Fixed Linux build linking under Ubuntu 12.04.
+    Updated the config.h patch for 32-bit Linux.
+    Removed libavcore.a linking calls - this version doesn't have libavcore.
+    Refactored dist.sh:  One main codepath, more error checking, better output.
+    Refactored build.sh: Less codepaths, more error checking, better output.
+    Updated the copyright on code files.
+    Added a README for win64.
+    
+
+8.1
+    Created new doxyfile for new version of doxygen
+    Integrated Anatoly Techtonik's patch to allow avbin.h to be used in C++
+    Fixed OS X builds for Lion.  (Thanks for testing assistance from Richard
+        Jones)
+    Fixed the Linux builds for Ubuntu 12.04
+    Fixed the (crosscompiled) Windows builds for Ubuntu 12.04
+
 8
     (Nathan Stocks - 2011)
     Fix darwin-x86-64 build for Lion/Snow Leopard.
@@ -6,7 +35,8 @@
       converted from subversion to Git.
     Directly applied AVbin-specific patches to above copy of FFmpeg.
 
-    (All changes below made by Alex Holkner <= 2008 - as far as I can see. ~ Nathan)
+    (All changes below made by Alex Holkner <= 2008 - as far as I can see.
+        ~ Nathan Stocks)
     Update to FFmpeg r15943
     Deprecate AVBIN_SAMPLE_FORMAT_S24 (FFmpeg no longer exports this format)
     Fix darwin-x86-64 build for Lion/Snow Leopard.
