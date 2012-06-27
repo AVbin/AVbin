@@ -1,75 +1,133 @@
-9   *UNSTABLE RELEASE -- SEE BELOW*
-    "Updated" to Libav 0.6.6 -- despite the recentness of the latest release on
-        this branch, I believe the svn trunk revision we were using for 8.1
-        eventually became the 0.7 branch, which is unfortunately binary
-        incompatible because several deprecated functions we use were removed
-        in the 0.7 branch.  This release has notable audio glitches under Win64
-        in my testing compared to 8.1.  Other than that, I can't determine any
-        subjective quality differences from version 8.1.  YMMV.
-    Switched back to a universal build for OS X.
-    Added libav as a git submodule -- we have our own github libav fork.
-    Removed the old ffmpeg svn trunk code.
-    build.sh automatically inits and updates the libav module if necessary.
-    Fixed Linux build linking under Ubuntu 12.04.
-    Updated the config.h patch for 32-bit Linux.
-    Removed libavcore.a linking calls - this version doesn't have libavcore.
-    Refactored dist.sh:  One main codepath, more error checking, better output.
-    Refactored build.sh: Less codepaths, more error checking, better output.
-    Updated the copyright on code files.
-    Added a README for the win64 release.
-    Discontinued support for packaging a "source release".
-    Updated the project README.
-    
+AVbin 9 *UNSTABLE RELEASE -- SEE BELOW*
 
-8.1
-    Created new doxyfile for new version of doxygen
-    Integrated Anatoly Techtonik's patch to allow avbin.h to be used in C++
-    Fixed OS X builds for Lion.  (Thanks for testing assistance from Richard
-        Jones)
-    Fixed the Linux builds for Ubuntu 12.04
-    Fixed the (crosscompiled) Windows builds for Ubuntu 12.04
+- "Updated" to Libav 0.6.6 -- despite the recentness of the latest release on
+  this branch, I believe the svn trunk revision we were using for 8.1 eventually
+  became the 0.7 branch, which is unfortunately binary incompatible because
+  several deprecated functions we use were removed in the 0.7 branch.  This
+  release has notable audio glitches under Win64 in my testing compared to 8.1.
+  Other than that, I can't determine any subjective quality differences from
+  version 8.1.  YMMV.
 
-8
-    (Nathan Stocks - 2011)
-    Fix darwin-x86-64 build for Lion/Snow Leopard.
-    Export copy of FFmpeg into repository due to difficulties with the external
-      items referencing repositories that rapidly change and/or are being
-      converted from subversion to Git.
-    Directly applied AVbin-specific patches to above copy of FFmpeg.
+- DEPRECATED avbin_get_ffmpeg_revision() in favor of two new functions:
+  1) avbin_get_libav_commit() (string of the commit hash)
+  2) avbin_get_libav_version() (string of the latest upstream tagged version)
 
-    (All changes below made by Alex Holkner <= 2008 - as far as I can see.
-        ~ Nathan Stocks)
-    Update to FFmpeg r15943
-    Deprecate AVBIN_SAMPLE_FORMAT_S24 (FFmpeg no longer exports this format)
-    Fix darwin-x86-64 build for Lion/Snow Leopard.
+- Switched back to a universal build for OS X.
 
-7
-    Remove stack protector check, for compatibility with older glibc.
-    Fix linux-64 builds
+- Added libav as a git submodule -- we have our own github libav fork.
 
-6
-    Fix linux builds for use with glibc < 2.7
+- Removed the old ffmpeg svn trunk code.
 
-5
-    Update to FFmpeg r13661
-    Fix Win32 build for GCC 4.3.
-    Fix linux-x86-32 build (rebuilt with correct compiler).
+- build.sh automatically inits and updates the libav module if necessary.
 
-4
-    Fix Darwin build for intel/10.4 and earlier.
+- Fixed Linux build linking under Ubuntu 12.04.
 
-3
-    Update to FFmpeg r12795
-    Scripts updated for this FFmpeg release and building on OS X 10.5
-    Add patch for building shared linux-64
-    Fix Darwin dylib install_name, and set default install location to
-      /usr/local/lib instead of /usr/lib.
+- Updated the config.h patch for 32-bit Linux.
 
-2
-    Update to FFmpeg r10112
-    Remove AC3 enabling patch, possibly enabled GPL code.
-    Remove sdp.c patch, no longer necessary.
-    Add CHANGELOG
+- Removed libavcore.a linking calls - this version doesn't have libavcore.
 
-1
-    Initial release.
+- Refactored dist.sh:  One main codepath, more error checking, better output.
+
+- Refactored build.sh: Less codepaths, more error checking, better output.
+
+- Updated the copyright on code files.
+
+- Added a README for the win64 release.
+
+- Discontinued support for packaging a "source release".
+
+- Updated the project README.
+
+- All references to FFmpeg were changed to Libav except for deprecated
+  functions and old CHANGELOG entries.
+
+- Reformatted CHANGELOG
+
+
+AVbin 8.1
+
+- Created new doxyfile for new version of doxygen
+
+- Integrated Anatoly Techtonik's patch to allow avbin.h to be used in C++
+
+- Fixed OS X builds for Lion.  (Thanks for testing assistance from Richard
+  Jones)
+
+- Fixed the Linux builds for Ubuntu 12.04
+
+- Fixed the (crosscompiled) Windows builds for Ubuntu 12.04
+
+
+AVbin 8
+  (Nathan Stocks - 2011)
+
+- Fix darwin-x86-64 build for Lion/Snow Leopard.
+
+- Export copy of FFmpeg into repository due to difficulties with the external
+  items referencing repositories that rapidly change and/or are being
+  converted from subversion to Git.
+
+- Directly applied AVbin-specific patches to above copy of FFmpeg.
+
+  (All changes below made by Alex Holkner <= 2008 - as far as I can see.
+  ~ Nathan Stocks)
+
+- Update to FFmpeg r15943
+
+- Deprecate AVBIN_SAMPLE_FORMAT_S24 (FFmpeg no longer exports this format)
+
+- Fix darwin-x86-64 build for Lion/Snow Leopard.
+
+
+AVbin 7
+
+- Remove stack protector check, for compatibility with older glibc.
+
+- Fix linux-64 builds
+
+
+AVbin 6
+
+- Fix linux builds for use with glibc < 2.7
+
+
+AVbin 5
+
+- Update to FFmpeg r13661
+
+- Fix Win32 build for GCC 4.3.
+
+- Fix linux-x86-32 build (rebuilt with correct compiler).
+
+
+AVbin 4
+
+- Fix Darwin build for intel/10.4 and earlier.
+
+
+AVbin 3
+
+- Update to FFmpeg r12795
+
+- Scripts updated for this FFmpeg release and building on OS X 10.5
+
+- Add patch for building shared linux-64
+
+- Fix Darwin dylib install_name, and set default install location to
+  /usr/local/lib instead of /usr/lib.
+
+
+AVbin 2
+
+- Update to FFmpeg r10112
+
+- Remove AC3 enabling patch, possibly enabled GPL code.
+
+- Remove sdp.c patch, no longer necessary.
+
+- Add CHANGELOG
+
+
+AVbin 1
+
+- Initial release.
