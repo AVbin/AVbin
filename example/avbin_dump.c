@@ -37,7 +37,7 @@ int main(int argc, char** argv)
     if (avbin_init()) 
         exit(-1);
 
-    printf("%d, %d\n", avbin_get_version(), avbin_get_ffmpeg_revision());
+    printf("AVbin %d, built with Libav %s on commit %s.\n", avbin_get_version(), avbin_get_libav_version(), avbin_get_libav_commit());
 
     if (argc < 2) 
         exit(-1);
@@ -53,7 +53,7 @@ int main(int argc, char** argv)
         exit(-2);
 
     printf("#streams %d\n",fileinfo.n_streams);
-    printf("duration %lldus (%d:%02d:%02d)\n",
+    printf("duration %lldus (%lld:%02lld:%02lld)\n",
         fileinfo.duration,
         fileinfo.duration / (1000000L * 60 * 60),
         (fileinfo.duration / (1000000L * 60)) % 60,

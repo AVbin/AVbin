@@ -20,17 +20,21 @@
 # <http://www.gnu.org/licenses/>.
 
 AVBIN_VERSION=`cat VERSION`
-FFMPEG_REVISION=`cat ffmpeg.revision`
 
 # Directory holding libav source code.
 LIBAV=libav
 
-if git rev-parse > /dev/null 2> /dev/null ; then
-    if ! ls libav/Makefile >/dev/null 2> /dev/null ; then
-        git submodule init --quiet
-        git submodule update
-    fi
+# Make sure the git submodule is initiated and updated (if blank)
+if ! ls $LIBAV/Makefile >/dev/null 2> /dev/null ; then
+    git submodule init --quiet
+    git submodule update
 fi
+
+# Get the commit hash and latest version number for libav
+pushd $LIBAV > /dev/null
+LIBAV_COMMIT="\"`git rev-parse HEAD`\""
+LIBAV_VERSION="\"`git describe --abbrev=0 --tags`\""
+popd > /dev/null
 
 fail() {
     echo "AVbin: Fatal error: $1"
@@ -89,9 +93,10 @@ build_libav() {
 
 build_avbin() {
     export AVBIN_VERSION
-    export FFMPEG_REVISION
     export PLATFORM
     export LIBAV
+    export LIBAV_COMMIT
+    export LIBAV_VERSION
     if [ ! $REBUILD ]; then
         make clean
     fi
@@ -144,7 +149,7 @@ while [ "${1:0:2}" == "--" ]; do
         "--rebuild")
             REBUILD=1;;
         "--clean")
-	    clean_libav
+	         clean_libav
             rm -rf dist
             rm -rf build
             exit

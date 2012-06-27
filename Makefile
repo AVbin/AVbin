@@ -18,7 +18,8 @@
 # <http://www.gnu.org/licenses/>.
 
 CFLAGS += -DAVBIN_VERSION=$(AVBIN_VERSION) \
-          -DFFMPEG_REVISION=$(FFMPEG_REVISION)
+          -DLIBAV_COMMIT='$(LIBAV_COMMIT)' \
+          -DLIBAV_VERSION='$(LIBAV_VERSION)'
 
 CC = gcc
 LD = ld

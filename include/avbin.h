@@ -404,8 +404,26 @@ int avbin_get_version();
  * Get the SVN revision of FFmpeg.
  *
  * This is built into AVbin as it is built.
+ *
+ * DEPRECATED: Use avbin_get_libav_commit or avbin_get_libav_version instead.
+ *             This always returns 0 now that we use Libav from Git.  This
+ *             function will be removed in AVbin 11.
  */
-int avbin_get_ffmpeg_revision();
+int avbin_get_ffmpeg_revision() __attribute__((deprecated));
+
+/**
+ * Get the git commit hash of the Libav submodule that was used at build time.
+ *
+ * This is built into AVbin as it is built.
+ */
+char * avbin_get_libav_commit();
+
+/**
+ * Get the version string of the Libav submodule that was used at build time.
+ *
+ * This is built into AVbin as it is built.
+ */
+char * avbin_get_libav_version();
 
 /**
  * Get the minimum audio buffer size, in bytes.

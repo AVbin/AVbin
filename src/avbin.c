@@ -24,7 +24,7 @@
 
 #include <avbin.h>
 
-/* ffmpeg */
+/* libav */
 #include <libavformat/avformat.h>
 #include <libavcodec/avcodec.h>
 #include <libavutil/avutil.h>
@@ -77,7 +77,17 @@ int avbin_get_version()
 
 int avbin_get_ffmpeg_revision()
 {
-    return FFMPEG_REVISION;
+    return 0;
+}
+
+char * avbin_get_libav_commit()
+{
+    return LIBAV_COMMIT;
+}
+
+char * avbin_get_libav_version()
+{
+    return LIBAV_VERSION;
 }
 
 size_t avbin_get_audio_buffer_size()
@@ -223,7 +233,7 @@ int avbin_stream_info(AVbinFile *file, int stream_index,
                 info_8->video.frame_rate_num = frame_rate.num;
                 info_8->video.frame_rate_den = frame_rate.den;
 
-                /* Work around bug in FFmpeg: if frame rate over 1000, divide
+                /* Work around bug in Libav: if frame rate over 1000, divide
                  * by 1000.
                  */
                 if (info_8->video.frame_rate_num / 
@@ -373,7 +383,7 @@ int avbin_decode_video(AVbinStream *stream,
     avpicture_fill(&picture_rgb, data_out, PIX_FMT_RGB24, width, height);
 
     /* img_convert is marked deprecated in favour of swscale, don't
-     * be surprised if this stops working the next time the ffmpeg version
+     * be surprised if this stops working the next time the libav version
      * is pushed.  Example use of the new API is in ffplay.c.
     img_convert(&picture_rgb, PIX_FMT_RGB24, 
                 (AVPicture *) stream->frame, stream->codec_context->pix_fmt,
