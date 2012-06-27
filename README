@@ -122,11 +122,11 @@ Due to the linkage between AVbin and Libav, AVbin must be licensed under the
 LGPL or GPL.  Currently all GPL features of the Libav configuration are
 disabled, and AVbin is licensed under the LGPL.
 
-You should see the accompanying COPYING and COPYING.LESSER files for details.
-In summary, you must note the usage of AVbin within the documentation of your
-application.  If you make changes to either library, you must either contribute
-said changes upstream or include the sources of these changes within your
-distributed application.
+You should see the accompanying COPYING.LESSER file for details.  In summary,
+you must note the usage of AVbin within the documentation of your application.
+If you make changes to either library, you must either contribute said changes
+upstream or include the sources of these changes within your distributed
+application.
 
 
 Contributions
