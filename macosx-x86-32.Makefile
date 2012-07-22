@@ -4,10 +4,13 @@ DARWIN_VERSION=$(shell uname -r | cut -d . -f 1)
 CFLAGS += -O3 -mmacosx-version-min=10.6 -arch i386
 LDFLAGS += -dylib \
            -single_module \
-           -macosx_version_min 10.6 \
            -arch i386 \
-           -read_only_relocs suppress \
-           -install_name @rpath/libavbin.dylib
+           -install_name @rpath/libavbin.dylib \
+           -macosx_version_min 10.6 \
+           -framework CoreFoundation \
+           -framework CoreVideo \
+           -framework VideoDecodeAcceleration \
+           -read_only_relocs suppress
 
 STATIC_LIBS = $(LIBAV)/libavformat/libavformat.a \
               $(LIBAV)/libavcodec/libavcodec.a \
