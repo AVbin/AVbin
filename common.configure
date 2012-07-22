@@ -1,7 +1,7 @@
 # Don't need the executables
 --disable-ffmpeg
---disable-ffserver
---disable-ffplay
+--disable-avserver
+--disable-avplay
 
 # Keep size down
 --disable-debug
@@ -13,4 +13,3 @@
 
 # These are usually disabled, but make sure
 --disable-network
-#--disable-zlib
