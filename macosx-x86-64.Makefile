@@ -6,7 +6,10 @@ LDFLAGS += -dylib \
            -single_module \
            -arch x86_64 \
            -install_name @rpath/libavbin.dylib \
-           -macosx_version_min 10.6
+           -macosx_version_min 10.6 \
+           -framework CoreFoundation \
+           -framework CoreVideo \
+           -framework VideoDecodeAcceleration
 
 STATIC_LIBS = $(LIBAV)/libavformat/libavformat.a \
               $(LIBAV)/libavcodec/libavcodec.a \
