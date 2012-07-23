@@ -152,6 +152,7 @@ while [ "${1:0:2}" == "--" ]; do
 	         clean_libav
             rm -rf dist
             rm -rf build
+            rm -f example/avbin_dump
             exit
             ;;
         *)
