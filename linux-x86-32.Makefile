@@ -2,7 +2,7 @@ SONAME=libavbin.so.$(AVBIN_VERSION)
 LIBNAME=$(OUTDIR)/$(SONAME)
 
 CFLAGS += -fPIC -fno-stack-protector -O3 -m32 --std=gnu99
-LDFLAGS += -shared -soname $(SONAME) -melf_i386
+LDFLAGS += -shared -soname $(SONAME) -melf_i386 -zmuldefs
 
 STATIC_LIBS = -whole-archive \
               $(LIBAV)/libavformat/libavformat.a \
