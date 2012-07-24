@@ -56,30 +56,22 @@ clean_libav() {
 build_libav() {
     config=`pwd`/$PLATFORM.configure
     common=`pwd`/common.configure
-
+    
     if [ ! $REBUILD ]; then
-	clean_libav
+	     clean_libav
     fi
-
+    
     pushd $LIBAV > /dev/null
-
+    
     # If we're not rebuilding, then we need to configure Libav
     if [ ! $REBUILD ]; then
-	case $OSX_VERSION in
+	     case $OSX_VERSION in
             "10.6") SDKPATH="\/Developer\/SDKs\/MacOSX10.6.sdk" ;;
             "10.7") SDKPATH="\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/MacOSX.platform\/Developer\/SDKs\/MacOSX10.6.sdk" ;;
             *)      SDKPATH="" ;;
-	esac
+	     esac
 
         cat $config $common | egrep -v '^#' | sed s/%%SDKPATH%%/$SDKPATH/g | xargs ./configure || fail "Failed configuring libav."
-
-	# Patch the generated config.h file if a patch for this build exists
-   PATCHFILE=../${PLATFORM}.config.h.patch
-	if [ -e $PATCHFILE ] ; then
-	    echo "AVbin: Found custom config.h patch for this architecture: $PATCHFILE"
-	    patch -p0 < $PATCHFILE || fail "Failed applying config.h patch"
-	    echo "AVbin: Patch succeeded."
-	fi
     fi
 
     # Remove -Werror options from config.mak that break builds on some platforms
