@@ -135,8 +135,8 @@ die_usage() {
     exit 1
 }
 
-while [[ "${1}" -ne "" ]]; do
-    case $1 in
+for arg in $* ; do
+    case $arg in
         "--fast")
             FAST="-j4" ;;
         "--help")
@@ -152,16 +152,15 @@ while [[ "${1}" -ne "" ]]; do
             ;;
         *)
             if [ "$platforms" == "" ]; then
-                platforms=$1
+                platforms=$arg
             else
-                platforms="$platforms $1"
+                platforms="$platforms $arg"
             fi
             ;;
     esac
-    shift
 done;
 
-if [ ! "$platforms" ]; then
+if [ "$platforms" == "" ]; then
     die_usage
 fi
 
