@@ -3,7 +3,7 @@ LIBNAME=$(OUTDIR)/avbin.dll
 CC = i686-w64-mingw32-gcc
 
 CFLAGS += -O3
-LDFLAGS += -shared -mno-cygwin
+LDFLAGS += -shared -zmuldefs -mno-cygwin
 
 STATIC_LIBS = -Wl,-whole-archive \
               -Wl,$(LIBAV)/libavformat/libavformat.a \
