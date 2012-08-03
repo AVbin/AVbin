@@ -156,7 +156,7 @@ typedef struct _AVbinFileInfo {
     /**
      * Number of streams contained in the file.
      */
-    int n_streams;
+    int32_t n_streams;
 
     /**
      * Starting time of all streams.
@@ -183,8 +183,8 @@ typedef struct _AVbinFileInfo {
     char copyright[512];
     char comment[512];
     char album[512];
-    int year;
-    int track;
+    int32_t year;
+    int32_t track;
     char genre[32];
     /*@}*/
 } AVbinFileInfo;
@@ -217,27 +217,27 @@ typedef struct _AVbinStreamInfo {
              * of actual video data, and is not necessarily the size the
              * video is to be displayed at (see sample_aspect_num).
              */
-            unsigned int width;
+            uint32_t width;
 
             /**
              * Height of the video image, in pixels.
              */
-            unsigned int height;
+            uint32_t height;
 
             /**
              * Aspect-ratio of each pixel.  The aspect is given by dividing
              * sample_aspect_num by sample_aspect_den.
              */
-            unsigned int sample_aspect_num;
-            unsigned int sample_aspect_den;
+            uint32_t sample_aspect_num;
+            uint32_t sample_aspect_den;
 
             /** Frame rate, in frames per second.  The frame rate is given by
              * dividing frame_rate_num by frame_rate_den.
              *
              * @version Version 8.  Requires frame_rate feature. 
              */
-            unsigned int frame_rate_num;
-            unsigned int frame_rate_den;
+            uint32_t frame_rate_num;
+            uint32_t frame_rate_den;
         } video;
 
         struct {
@@ -249,12 +249,12 @@ typedef struct _AVbinStreamInfo {
             /**
              * Number of samples per second, in Hz.
              */
-            unsigned int sample_rate;
+            uint32_t sample_rate;
 
             /**
              * Number of bits per sample; typically 8 or 16.
              */
-            unsigned int sample_bits;
+            uint32_t sample_bits;
 
             /**
              * Number of interleaved audio channels.  Typically 1 for
@@ -262,7 +262,7 @@ typedef struct _AVbinStreamInfo {
              * surround sound, however AVbin does not currently provide a way
              * to access the arrangement of these channels.
              */
-            unsigned int channels;
+            uint32_t channels;
         } audio;
     };
 } AVbinStreamInfo;
@@ -295,27 +295,27 @@ typedef struct _AVbinStreamInfo8 {
              * of actual video data, and is not necessarily the size the
              * video is to be displayed at (see sample_aspect_num).
              */
-            unsigned int width;
+            uint32_t width;
 
             /**
              * Height of the video image, in pixels.
              */
-            unsigned int height;
+            uint32_t height;
 
             /**
              * Aspect-ratio of each pixel.  The aspect is given by dividing
              * sample_aspect_num by sample_aspect_den.
              */
-            unsigned int sample_aspect_num;
-            unsigned int sample_aspect_den;
+            uint32_t sample_aspect_num;
+            uint32_t sample_aspect_den;
 
             /** Frame rate, in frames per second.  The frame rate is given by
              * dividing frame_rate_num by frame_rate_den.
              *
              * @version Version 8.  Requires frame_rate extension. 
              */
-            unsigned int frame_rate_num;
-            unsigned int frame_rate_den;
+            uint32_t frame_rate_num;
+            uint32_t frame_rate_den;
         } video;
 
         struct {
@@ -327,12 +327,12 @@ typedef struct _AVbinStreamInfo8 {
             /**
              * Number of samples per second, in Hz.
              */
-            unsigned int sample_rate;
+            uint32_t sample_rate;
 
             /**
              * Number of bits per sample; typically 8 or 16.
              */
-            unsigned int sample_bits;
+            uint32_t sample_bits;
 
             /**
              * Number of interleaved audio channels.  Typically 1 for
@@ -340,7 +340,7 @@ typedef struct _AVbinStreamInfo8 {
              * surround sound, however AVbin does not currently provide a way
              * to access the arrangement of these channels.
              */
-            unsigned int channels;
+            uint32_t channels;
         } audio;
     };
 } AVbinStreamInfo8;
@@ -369,7 +369,7 @@ typedef struct _AVbinPacket {
     /**
      * The stream this packet contains data for.
      */
-    int stream_index;
+    uint32_t stream_index;
 
     uint8_t *data;
     size_t size;
@@ -398,7 +398,7 @@ typedef void (*AVbinLogCallback)(const char *module,
  * revisions.  All AVbin versions are backward and forward compatible, modulo
  * the required feature set.
  */
-int avbin_get_version();
+int32_t avbin_get_version();
 
 /**
  * Get the SVN revision of FFmpeg.
@@ -409,7 +409,7 @@ int avbin_get_version();
  *             This always returns 0 now that we use Libav from Git.  This
  *             function will be removed in AVbin 11.
  */
-int avbin_get_ffmpeg_revision() __attribute__((deprecated));
+int32_t avbin_get_ffmpeg_revision() __attribute__((deprecated));
 
 /**
  * Get the git commit hash of the Libav submodule that was used at build time.
@@ -441,7 +441,7 @@ size_t avbin_get_audio_buffer_size();
  * @retval 1 The feature is present
  * @retval 0 The feature is not present
  */
-int avbin_have_feature(const char *feature);
+int32_t avbin_have_feature(const char *feature);
 /*@}*/
 
 /**
@@ -521,7 +521,7 @@ AVbinResult avbin_file_info(AVbinFile *file,
  * @param[in]  stream_index  The number of the stream within the file
  * @param[out] info          Returned stream information
  */
-AVbinResult avbin_stream_info(AVbinFile *file, int stream_index,
+AVbinResult avbin_stream_info(AVbinFile *file, int32_t stream_index,
                               AVbinStreamInfo *info);
 
 /**
@@ -531,7 +531,7 @@ AVbinResult avbin_stream_info(AVbinFile *file, int stream_index,
  * stream first.  The returned opaque handle should be passed to the relevant
  * decode function when a packet for that stream is read.
  */
-AVbinStream *avbin_open_stream(AVbinFile *file, int stream_index);
+AVbinStream *avbin_open_stream(AVbinFile *file, int32_t stream_index);
 
 /**
  * Close a file stream.
@@ -576,7 +576,7 @@ AVbinResult avbin_read(AVbinFile *file, AVbinPacket *packet);
  *
  * @retval -1 if there was an error
  */ 
-int avbin_decode_audio(AVbinStream *stream,
+int32_t avbin_decode_audio(AVbinStream *stream,
                        uint8_t *data_in, size_t size_in,
                        uint8_t *data_out, int *size_out);
 
@@ -596,7 +596,7 @@ int avbin_decode_audio(AVbinStream *stream,
  *
  * @retval -1 if there was an error
  */
-int avbin_decode_video(AVbinStream *stream,
+int32_t avbin_decode_video(AVbinStream *stream,
                        uint8_t *data_in, size_t size_in,
                        uint8_t *data_out);
 

@@ -37,7 +37,7 @@ struct _AVbinFile {
 };
 
 struct _AVbinStream {
-    int type;
+    int32_t type;
     AVFormatContext *format_context;
     AVCodecContext *codec_context;
     AVFrame *frame;
@@ -71,12 +71,12 @@ static void avbin_log_callback(void *ptr,
     user_log_callback(module, (AVbinLogLevel) level, message);
 }
 
-int avbin_get_version()
+int32_t avbin_get_version()
 {
     return AVBIN_VERSION;
 }
 
-int avbin_get_ffmpeg_revision()
+int32_t avbin_get_ffmpeg_revision()
 {
     return 0;
 }
@@ -96,7 +96,7 @@ size_t avbin_get_audio_buffer_size()
     return AVCODEC_MAX_AUDIO_FRAME_SIZE;
 }
 
-int avbin_have_feature(const char *feature)
+int32_t avbin_have_feature(const char *feature)
 {
     if (strcmp(feature, "frame_rate") == 0)
         return 1;
@@ -237,7 +237,7 @@ AVbinResult avbin_file_info(AVbinFile *file, AVbinFileInfo *info)
     return AVBIN_RESULT_OK;
 }
 
-int avbin_stream_info(AVbinFile *file, int stream_index,
+int32_t avbin_stream_info(AVbinFile *file, int32_t stream_index,
                       AVbinStreamInfo *info)
 {
     AVCodecContext *context = file->context->streams[stream_index]->codec;
@@ -314,7 +314,7 @@ int avbin_stream_info(AVbinFile *file, int stream_index,
     return AVBIN_RESULT_OK;
 }
 
-AVbinStream *avbin_open_stream(AVbinFile *file, int index) 
+AVbinStream *avbin_open_stream(AVbinFile *file, int32_t index)
 {
     AVCodecContext *codec_context;
     AVCodec *codec;
@@ -349,7 +349,7 @@ void avbin_close_stream(AVbinStream *stream)
     free(stream);
 }
 
-int avbin_read(AVbinFile *file, AVbinPacket *packet)
+int32_t avbin_read(AVbinFile *file, AVbinPacket *packet)
 {
     if (packet->structure_size < sizeof *packet)
         return AVBIN_RESULT_ERROR;
@@ -372,7 +372,7 @@ int avbin_read(AVbinFile *file, AVbinPacket *packet)
     return AVBIN_RESULT_OK;
 }
 
-int avbin_decode_audio(AVbinStream *stream,
+int32_t avbin_decode_audio(AVbinStream *stream,
                        uint8_t *data_in, size_t size_in,
                        uint8_t *data_out, int *size_out)
 {
@@ -413,7 +413,7 @@ int avbin_decode_audio(AVbinStream *stream,
     return used;
 }
 
-int avbin_decode_video(AVbinStream *stream,
+int32_t avbin_decode_video(AVbinStream *stream,
                        uint8_t *data_in, size_t size_in,
                        uint8_t *data_out)
 {
