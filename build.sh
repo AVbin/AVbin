@@ -92,7 +92,7 @@ build_avbin() {
     if [ ! $REBUILD ]; then
         make clean
     fi
-    make || fail "Failed to build AVbin."
+    make $FAST || fail "Failed to build AVbin."
 }
 
 build_macosx_universal() {
@@ -120,6 +120,7 @@ die_usage() {
     echo
     echo "Options"
     echo "  --clean     Don't build, just clean up all generated files and directories."
+    echo "  --fast      Use 'make -j4' when compiling"
     echo "  --help      Display this help text."
     echo "  --rebuild   Don't reconfigure, just run make again."
     echo
@@ -134,8 +135,10 @@ die_usage() {
     exit 1
 }
 
-while [ "${1:0:2}" == "--" ]; do
+while [[ "${1}" -ne "" ]]; do
     case $1 in
+        "--fast")
+            FAST="-j4" ;;
         "--help")
             die_usage ;;
         "--rebuild")
@@ -148,13 +151,15 @@ while [ "${1:0:2}" == "--" ]; do
             exit
             ;;
         *)
-            echo "Unrecognised option: $1.  Try Try ./build.sh --help" && exit 1
+            if [ "$platforms" == "" ]; then
+                platforms=$1
+            else
+                platforms="$platforms $1"
+            fi
             ;;
     esac
     shift
 done;
-
-platforms=$*
 
 if [ ! "$platforms" ]; then
     die_usage
