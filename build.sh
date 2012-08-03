@@ -79,7 +79,7 @@ build_libav() {
     mv config.mak2 config.mak
 
     # Actually build Libav
-    make -j3 || fail "Failed to build libav."
+    make || fail "Failed to build libav."
     popd
 }
 
