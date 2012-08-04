@@ -442,7 +442,7 @@ int32_t avbin_decode_video(AVbinStream *stream,
     avpicture_fill(&picture_rgb, data_out, PIX_FMT_RGB24, width, height);
     static struct SwsContext *img_convert_ctx = NULL;
     img_convert_ctx = sws_getCachedContext(img_convert_ctx,width, height,stream->codec_context->pix_fmt,width, height,PIX_FMT_RGB24, SWS_FAST_BILINEAR, NULL, NULL, NULL);
-    sws_scale(img_convert_ctx, stream->frame->data, stream->frame->linesize,0, height, picture_rgb.data, picture_rgb.linesize);
+    sws_scale(img_convert_ctx, (const uint8_t* const*)stream->frame->data, stream->frame->linesize,0, height, picture_rgb.data, picture_rgb.linesize);
     
     return used;
 }
