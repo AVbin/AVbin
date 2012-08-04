@@ -31,6 +31,8 @@
 #include <libavutil/dict.h>
 #include <libswscale/swscale.h>
 
+static int32_t avbin_thread_count = 1;
+
 struct _AVbinFile {
     AVFormatContext *context;
     AVPacket *packet;
@@ -100,6 +102,8 @@ int32_t avbin_have_feature(const char *feature)
 {
     if (strcmp(feature, "frame_rate") == 0)
         return 1;
+    if (strcmp(feature, "multithreading") == 0)
+        return 1;
     return 0;
 }
 
@@ -108,6 +112,14 @@ AVbinResult avbin_init()
     av_register_all();
     avcodec_register_all();
     return AVBIN_RESULT_OK;
+}
+
+AVbinResult avbin_init_threads(int32_t thread_count)
+{
+    if (thread_count < 0)
+        thread_count = 1;
+    avbin_thread_count = thread_count;
+    return avbin_init();
 }
 
 AVbinResult avbin_set_log_level(AVbinLogLevel level)
@@ -326,6 +338,9 @@ AVbinStream *avbin_open_stream(AVbinFile *file, int32_t index)
     codec = avcodec_find_decoder(codec_context->codec_id);
     if (!codec)
         return NULL;
+
+    if (avbin_thread_count != 1)
+        codec_context->thread_count = avbin_thread_count;
 
     if (avcodec_open2(codec_context, codec, NULL) < 0)
         return NULL;
