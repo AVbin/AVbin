@@ -5,10 +5,10 @@ CFLAGS += -fPIC -fno-stack-protector -O3 -m32 --std=gnu99
 LDFLAGS += -shared -soname $(SONAME) -melf_i386 -zmuldefs
 
 STATIC_LIBS = -whole-archive \
-              $(LIBAV)/libavformat/libavformat.a \
-              $(LIBAV)/libavcodec/libavcodec.a \
-              $(LIBAV)/libavutil/libavutil.a \
-              $(LIBAV)/libswscale/libswscale.a \
+              $(BACKEND_DIR)/libavformat/libavformat.a \
+              $(BACKEND_DIR)/libavcodec/libavcodec.a \
+              $(BACKEND_DIR)/libavutil/libavutil.a \
+              $(BACKEND_DIR)/libswscale/libswscale.a \
               -no-whole-archive
 
 LIBS = 

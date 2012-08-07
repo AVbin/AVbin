@@ -76,19 +76,25 @@ int32_t avbin_get_version()
     return AVBIN_VERSION;
 }
 
+AVbinInfo *avbin_get_info()
+{
+    AVbinInfo *info = malloc(sizeof *info);
+
+    info->version                = avbin_get_version();
+    info->version_string         = AVBIN_VERSION_STRING;
+    info->build_date             = AVBIN_BUILD_DATE;
+    info->repo                   = AVBIN_REPO;
+    info->commit                 = AVBIN_COMMIT;
+    info->backend                = AVBIN_BACKEND;
+    info->backend_version_string = AVBIN_BACKEND_VERSION_STRING;
+    info->backend_repo           = AVBIN_BACKEND_REPO;
+    info->backend_commit         = AVBIN_BACKEND_COMMIT;
+    return info;
+}
+
 int32_t avbin_get_ffmpeg_revision()
 {
     return 0;
-}
-
-char * avbin_get_libav_commit()
-{
-    return LIBAV_COMMIT;
-}
-
-char * avbin_get_libav_version()
-{
-    return LIBAV_VERSION;
 }
 
 size_t avbin_get_audio_buffer_size()

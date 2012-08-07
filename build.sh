@@ -19,21 +19,32 @@
 # License along with this program.  If not, see
 # <http://www.gnu.org/licenses/>.
 
-AVBIN_VERSION=`cat VERSION`
+# Either "libav" or "ffmpeg"
+BACKEND=libav
 
-# Directory holding libav source code.
-LIBAV=libav
+# Directory holding backend source code.
+BACKEND_DIR=$BACKEND
 
 # Make sure the git submodule is initiated and updated (if blank)
-if ! ls $LIBAV/Makefile >/dev/null 2> /dev/null ; then
+if ! ls $BACKEND_DIR/Makefile >/dev/null 2> /dev/null ; then
     git submodule init --quiet
     git submodule update
 fi
 
-# Get the commit hash and latest version number for libav
-pushd $LIBAV > /dev/null
-LIBAV_COMMIT="\"`git rev-parse HEAD`\""
-LIBAV_VERSION="\"`git describe --abbrev=0 --tags`\""
+
+AVBIN_VERSION=`cat VERSION`
+AVBIN_PRERELEASE=`cat PRERELEASE 2>/dev/null`
+AVBIN_VERSION_STRING="\"$AVBIN_VERSION$AVBIN_PRERELEASE\""
+AVBIN_BUILD_DATE="\"`date +\"%Y-%m-%d %H:%M:%S %z\"`\""
+AVBIN_REPO="\"`git remote show -n origin | grep Fetch | cut -b 14-`\""
+AVBIN_COMMIT="\"`git rev-parse HEAD`\""
+
+# Backend information
+AVBIN_BACKEND="\"$BACKEND\""
+pushd $BACKEND_DIR > /dev/null
+AVBIN_BACKEND_VERSION_STRING="\"`git describe --abbrev=0 --tags`\""
+AVBIN_BACKEND_REPO="\"`git remote show -n origin | grep Fetch | cut -b 14-`\""
+AVBIN_BACKEND_COMMIT="\"`git rev-parse HEAD`\""
 popd > /dev/null
 
 fail() {
@@ -41,8 +52,8 @@ fail() {
     exit 1
 }
 
-clean_libav() {
-    pushd $LIBAV > /dev/null
+clean_backend() {
+    pushd $BACKEND_DIR > /dev/null
     echo -n "Cleaning up..."
     make clean 2> /dev/null
     make distclean 2> /dev/null
@@ -53,17 +64,17 @@ clean_libav() {
     popd > /dev/null
 }
 
-build_libav() {
+build_backend() {
     config=`pwd`/$PLATFORM.configure
     common=`pwd`/common.configure
     
     if [ ! $REBUILD ]; then
-	     clean_libav
+	     clean_backend
     fi
     
-    pushd $LIBAV > /dev/null
+    pushd $BACKEND_DIR > /dev/null
     
-    # If we're not rebuilding, then we need to configure Libav
+    # If we're not rebuilding, then we need to configure Backend
     if [ ! $REBUILD ]; then
 	     case $OSX_VERSION in
             "10.6") SDKPATH="\/Developer\/SDKs\/MacOSX10.6.sdk" ;;
@@ -71,40 +82,51 @@ build_libav() {
             *)      SDKPATH="" ;;
 	     esac
 
-        cat $config $common | egrep -v '^#' | sed s/%%SDKPATH%%/$SDKPATH/g | xargs ./configure || fail "Failed configuring libav."
+        cat $config $common | egrep -v '^#' | sed s/%%SDKPATH%%/$SDKPATH/g | xargs ./configure || fail "Failed configuring backend."
     fi
 
     # Remove -Werror options from config.mak that break builds on some platforms
     cat config.mak | sed -e s/-Werror=implicit-function-declaration//g | sed -e s/-Werror=missing-prototypes//g > config.mak2
     mv config.mak2 config.mak
 
-    # Actually build Libav
-    make || fail "Failed to build libav."
+    # Actually build Backend
+    make $FAST || fail "Failed to build backend."
     popd
 }
 
 build_avbin() {
+    # For avbin.c ...
     export AVBIN_VERSION
+    export AVBIN_VERSION_STRING
+    export AVBIN_BUILD_DATE
+    export AVBIN_REPO
+    export AVBIN_COMMIT
+    export AVBIN_BACKEND
+    export AVBIN_BACKEND_VERSION_STRING
+    export AVBIN_BACKEND_REPO
+    export AVBIN_BACKEND_COMMIT
+
+    # For the Makefile ...
     export PLATFORM
-    export LIBAV
-    export LIBAV_COMMIT
-    export LIBAV_VERSION
+    export BACKEND_DIR
+
     if [ ! $REBUILD ]; then
         make clean
     fi
-    make $FAST || fail "Failed to build AVbin."
+
+    make || fail "Failed to build AVbin."
 }
 
 build_macosx_universal() {
     if [ ! -e dist/macosx-x86-32/libavbin.$AVBIN_VERSION.dylib ]; then
         PLATFORM=macosx-x86-32
-        build_libav
+        build_backend
         build_avbin
     fi
 
     if [ ! -e dist/macosx-x86-64/libavbin.$AVBIN_VERSION.dylib ]; then
         PLATFORM=macosx-x86-64
-        build_libav
+        build_backend
         build_avbin
     fi
 
@@ -144,7 +166,7 @@ for arg in $* ; do
         "--rebuild")
             REBUILD=1;;
         "--clean")
-	         clean_libav
+	         clean_backend
             rm -rf dist
             rm -rf build
             rm -f example/avbin_dump
@@ -172,11 +194,11 @@ for PLATFORM in $platforms; do
             ;;
         "macosx-x86-32" | "macosx-x86-64")
             OSX_VERSION=`/usr/bin/sw_vers -productVersion | cut -b 1-4`
-            build_libav
+            build_backend
             build_avbin
             ;;
         "linux-x86-32" | "linux-x86-64" | "win32" | "win64")
-            build_libav
+            build_backend
             build_avbin
             ;;
         *)

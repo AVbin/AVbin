@@ -6,10 +6,10 @@ CFLAGS += -O3
 LDFLAGS += -shared -Wl,--allow-multiple-definition
 
 STATIC_LIBS = -Wl,-whole-archive \
-              -Wl,$(LIBAV)/libavformat/libavformat.a \
-              -Wl,$(LIBAV)/libavcodec/libavcodec.a \
-              -Wl,$(LIBAV)/libavutil/libavutil.a \
-              -Wl,$(LIBAV)/libswscale/libswscale.a \
+              -Wl,$(BACKEND_DIR)/libavformat/libavformat.a \
+              -Wl,$(BACKEND_DIR)/libavcodec/libavcodec.a \
+              -Wl,$(BACKEND_DIR)/libavutil/libavutil.a \
+              -Wl,$(BACKEND_DIR)/libswscale/libswscale.a \
               -Wl,-no-whole-archive
 
 LIBS = -lm -lws2_32

@@ -20,7 +20,7 @@
 
 /* Example use of AVbin.
  *
- * Prints out stream details, then exits.
+ * Prints out AVbin details, then stream details, then exits.
  *
  * TODO: Optionally print verbose decoding information.
  * TODO: Clean up, comment.
@@ -37,14 +37,33 @@ int main(int argc, char** argv)
     if (avbin_init()) 
         exit(-1);
 
-    printf("AVbin %d, built with Libav %s on commit %s.\n", avbin_get_version(), avbin_get_libav_version(), avbin_get_libav_commit());
+    AVbinInfo *info =  avbin_get_info();
+
+    printf("AVbin %s (feature version %d) built on %s\n  Repo: %s\n  Commit: %s\n\n",
+           info->version_string,
+           info->version,
+           info->build_date,
+           info->repo,
+           info->commit);
+
+    printf("Backend: %s %s\n  Repo: %s\n  Commit: %s\n\n",
+           info->backend,
+           info->backend_version_string,
+           info->repo,
+           info->backend_commit);
 
     if (argc < 2) 
+    {
+        printf("Please specify audio or video file, for example:\n./avbin_dump some_file.mp3\n");
         exit(-1);
+    }
 
     AVbinFile* file = avbin_open_filename(argv[1]);
     if (!file) 
+    {
+        printf("Unable to open file '%s'\n", argv[1]);
         exit(-1);
+    }
 
     AVbinFileInfo fileinfo;
     fileinfo.structure_size = sizeof(fileinfo);

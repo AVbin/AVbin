@@ -12,10 +12,10 @@ LDFLAGS += -dylib \
            -framework VideoDecodeAcceleration \
            -read_only_relocs suppress
 
-STATIC_LIBS = $(LIBAV)/libavformat/libavformat.a \
-              $(LIBAV)/libavcodec/libavcodec.a \
-              $(LIBAV)/libavutil/libavutil.a \
-              $(LIBAV)/libswscale/libswscale.a
+STATIC_LIBS = $(BACKEND_DIR)/libavformat/libavformat.a \
+              $(BACKEND_DIR)/libavcodec/libavcodec.a \
+              $(BACKEND_DIR)/libavutil/libavutil.a \
+              $(BACKEND_DIR)/libswscale/libswscale.a
 
 LIBS = -lSystem \
        -lz \

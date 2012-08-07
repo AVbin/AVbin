@@ -376,6 +376,58 @@ typedef struct _AVbinPacket {
 } AVbinPacket;
 
 /**
+ * Information about the AVbin library.
+ */
+typedef struct _AVbinInfo {
+    /**
+     * AVbin version as an integer.  This value is the same as returned by
+     * the avbin_get_version() function.  Consider using version_string instead.
+     */
+    int version;
+
+    /**
+     * AVbin version string, including pre-release information, i.e. "10-beta1".
+     */
+    char *version_string;
+
+    /**
+     * When the library was built, in strftime format "%Y-%m-%d %H:%M:%S %z"
+     */
+    char *build_date;
+
+    /**
+     * URL to the AVbin repository used.
+     */
+    char *repo;
+
+    /**
+     * The commit of the AVbin repository used.
+     */
+    char *commit;
+
+    /**
+     * Which backend we are using: "libav" or "ffmpeg"
+     */
+    char *backend;
+
+    /**
+     * The version string of the most recent tag of the backend.  Note: There
+     * may be custom patches *on top* of the backend version.
+     */
+    char *backend_version_string;
+
+    /**
+     * URL to the backend repository used for this release.
+     */
+    char *backend_repo;
+
+    /**
+     * The commit hash of the backend repo used for the backend.
+     */
+    char *backend_commit;
+} AVbinInfo;
+
+/**
  * Callback for log information.
  *
  * @param module  The name of the module where this message originated
@@ -401,29 +453,25 @@ typedef void (*AVbinLogCallback)(const char *module,
 int32_t avbin_get_version();
 
 /**
+ * Get information about the linked version of AVbin.
+ *
+ * See the AVbinInfo definition.
+ */
+AVbinInfo *avbin_get_info();
+
+/**
  * Get the SVN revision of FFmpeg.
  *
  * This is built into AVbin as it is built.
  *
  * DEPRECATED: Use avbin_get_libav_commit or avbin_get_libav_version instead.
  *             This always returns 0 now that we use Libav from Git.  This
- *             function will be removed in AVbin 11.
+ *             function will be removed in AVbin 12.
  */
 int32_t avbin_get_ffmpeg_revision() __attribute__((deprecated));
 
-/**
- * Get the git commit hash of the Libav submodule that was used at build time.
- *
- * This is built into AVbin as it is built.
- */
-char * avbin_get_libav_commit();
 
-/**
- * Get the version string of the Libav submodule that was used at build time.
- *
- * This is built into AVbin as it is built.
- */
-char * avbin_get_libav_version();
+
 
 /**
  * Get the minimum audio buffer size, in bytes.
