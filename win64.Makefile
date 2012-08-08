@@ -12,7 +12,7 @@ STATIC_LIBS = -Wl,-whole-archive \
               -Wl,$(BACKEND_DIR)/libswscale/libswscale.a \
               -Wl,-no-whole-archive
 
-LIBS = -lm -lws2_32
+LIBS = -lbz2 -lz
 
 $(LIBNAME) : $(OBJNAME) $(OUTDIR)
 	$(CC) $(LDFLAGS) -o $@ $< $(STATIC_LIBS) $(LIBS)

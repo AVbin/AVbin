@@ -75,30 +75,52 @@ Tested on a default install of Ubuntu 12.04 LTS (both 32- and 64-bit installs).
 
 
 Building for Win64 or Win32 (crosscompiling on Linux)
-------------------------------------------------------
+-----------------------------------------------------
 
 Tested on Ubuntu 12.04 LTS 64-bit.
 
 - Install MinGW-64: sudo apt-get install mingw-64
 - Cross-compile zlib and install it:
 
-  wget http://zlib.net/zlib-1.2.5.tar.gz
-  tar zxvf zlib-1.2.5.tar.gz
-  cd zlib-1.2.5
+  wget http://zlib.net/zlib-1.2.7.tar.gz
+  tar zxvf zlib-1.2.7.tar.gz
+  cd zlib-1.2.7
+
+  # For win32...
   make PREFIX=i686-w64-mingw32- -f win32/Makefile.gcc
-  sudo make PREFIX=i686-w64-mingw32- LIBRARY_PATH=/usr/i686-w64-mingw32/lib \
-    INCLUDE_PATH=/usr/i686-w64-mingw32/include/ BIN_PATH=/dev/null -f \
-    win32/Makefile.gcc install
+  sudo make PREFIX=i686-w64-mingw32- \
+    LIBRARY_PATH=/usr/i686-w64-mingw32/lib \
+    INCLUDE_PATH=/usr/i686-w64-mingw32/include/ \
+    BINARY_PATH=/dev/null \
+    -f win32/Makefile.gcc install
+  make -f win32/Makefile.gcc clean
+
+  # For win64...
+  make PREFIX=x86_64-w64-mingw32- -f win32/Makefile.gcc
+  sudo make PREFIX=x86_64-w64-mingw32- \
+    LIBRARY_PATH=/usr/x86_64-w64-mingw32/lib \
+    INCLUDE_PATH=/usr/x86_64-w64-mingw32/include/ \
+    BINARY_PATH=/dev/null \
+    -f win32/Makefile.gcc install
 
 - Cross-compile bzlib and install it
 
   wget http://bzip.org/1.0.6/bzip2-1.0.6.tar.gz
   tar zxvf bzip2-1.0.6.tar.gz
   cd bzip2-1.0.6/
+
+  # For win32...
   make CC=i686-w64-mingw32-gcc AR=i686-w64-mingw32-ar \
     RANLIB=i686-w64-mingw32-ranlib PREFIX=/usr/i686-w64-mingw32 libbz2.a
   sudo cp libbz2.a /usr/i686-w64-mingw32/lib/
   sudo cp bzlib.h /usr/i686-w64-mingw32/include/
+  make clean
+
+  # For win64...
+  make CC=x86_64-w64-mingw32-gcc AR=x86_64-w64-mingw32-ar \
+    RANLIB=x86_64-w64-mingw32-ranlib PREFIX=/usr/x86_64-w64-mingw32 libbz2.a
+  sudo cp libbz2.a /usr/x86_64-w64-mingw32/lib/
+  sudo cp bzlib.h /usr/x86_64-w64-mingw32/include/
 
 - (For creating dist zipfile) Install 7-Zip: sudo apt-get install p7zip-full
 
