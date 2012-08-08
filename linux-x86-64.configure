@@ -1,12 +1,2 @@
-# We only use the static library, but need to specify --enable-shared to
-# ensure -fPIC is passed.
---enable-shared
---enable-static
+--enable-pic
 
---disable-mmx
---arch=x86_64
-#--cpu=i686
-
---enable-pthreads
-#--disable-bzlib
-#--disable-bz2lib
