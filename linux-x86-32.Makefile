@@ -1,8 +1,8 @@
 SONAME=libavbin.so.$(AVBIN_VERSION)
 LIBNAME=$(OUTDIR)/$(SONAME)
 
-CFLAGS += -fPIC -fno-stack-protector -O3 -m32 --std=gnu99
-LDFLAGS += -shared -soname $(SONAME) -melf_i386 -zmuldefs
+CFLAGS += -fPIC -O3
+LDFLAGS += -shared -soname $(SONAME) -zmuldefs
 
 STATIC_LIBS = -whole-archive \
               $(BACKEND_DIR)/libavformat/libavformat.a \
@@ -11,8 +11,7 @@ STATIC_LIBS = -whole-archive \
               $(BACKEND_DIR)/libswscale/libswscale.a \
               -no-whole-archive
 
-LIBS = 
-#-lbz2
+LIBS = -lbz2
 
 $(LIBNAME) : $(OBJNAME) $(OUTDIR)
 	$(LD) $(LDFLAGS) -o $@ $< $(STATIC_LIBS) $(LIBS)

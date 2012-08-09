@@ -69,6 +69,8 @@ Building for Linux
 
 Tested on a default install of Ubuntu 12.04 LTS (both 32- and 64-bit installs).
 
+- Install yasm: sudo apt-get install yasm
+- Install libbz2-dev: sudo apt-get install libbz2-dev
 - Run ./build.sh [desired options and targets]
 
 

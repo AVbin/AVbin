@@ -13,3 +13,7 @@
 
 # These are usually disabled, but make sure
 --disable-network
+
+# We want these on!
+--enable-bzlib
+--enable-zlib
