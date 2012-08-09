@@ -15,7 +15,7 @@ of the benefits of a binary distribution, after all...
 Developing
 ----------
 
-AVbin is a C library folliwing standard conventions.
+AVbin is a C library following standard conventions.
 
 Clone the git repository:
 
@@ -33,7 +33,7 @@ we encourage you to join the Pyglet mailing list (AVbin was originally created
 for the Pyglet project).  See http://pyglet.org/contribute.html
 
 AVbin is designed to be used with a particular version of Libav.  This version
-of Libav is included as a submodule of the AVbin project under the ``libav``
+of Libav is included as a git submodule of the AVbin project under the ``libav``
 directory.  Note that this version of Libav may contain AVbin-specific patches,
 though we try to get all patches accepted upstream.
 
@@ -44,26 +44,38 @@ sources.  The final AVbin libraries are placed in the ``dist`` directory.
 To build on your platform, use the included ``build.sh`` script.  See
 ``build.sh --help`` for usage information.
 
-
-Building on OS X Lion
----------------------
-
-Tested on OS X Lion
-
-- Install Xcode (from Apple's App Store)
-- Install yasm (You can install MacPorts and then run 'sudo port install yasm')
+If you are planning on distributing the self-built binary to anyone other than
+yourself, please create a "PRERELEASE" file in the root of the project directory
+containing a version modifier such as "-my-version".
+get_avbin_info()->version_string would then return "10-my-version" for a custom
+build of AVbin 10, while get_avbin_info()->version will still return the integer
+10.
 
 
-Building on Linux
+Building for OS X
 -----------------
 
-(My setup worked out of the box.)
+Tested on OS X Lion (10.7)
+
+- Install Xcode (from Apple's App Store)
+- Open Xcode, and go to ``Preferences > Downloads > Components`` and install the
+  Command Line Tools package.
+- Install yasm (You can install MacPorts and then run 'sudo port install yasm')
+- Run ./build.sh [desired options and target]
 
 
-Building (cross-compiling) for Win64 or Win32 on Linux
+Building for Linux
+------------------
+
+Tested on a default install of Ubuntu 12.04 LTS (both 32- and 64-bit installs).
+
+- Run ./build.sh [desired options and targets]
+
+
+Building for Win64 or Win32 (crosscompiling on Linux)
 ------------------------------------------------------
 
-Tested on Ubuntu 11.10 amd64 (later upgraded to 12.04 LTS amd64)
+Tested on Ubuntu 12.04 LTS 64-bit.
 
 - Install MinGW-64: sudo apt-get install mingw-64
 - Cross-compile zlib and install it:
@@ -86,7 +98,9 @@ Tested on Ubuntu 11.10 amd64 (later upgraded to 12.04 LTS amd64)
   sudo cp libbz2.a /usr/i686-w64-mingw32/lib/
   sudo cp bzlib.h /usr/i686-w64-mingw32/include/
 
-- Install 7-Zip: sudo apt-get install p7zip-full
+- (For creating dist zipfile) Install 7-Zip: sudo apt-get install p7zip-full
+
+- Run ./build.sh [desired options and targets]
 
 
 Caveats
@@ -103,16 +117,23 @@ AVbin is currently known to function on the following platforms
 * Windows 7 (64-bit)
 
 
-Installation and usage
+Creating a Distribution
+-----------------------
+
+- Using the same value for ``platform`` as the build you just did, run:
+  ./dist.sh [platform]
+
+
+Installation and Usage
 ----------------------
 
-Place the resulting avbin.so, avbin.dylib or avbin.dll from the ``dist``
-directory into the appropriate system directory.
+Run the binary installer, or place the resulting avbin.so, avbin.dylib or
+avbin.dll from the ``dist`` directory into the appropriate system directory.
 
 The AVbin dynamic library exports all of Libav's functions from libavcodec,
-libavutil and libavformat.  It also exports some higher-level functions which
-have a fixed ABI (they will not change in incompatible ways in future
-releases), documented in ``include/avbin.h``.
+libavutil, libavformat, and libswscale.  It also exports some higher-level
+functions which have a fixed ABI (they will not change in incompatible ways
+in future releases), documented in ``include/avbin.h``.
 
 
 License
@@ -132,6 +153,8 @@ application.
 Contributions
 -------------
 
+Nathan Stocks     - Project maintainer
 Alex Holkner      - Original author, original maintainer
-Micah Richert     - darwin-x86-64, win64 building
+Micah Richert     - Contributed original macosx-x86-64 and win64 build scripts
 Anatoly Techtonik - C++ integration
+Jernej Virag      - C code additions and updates, build script updates
