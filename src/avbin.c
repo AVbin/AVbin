@@ -29,6 +29,7 @@
 #include <libavcodec/avcodec.h>
 #include <libavutil/avutil.h>
 #include <libavutil/dict.h>
+#include <libavutil/mathematics.h>
 #include <libswscale/swscale.h>
 
 static int32_t avbin_thread_count = 1;
