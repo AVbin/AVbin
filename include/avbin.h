@@ -485,7 +485,7 @@ size_t avbin_get_audio_buffer_size();
  * functionality can be tested for by calling this function.  The following
  * features can be tested for:
  *  - "frame_rate"
- *  - "multithreading"
+ *  - "multithreading"  // see avbin_init_threads()
  *
  * @retval 1 The feature is present
  * @retval 0 The feature is not present
@@ -503,12 +503,13 @@ int32_t avbin_have_feature(const char *feature);
  */
 
 /**
- * Initialize AVbin.  See also avbin_init_threads().
+ * Initialize AVbin with basic features.  Consider instead avbin_init_threads()
  */
 AVbinResult avbin_init();
 
 /**
- * Initialize AVbin with multiple threads.  See also avbin_init().
+ * Initialize AVbin with multiple threads.  If multiple threads are desired,
+ * we recommend avbin_init_threads(0) to autodetect a good amount of threads.
  *
  * @param thread_count Number of threads to attempt to use.  Using the
  *        recommended thread_count of 0 means try to detect the number of CPU
