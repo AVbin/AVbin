@@ -62,6 +62,8 @@ Tested on OS X Lion (10.7)
   Command Line Tools package.
 - Install yasm (You can install MacPorts and then run 'sudo port install yasm')
 - Run ./build.sh [desired options and target]
+- Obtain and install Auxiliary Tools for Xcode (from developer.apple.com > 
+  Mac Dev Center > Developer Downloads)
 
 
 Building for Linux
