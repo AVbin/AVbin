@@ -39,7 +39,6 @@
  *      video streams, the _AVbinStreamInfo structure includes
  *        - Video width and height, in pixels
  *        - Pixel aspect ratio, expressed as a fraction
- *        .
  *      For audio streams, the structure includes
  *        - Sample rate, in Hz
  *        - Bits per sample
@@ -354,7 +353,7 @@ typedef struct _AVbinStreamInfo8 {
  * or until the file is closed.
  */
 typedef struct _AVbinPacket {
-    /** 
+    /**
      * Size of this structure, in bytes.  This must be filled in by the
      * application before passing to AVbin.
      */ 
@@ -375,10 +374,21 @@ typedef struct _AVbinPacket {
     size_t size;
 } AVbinPacket;
 
+
 /**
- * Information about the AVbin library.
+ * Information about the AVbin library.  See avbin_get_info()
  */
 typedef struct _AVbinInfo {
+    /**
+     * Size of this structure, in bytes.  This will be filled in for you by
+     * avbin_get_info() so that you can determine which version of this struct
+     * you have received.  For example:
+     *   AVbinInfo * info = avbin_get_info()
+     *   if (info->structure_size == sizeof(AVbinInfo)
+     *       // You are safe to access the members of an AVbinInfo typedef...
+     */
+    size_t structure_size;
+
     /**
      * AVbin version as an integer.  This value is the same as returned by
      * the avbin_get_version() function.  Consider using version_string instead.
@@ -452,12 +462,14 @@ typedef void (*AVbinLogCallback)(const char *module,
  */
 int32_t avbin_get_version();
 
+
 /**
  * Get information about the linked version of AVbin.
  *
  * See the AVbinInfo definition.
  */
 AVbinInfo *avbin_get_info();
+
 
 /**
  * Get the SVN revision of FFmpeg.
@@ -469,8 +481,6 @@ AVbinInfo *avbin_get_info();
  *             function will be removed in AVbin 12.
  */
 int32_t avbin_get_ffmpeg_revision() __attribute__((deprecated));
-
-
 
 
 /**

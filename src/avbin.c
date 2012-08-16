@@ -81,8 +81,9 @@ int32_t avbin_get_version()
 
 AVbinInfo *avbin_get_info()
 {
-    AVbinInfo *info = malloc(sizeof *info);
+    AVbinInfo *info = malloc(sizeof(*info));
 
+    info->structure_size         = sizeof(*info);
     info->version                = avbin_get_version();
     info->version_string         = AVBIN_VERSION_STRING;
     info->build_date             = AVBIN_BUILD_DATE;
@@ -133,7 +134,6 @@ AVbinResult avbin_init_threads(int32_t thread_count)
 
 AVbinResult avbin_set_log_level(AVbinLogLevel level)
 {
-    //av_log_level = level;
     av_log_set_level(level);
     return AVBIN_RESULT_OK;
 }
