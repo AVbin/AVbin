@@ -33,7 +33,6 @@ dist_common() {
     # Clean up, just in case
     rm -rf $DIR
     mkdir -p $DIR
-    cp $OS.README $DIR/README.txt || fail "Failed copying the README file"
     cp $LIBRARY $DIR/ || fail "Failed copying the library"
     if [ $PLATFORM == "linux-x86-32" -o $PLATFORM == "linux-x86-64" \
          -o $PLATFORM == "macosx-x86-32" -o $PLATFORM == "macosx-x86-64" \
