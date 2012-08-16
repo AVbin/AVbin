@@ -109,7 +109,9 @@ int32_t avbin_have_feature(const char *feature)
 {
     if (strcmp(feature, "frame_rate") == 0)
         return 1;
-    if (strcmp(feature, "multithreading") == 0)
+    if (strcmp(feature, "options") == 0)
+        return 1;
+    if (strcmp(feature, "info") == 0)
         return 1;
     return 0;
 }

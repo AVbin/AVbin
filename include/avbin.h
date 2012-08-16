@@ -484,8 +484,9 @@ size_t avbin_get_audio_buffer_size();
  * When future versions of AVbin include more functionality, that
  * functionality can be tested for by calling this function.  The following
  * features can be tested for:
- *  - "frame_rate"
- *  - "multithreading"  // see avbin_init_threads()
+ *  - "frame_rate" // AVbinStreamInfo8
+ *  - "options"    // avbin_init_options(), AVbinOptions (multi-threading)
+ *  - "info"       // avbin_get_info(), AVbinInfo
  *
  * @retval 1 The feature is present
  * @retval 0 The feature is not present
