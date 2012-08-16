@@ -27,8 +27,11 @@
  * @mainpage
  *
  * To open a file and prepare it for decoding, the general procedure is
- *   -# Initialise AVbin by calling avbin_init()
- *   -# Open a file using avbin_open_filename()
+ *   -# (Optionally) call avbin_have_feature() to check which features are
+        available.  This is only needed if your application may be deployed in
+        environments with older versions of AVbin than you are developing to.
+ *   -# Initialize AVbin by calling avbin_init_options()
+ *   -# Open a sound or video file using avbin_open_filename()
  *   -# Retrieve details of the file using avbin_file_info().  The resulting
  *      _AVbinFileInfo structure includes details such as:
  *        - Start time and duration
@@ -437,6 +440,27 @@ typedef struct _AVbinInfo {
     char *backend_commit;
 } AVbinInfo;
 
+
+/**
+ * Initialization Options
+ */
+typedef struct _AVbinOptions {
+    /**
+     * Size of this structure, in bytes.  This must be filled in by the
+     * application before passing to AVbin.
+     */
+    size_t structure_size;
+
+    /**
+     * Number of threads to attempt to use.  Using the recommended thread_count of
+     * 0 means try to detect the number of CPU cores and set threads to
+     * (num cores + 1).  A thread_count of 1 or a negative number means single
+     * threaded.  Any other number will result in an attempt to set that many threads.
+     */
+    int32_t thread_count;
+} AVbinOptions;
+
+
 /**
  * Callback for log information.
  *
@@ -514,21 +538,17 @@ int32_t avbin_have_feature(const char *feature);
  */
 
 /**
- * Initialize AVbin with basic features.  Consider instead avbin_init_threads()
+ * Initialize AVbin with basic features.  Consider instead avbin_init_options()
  */
 AVbinResult avbin_init();
 
 /**
- * Initialize AVbin with multiple threads.  If multiple threads are desired,
- * we recommend avbin_init_threads(0) to autodetect a good amount of threads.
+ * Initialize AVbin with options.
  *
- * @param thread_count Number of threads to attempt to use.  Using the
- *        recommended thread_count of 0 means try to detect the number of CPU
- *        cores and set threads to (num cores + 1).  A thread_count of 1 or a
- *        negative number means single threaded.  Any other number will result
- *        in an attempt to set that many threads.
+ * @param options  If NULL, use defaults.  Otherwise create and populate an
+ *                 instance of AVbinOptions to supply.
  */
-AVbinResult avbin_init_threads(int32_t thread_count);
+AVbinResult avbin_init_options(AVbinOptions * options);
 
 /**
  * Set the log level verbosity.

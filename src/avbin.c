@@ -119,17 +119,41 @@ int32_t avbin_have_feature(const char *feature)
 
 AVbinResult avbin_init()
 {
-    av_register_all();
-    avcodec_register_all();
-    return AVBIN_RESULT_OK;
+    return avbin_init_options(NULL);
 }
 
-AVbinResult avbin_init_threads(int32_t thread_count)
+AVbinResult avbin_init_options(AVbinOptions * options_ptr)
 {
-    if (thread_count < 0)
-        thread_count = 1;
-    avbin_thread_count = thread_count;
-    return avbin_init();
+    if (options_ptr == NULL)
+    {
+        options_ptr = malloc(sizeof(options_ptr));
+        if (options_ptr == NULL)
+            return AVBIN_RESULT_ERROR;
+
+        // Set defaults...
+        options_ptr->structure_size = sizeof(AVbinOptions);
+        options_ptr->thread_count = 1;
+    }
+
+    // What version did we get?
+    AVbinOptions * options = NULL;
+    if (options_ptr->structure_size == sizeof(AVbinOptions))
+    {
+        options = options_ptr;
+    } else {
+        return AVBIN_RESULT_ERROR;
+    }
+
+    // Stupid choices deserve single-threading
+    if (options->thread_count < 0)
+        options->thread_count = 1;
+
+    avbin_thread_count = options->thread_count;
+
+    av_register_all();
+    avcodec_register_all();
+
+    return AVBIN_RESULT_OK;
 }
 
 AVbinResult avbin_set_log_level(AVbinLogLevel level)
