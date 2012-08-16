@@ -73,6 +73,8 @@ Tested on a default install of Ubuntu 12.04 LTS (both 32- and 64-bit installs).
 
 - Install yasm: sudo apt-get install yasm
 - Install libbz2-dev: sudo apt-get install libbz2-dev
+- (If you want to make the binary installer)
+  Install makeself: sudo apt-get install makeself
 - Run ./build.sh [desired options and targets]
 
 

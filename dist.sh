@@ -47,7 +47,9 @@ dist_common() {
         7z a -tzip $BASEDIR.zip $BASEDIR \
             || fail "Failed creating zipfile - is 7z from 7zip installed?"
     else
-        tar cjvf $BASEDIR.tar.bz2 $BASEDIR || fail "Failed creating tarball"
+	# Create binary installer for Linux
+	makeself $BASEDIR install-$BASEDIR "AVbin $AVBIN_VERSION" \
+	    "echo 'Installing...' && ./install.sh"
     fi
     popd > /dev/null
     # Create a binary package installer for OS X
