@@ -84,6 +84,8 @@ Building for Win64 or Win32 (crosscompiling on Linux)
 Tested on Ubuntu 12.04 LTS 64-bit.
 
 - Install MinGW-64: sudo apt-get install mingw-64
+- (If you want to make the binary installer)
+  Install nsis: sudo apt-get install nsis nsis-doc
 - Cross-compile zlib and install it:
 
   wget http://zlib.net/zlib-1.2.7.tar.gz

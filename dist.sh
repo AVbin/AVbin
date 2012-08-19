@@ -44,8 +44,12 @@ dist_common() {
     # Create tarball or zipfile
     pushd dist > /dev/null
     if [ $PLATFORM == "win32" -o $PLATFORM == "win64" ]; then
-        7z a -tzip $BASEDIR.zip $BASEDIR \
-            || fail "Failed creating zipfile - is 7z from 7zip installed?"
+	cat ../avbin.nsi | sed s/@AVBIN_VERSION@/$AVBIN_VERSION/g \
+	    | sed s/@AVBIN_LIB_FILENAME@/$AVBIN_LIB_FILENAME/g \
+	    | sed s/@ARCH@/$ARCH/g > avbin.nsi \
+	    || fail "Failed creating NSIS configuration file."
+	makensis avbin.nsi || fail "Failed compiling windows installer."
+	echo "Created AVbin${AVBIN_VERSION}-${ARCH}.exe"
     else
 	# Create binary installer for Linux
 	makeself $BASEDIR install-$BASEDIR "AVbin $AVBIN_VERSION" \
@@ -90,11 +94,15 @@ for PLATFORM in $platforms; do
 	     OS=macosx
 	     LIBRARY=dist/$PLATFORM/libavbin.$AVBIN_VERSION.dylib
     elif [ $PLATFORM == "win32" ]; then
-	     OS=win32
-	     LIBRARY=dist/$PLATFORM/avbin.dll
+	ARCH=32
+	OS=win32
+	AVBIN_LIB_FILENAME=avbin.dll
+	LIBRARY=dist/$PLATFORM/$AVBIN_LIB_FILENAME
     elif [ $PLATFORM == "win64" ]; then
-	     OS=win64
-	     LIBRARY=dist/$PLATFORM/avbin64.dll
+	ARCH=64
+	OS=win64
+	AVBIN_LIB_FILENAME=avbin64.dll
+	LIBRARY=dist/$PLATFORM/$AVBIN_LIB_FILENAME
     else
         echo "Unsupported platform $PLATFORM"
         exit 1
