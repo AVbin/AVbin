@@ -53,7 +53,8 @@ dist_common() {
     elif [ $PLATFORM == "linux-x86-64" -o $PLATFORM == "linux-x86-32" ]; then
         # Create binary installer for Linux
 	     makeself $BASEDIR install-$BASEDIR "AVbin $AVBIN_VERSION" \
-	         "echo 'Installing...' && ./install.sh"
+	         "echo 'Installing...' && ./install.sh" \
+		 || fail "Failed creating the Linux installer."
     fi
     popd > /dev/null
     # Create a binary package installer for OS X
