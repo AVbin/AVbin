@@ -1,8 +1,8 @@
 AVbin
 =====
 
-:Home:       http://avbin.github.com
-:Maintainer: Nathan Stocks <nathan.stocks@gmail.com>
+Home:       http://avbin.github.com
+Maintainer: Nathan Stocks <nathan.stocks@gmail.com>
 
 
 End-User Installation
@@ -153,6 +153,14 @@ Creating a Distribution
 - Using the same value for ``platform`` as the build you just did, run:
   ./dist.sh [platform]
 
+
+Creating Documentation
+----------------------
+
+- Install Doxygen from http://www.stack.nl/~dimitri/doxygen/
+
+- Open/Edit ``Doxyfile`` to your liking and generate it with Doxygen.  The GUI
+  frontend seems to work just fine.
 
 Installation and Usage
 ----------------------
