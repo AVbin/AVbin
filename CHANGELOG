@@ -87,6 +87,9 @@ AVbin 10
   either make a new clone (easy), or rebase:
   http://git-scm.com/book/en/Git-Branching-Rebasing
 
+- Configured a buildbot master.  Configured buildbot slaves for each platform.
+
+- Resolved issues 11-17, 19, 23-33, and 36-38.
 
 
 AVbin 9 *UNSTABLE RELEASE -- SEE BELOW*
