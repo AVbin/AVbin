@@ -22,20 +22,52 @@
  *
  * Prints out AVbin details, then stream details, then exits.
  *
- * TODO: Optionally print verbose decoding information.
  * TODO: Clean up, comment.
  *
  */
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <inttypes.h>
 
 #include <avbin.h>
 
 int main(int argc, char** argv)
 {
     if (avbin_init()) 
+    {
+        printf("Fatal: Couldn't initialize AVbin");
         exit(-1);
+    }
+
+    /* To store command-line flags */
+    int verbose = 0;       /* -v, --verbose */
+    int help = 0;          /* -h, --help */
+    char * filename = "";  /* media file to inspect */
+
+    /* Process command-line arguments */
+    int i;
+    for (i = 1; i < argc; i++)
+    {
+        if ( (strcmp(argv[i], "-v") == 0) || (strcmp(argv[i], "--verbose") == 0) )
+            verbose = 1;
+        else if ( (strcmp(argv[i], "-h") == 0) || (strcmp(argv[i], "--help") == 0) )
+            help = 1;
+        else if (strcmp(filename, "") == 0)
+            filename = argv[i];
+        else
+        {
+            printf("Invalid argument.  Try --help\n\n");
+            exit(-3);
+        }
+    }
+
+    /* Print help usage and exit, if that's what was selected */
+    if (help)
+    {
+        printf("Usage: avbin_dump [options] [filename]\n\n  -h, --help     Print this help message.\n  -v, --verbose  Run through each packet in the media file and print out some info.\n\n");
+        exit(0);
+    }
 
     AVbinInfo *info =  avbin_get_info();
 
@@ -52,16 +84,16 @@ int main(int argc, char** argv)
            info->repo,
            info->backend_commit);
 
-    if (argc < 2) 
+    if ( strcmp(filename, "") == 0 ) 
     {
-        printf("Please specify audio or video file, for example:\n./avbin_dump some_file.mp3\n");
+        printf("If you specify a media file, we will print information about it, for example:\n./avbin_dump some_file.mp3\n");
         exit(-1);
     }
 
-    AVbinFile* file = avbin_open_filename(argv[1]);
+    AVbinFile* file = avbin_open_filename(filename);
     if (!file) 
     {
-        printf("Unable to open file '%s'\n", argv[1]);
+        printf("Unable to open file '%s'\n", filename);
         exit(-1);
     }
 
@@ -72,6 +104,7 @@ int main(int argc, char** argv)
         exit(-2);
 
     printf("#streams %d\n",fileinfo.n_streams);
+    printf("start time %" PRId64 "\n", fileinfo.start_time);
     printf("duration %lldus (%lld:%02lld:%02lld)\n",
         fileinfo.duration,
         fileinfo.duration / (1000000L * 60 * 60),
@@ -124,9 +157,8 @@ int main(int argc, char** argv)
         }
     }
 
-    exit(0);
-
-    /* TODO enable the following optionally */
+    if (!verbose)
+        exit(0);
 
     AVbinPacket packet;
     packet.structure_size = sizeof(packet);
@@ -161,7 +193,7 @@ int main(int argc, char** argv)
 
             int nrBytes = audio_data-audio_buffer;
 
-            printf("read audio packet of size %d bytes\n",nrBytes);
+            printf("[%" PRId64 "] read audio packet of size %d bytes\n", packet.timestamp, nrBytes);
 
             // do something with audio_buffer ... but don't free it since it is a local array
         }
