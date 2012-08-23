@@ -43,6 +43,10 @@ AVBIN_COMMIT="\"`git rev-parse HEAD`\""
 AVBIN_BACKEND="\"$BACKEND\""
 pushd $BACKEND_DIR > /dev/null
 AVBIN_BACKEND_VERSION_STRING="\"`git describe --abbrev=0 --tags`\""
+if [ $AVBIN_BACKEND_VERSION_STRING == "\"v0.8\"" ] ; then
+    TRUNK_DATE=`git log -1 --pretty=format:%cd`
+    AVBIN_BACKEND_VERSION_STRING="\"trunk ($TRUNK_DATE)\""
+fi
 AVBIN_BACKEND_REPO="\"`git remote show -n origin | grep Fetch | cut -b 14-`\""
 AVBIN_BACKEND_COMMIT="\"`git rev-parse HEAD`\""
 popd > /dev/null

@@ -1,5 +1,7 @@
 # Don't need the executables
---disable-ffmpeg
+--disable-avconv
+--disable-avplay
+--disable-avprobe
 --disable-avserver
 --disable-avplay
 
