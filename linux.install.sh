@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 #
 # build.sh
 # Copyright 2012 AVbin Team
@@ -30,6 +30,20 @@ fail() {
 touch $PREFIX 2> /dev/null || \
     fail "Insufficient priveleges to install AVbin.  Run installer with 'sudo' or as root."
 
+echo
+echo "The full source code for AVbin can be obtained from avbin.github.org"
+echo
+
+# Show the license and get user acceptance
+cat COPYING.LESSER
+echo
+read -p "Do you agree to the terms of the license above? (Y/n) "
+if [ "$REPLY" == "y" -o "$REPLY" == "Y" -o "$REPLY" == "yes" -o "$REPLY" == "" ] ; then
+    echo
+else
+    fail "Installation aborted: License not accepted"
+fi
+
 cp $AVBIN_LIBRARY $PREFIX/ || fail "Unable to copy $AVBIN_LIBRARY to $PREFIX/"
 ln -sf $AVBIN_LIBRARY $PREFIX/libavbin.so || \
     fail "Unable to create symlink $PREFIX/libavbin.so -> $AVBIN_LIBRARY"
@@ -39,3 +53,4 @@ chmod a+rx $PREFIX/$AVBIN_LIBRARY || \
     echo "WARNING: Unable to update dynamic linker run-time bindings.  You may need to reboot before AVbin can be used."
 
 echo "AVbin @AVBIN_VERSION@ successfully installed."
+echo

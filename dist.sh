@@ -34,6 +34,9 @@ dist_common() {
     rm -rf $DIR
     mkdir -p $DIR
     cp $LIBRARY $DIR/ || fail "Failed copying the library"
+    # Get the license
+    cp COPYING.LESSER $DIR || fail "Failed copying the license"
+    # Get the install script
     if [ $PLATFORM == "linux-x86-32" -o $PLATFORM == "linux-x86-64" \
          -o $PLATFORM == "macosx-x86-32" -o $PLATFORM == "macosx-x86-64" \
          -o $PLATFORM == "macosx-universal" ]; then
@@ -53,7 +56,7 @@ dist_common() {
     elif [ $PLATFORM == "linux-x86-64" -o $PLATFORM == "linux-x86-32" ]; then
         # Create binary installer for Linux
 	     makeself $BASEDIR install-$BASEDIR "AVbin $AVBIN_VERSION" \
-	         "echo 'Installing...' && ./install.sh" \
+	         "./install.sh" \
 		 || fail "Failed creating the Linux installer."
     fi
     popd > /dev/null
