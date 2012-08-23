@@ -1,3 +1,94 @@
+AVbin 10
+
+- Updated to Libav trunk as of 2012-08-12 (which finally fixed the .ogg decoding
+  problems on all platforms!).
+
+- Added the avbin_get_info() function and removed the avbin_get_libav_commit()
+  and avbin_get_libav_version() functions that I tried out in AVbin 9, which I
+  am now pretending never got released.
+
+  avbin_get_info() returns an _AVbinInfo struct (typedef AVbinInfo) with the
+  following members (all strings except where indicated):
+  - version                 > integer, same as avbin_get_version()
+  - version_string          > potentially includes prerelease info,
+                              for example: "10-beta1"
+  - build_date              > %Y-%m-%d %H:%M:%S %z
+  - repo                    > Git URL
+  - commit                  > Git commit hash
+  - backend                 > "libav" or "ffmpeg"
+  - backend_version_string  > Most recent backend version tag or trunk and date
+                              i.e. "v0.8.3" or "trunk (Wed Aug 22 19:58:46 2012 -0400)"
+  - backend_repo            > Backend git URL
+  - backend_commit          > Backend git commit hash
+
+- Added AVbinOptions typedef (struct _AVbinOptions) for use with the new
+  avbin_init_options() function.
+
+- Added avbin_init_options() to handle initialization options.  avbin_init() now
+  creates an AVbinOptions with default settings and calls avbin_init_options()
+  under the hood.  Future versions of AVbin may have new AVbinOptions* structs
+  that you can pass to avbin_init_options().  Currently, the only option is how
+  many threads you would like avbin to use for decoding (defaults to 1, using
+  0 [autodetect] is recommended).
+
+- Updated avbin_have_features() with new features to check for.
+  "options" > presence of avbin_init_options(), AVbinOptions, and multithreading
+  "info"    > presence of avbin_get_info(), AVbinInfo
+
+- Adapted the underlying C code implementation to upstream API changes, as well
+  as switching to more portable data types across the board.  This work was
+  almost entirely pulled from Jernej Virag's fork, so kudos to him!
+
+- Implemented multithreading support inspired by Jernej's work.  If you want
+  the library to use multiple threads, please see avbin_init_options() in the
+  documentation.
+
+- Overhauled all configure options and Makefile commands so that all six
+  supported platforms have very similar builds now.  Bz2 and Gzip compression is
+  enabled on all platforms now, for example.  Every platform also had to have
+  configure and make options adjusted to compensate for new versions of Xcode
+  and OS X, new versions of Linux, and the new version of Libav.
+
+- Overhauled the build script.  All build errors now have descriptive messages.
+  The options may now be specified at any argument position.  The --fast option
+  now compiles with more processes at once.  The --clean option now does a
+  better job cleaning.  The libav submodule is automatically updated before
+  building.
+
+- Overhauled the dist script, which now generates binary installers for all
+  platforms
+
+- The OS X version is now a universal library containing both 32-bit and 64-bit
+  code.
+
+- The OS X release is now a package installer, instead of a tarball.
+
+- The Linux release is now a compressed binary installer instead of a tarball.
+
+- The Windows release is now an executable installer instead of a zipfile.
+
+- All installers now present and require acceptance of the license.
+
+- Updated the Makefile for the avbin_dump example so that it compiles on Linux
+
+- Updated the avbin_dump example:
+  - Command-line arguments are now processed position-independently
+  - The new help argument (-h, --help) displays usage
+  - The new verbose argument (-v, --verbose) enables printing out information
+    about each packet decoded from a media file.  (Previously you had to modify
+    the source code and recompile to enable this).
+  - The verbose output now includes timestamps (in microseconds).
+
+- Updated the online API documentation: http://avbin.github.com/docs/
+
+- Ran the repository through `git filter-branch` and eliminated all of the
+  ffmpeg source code, which shrinks the repo size to 528K (much better than
+  about 100MB!!)  NOTE: If you have a pre-filter clone, you will need to
+  either make a new clone (easy), or rebase:
+  http://git-scm.com/book/en/Git-Branching-Rebasing
+
+
+
 AVbin 9 *UNSTABLE RELEASE -- SEE BELOW*
 
 - "Updated" to Libav 0.6.6 -- despite the recentness of the latest release on
