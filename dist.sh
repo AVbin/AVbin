@@ -67,7 +67,6 @@ dist_common() {
         /Applications/PackageMaker.app/Contents/MacOS/PackageMaker \
             --doc avbin.pmdoc --out $PACKAGE && echo "done."
     fi
-    rm -rf $DIR
 }
 
 platforms=$*

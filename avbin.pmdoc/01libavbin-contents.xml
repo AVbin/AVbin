@@ -1,1 +1,1 @@
-<pkg-contents spec="1.12"><f n="libavbin.10.dylib" o="" g="" p="0" pt="/Users/nathan/proj/avbin/dist/avbin-macosx-universal-v10/libavbin.10.dylib" m="false" t="file"/></pkg-contents>
+<pkg-contents spec="1.12"><f n="libavbin.10.dylib" o="root" g="wheel" p="493" pt="/Users/nathan/proj/avbin/dist/avbin-macosx-universal-v10/libavbin.10.dylib" m="true" t="file"><mod>mode</mod><mod>group</mod><mod>owner</mod></f></pkg-contents>
