@@ -2,12 +2,14 @@
 !include LogicLib.nsh
 !include MUI2.nsh
 
+BrandingText "AVbin  http://avbin.github.org"
+
 Function .onInit
-    ${If} $InstDir == "" ; /D= was not used on the command line
+    ${If} $INSTDIR == "" ; /D= was not used on the command line
         ${If} "@ARCH@" == "64"
-            StrCpy $InstDir $PROGRAMFILES64\AVbin
+            StrCpy $INSTDIR $PROGRAMFILES64\AVbin
         ${Else}
-            StrCpy $InstDir $PROGRAMFILES\AVbin
+            StrCpy $INSTDIR $PROGRAMFILES\AVbin
         ${EndIf}
     ${EndIf}
 FunctionEnd
@@ -35,6 +37,7 @@ name "AVbin @AVBIN_VERSION@ @ARCH@-bit"
 !insertmacro MUI_PAGE_INSTFILES
 
 Section "AVbin Library"
+    CreateDirectory $INSTDIR
     Var /GLOBAL ALREADY_INSTALLED
 
     # It appears this definition works for the uninstaller stuff below as well
@@ -48,13 +51,15 @@ Section "AVbin Library"
    
     !insertmacro InstallLib DLL \
         $ALREADY_INSTALLED \
-	NOREBOOT_NOTPROTECTED \
-	win@ARCH@/@AVBIN_LIB_FILENAME@ \
-	$SYSDIR\@AVBIN_LIB_FILENAME@ \
-	$SYSDIR
+        NOREBOOT_NOTPROTECTED \
+        win@ARCH@/@AVBIN_LIB_FILENAME@ \
+        $SYSDIR\@AVBIN_LIB_FILENAME@ \
+        $SYSDIR
 
-    # Install an uninstaller
+    # Install an uninstaller into INSTDIR
     WriteUninstaller AVbin@AVBIN_VERSION@-win@ARCH@-uninstaller.exe
+    CreateDirectory "$SMPROGRAMS\AVbin"
+    CreateShortCut "$SMPROGRAMS\AVbin\Uninstall AVbin.lnk" "$INSTDIR\AVbin@AVBIN_VERSION@-win@ARCH@-uninstaller.exe"
 SectionEnd
 
 
@@ -63,7 +68,11 @@ Section "un.AVbin Library"
     !insertmacro UnInstallLib DLL \
         SHARED \
         NOREBOOT_NOTPROTECTED \
-	$SYSDIR\@AVBIN_LIB_FILENAME@
+        $SYSDIR\@AVBIN_LIB_FILENAME@
+    Delete "$INSTDIR\AVbin@AVBIN_VERSION@-win@ARCH@-uninstaller.exe"
+    RMDir "$INSTDIR"
+    Delete "$SMPROGRAMS\AVbin\Uninstall AVbin.lnk"
+    RMDir "$SMPROGRAMS\AVbin"
 SectionEnd
 
 
