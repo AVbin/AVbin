@@ -5,7 +5,7 @@ AVBIN_LIBRARY=libavbin.@AVBIN_VERSION@.dylib
 
 if [ ! -d "$PREFIX" ]
 then
-  mkdir $PREFIX
+  mkdir -p $PREFIX
 fi
 
 /bin/ln -sf /usr/local/lib/$AVBIN_LIBRARY $PREFIX/libavbin.dylib
