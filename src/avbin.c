@@ -52,9 +52,9 @@ static AVbinLogCallback user_log_callback = NULL;
  * Format log messages and call the user log callback.  Essentially a
  * reimplementation of libavutil/log.c:av_log_default_callback.
  */
-static void avbin_log_callback(void *ptr, 
-                               int level, 
-                               const char *fmt, 
+static void avbin_log_callback(void *ptr,
+                               int level,
+                               const char *fmt,
                                va_list vl)
 {
     static char message[8192];
@@ -166,7 +166,7 @@ AVbinResult avbin_set_log_callback(AVbinLogCallback callback)
 {
     user_log_callback = callback;
 
-    /* Note av_log_set_callback looks set to disappear at 
+    /* Note av_log_set_callback looks set to disappear at
      * LIBAVUTIL_VERSION >= 50; at which point av_vlog must be
      * set directly.
      */
@@ -190,7 +190,7 @@ AVbinFile *avbin_open_filename_with_format(const char *filename, char* format)
         goto error;
 
     if (avformat_find_stream_info(file->context, NULL) < 0)
-    	goto error;
+      goto error;
 
     file->packet = NULL;
     return file;
@@ -218,7 +218,7 @@ AVbinResult avbin_seek_file(AVbinFile *file, AVbinTimestamp timestamp)
     AVCodecContext *codec_context;
 
     if (!timestamp)
-        av_seek_frame(file->context, -1, 0, 
+        av_seek_frame(file->context, -1, 0,
                       AVSEEK_FLAG_ANY | AVSEEK_FLAG_BYTE);
     else
         av_seek_frame(file->context, -1, timestamp, 0);
@@ -253,30 +253,30 @@ AVbinResult avbin_file_info(AVbinFile *file, AVbinFileInfo *info)
 
     AVDictionaryEntry* entry;
     if ((entry = av_dict_get(file->context->metadata, "title", NULL, 0)) != NULL)  {
-    	strncpy(info->title, entry->value, sizeof(info->title));
+      strncpy(info->title, entry->value, sizeof(info->title));
     }
 
     if (((entry = av_dict_get(file->context->metadata, "artist", NULL, 0)) != NULL) ||
-    	 (entry = av_dict_get(file->context->metadata, "album_artist", NULL, 0)) != NULL) {
-    	strncpy(info->author, entry->value, sizeof(info->author));
+       (entry = av_dict_get(file->context->metadata, "album_artist", NULL, 0)) != NULL) {
+      strncpy(info->author, entry->value, sizeof(info->author));
     }
     if ((entry = av_dict_get(file->context->metadata, "copyright", NULL, 0)) != NULL)  {
-    	strncpy(info->copyright, entry->value, sizeof(info->copyright));
+      strncpy(info->copyright, entry->value, sizeof(info->copyright));
     }
     if ((entry = av_dict_get(file->context->metadata, "comment", NULL, 0)) != NULL)  {
-    	strncpy(info->comment, entry->value, sizeof(info->comment));
+      strncpy(info->comment, entry->value, sizeof(info->comment));
     }
     if ((entry = av_dict_get(file->context->metadata, "album", NULL, 0)) != NULL)  {
-    	strncpy(info->album, entry->value, sizeof(info->album));
+      strncpy(info->album, entry->value, sizeof(info->album));
     }
     if ((entry = av_dict_get(file->context->metadata, "date", NULL, 0)) != NULL)  {
-    	info->year = atoi(entry->value);
+      info->year = atoi(entry->value);
     }
     if ((entry = av_dict_get(file->context->metadata, "track", NULL, 0)) != NULL)  {
-    	info->track = atoi(entry->value);
+      info->track = atoi(entry->value);
     }
     if ((entry = av_dict_get(file->context->metadata, "genre", NULL, 0)) != NULL)  {
-    	strncpy(info->genre, entry->value, sizeof(info->genre));
+      strncpy(info->genre, entry->value, sizeof(info->genre));
     }
 
     return AVBIN_RESULT_OK;
@@ -304,7 +304,7 @@ int32_t avbin_stream_info(AVbinFile *file, int32_t stream_index,
             info->video.height = context->height;
             info->video.sample_aspect_num = context->sample_aspect_ratio.num;
             info->video.sample_aspect_den = context->sample_aspect_ratio.den;
-            if (info_8) 
+            if (info_8)
             {
                 AVRational frame_rate = \
                     file->context->streams[stream_index]->r_frame_rate;
@@ -314,7 +314,7 @@ int32_t avbin_stream_info(AVbinFile *file, int32_t stream_index,
                 /* Work around bug in Libav: if frame rate over 1000, divide
                  * by 1000.
                  */
-                if (info_8->video.frame_rate_num / 
+                if (info_8->video.frame_rate_num /
                         info_8->video.frame_rate_den > 1000)
                     info_8->video.frame_rate_den *= 1000;
             }
@@ -342,10 +342,10 @@ int32_t avbin_stream_info(AVbinFile *file, int32_t stream_index,
                     info->audio.sample_bits = 32;
                     break;
                 default:
-                	// Unknown sample format
-                	info->audio.sample_format = -1;
-                	info->audio.sample_bits = -1;
-                	break;
+                  // Unknown sample format
+                  info->audio.sample_format = -1;
+                  info->audio.sample_bits = -1;
+                  break;
 
                 // TODO: support planar formats
             }
@@ -442,20 +442,20 @@ int32_t avbin_decode_audio(AVbinStream *stream,
 
     // TODO: support planar formats
     if (used >= 0 && got_frame) {
-    	int plane_size;
-    	int data_size = av_samples_get_buffer_size(&plane_size,
-    											   stream->codec_context->channels,
-    											   frame.nb_samples,
-    											   stream->codec_context->sample_fmt, 1);
-    	if (*size_out < data_size) {
-    		av_log(stream->codec_context, AV_LOG_ERROR, "Output audio buffer is too small for current audio frame!");
-    		return AVBIN_RESULT_ERROR;
-    	}
+      int plane_size;
+      int data_size = av_samples_get_buffer_size(&plane_size,
+                                       stream->codec_context->channels,
+                                       frame.nb_samples,
+                                       stream->codec_context->sample_fmt, 1);
+      if (*size_out < data_size) {
+         av_log(stream->codec_context, AV_LOG_ERROR, "Output audio buffer is too small for current audio frame!");
+         return AVBIN_RESULT_ERROR;
+      }
 
-    	memcpy(data_out, frame.extended_data[0], data_size);
-    	*size_out = data_size;
+      memcpy(data_out, frame.extended_data[0], data_size);
+      *size_out = data_size;
     } else {
-    	*size_out = 0;
+      *size_out = 0;
     }
 
     return used;
@@ -491,7 +491,6 @@ int32_t avbin_decode_video(AVbinStream *stream,
     static struct SwsContext *img_convert_ctx = NULL;
     img_convert_ctx = sws_getCachedContext(img_convert_ctx,width, height,stream->codec_context->pix_fmt,width, height,PIX_FMT_RGB24, SWS_FAST_BILINEAR, NULL, NULL, NULL);
     sws_scale(img_convert_ctx, (const uint8_t* const*)stream->frame->data, stream->frame->linesize,0, height, picture_rgb.data, picture_rgb.linesize);
-    
+
     return used;
 }
-

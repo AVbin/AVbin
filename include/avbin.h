@@ -18,7 +18,7 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-/** 
+/**
  * @file
  * AVbin functions and structures.
  */
@@ -47,7 +47,7 @@
  *        - Bits per sample
  *        - Channels (monoaural, stereo, or multichannel surround)
  *   -# For each stream you intend to decode, call avbin_open_stream().
- *   
+ *
  * When all information has been determined and the streams are open, you can
  * proceed to read and decode the file:
  *   -# Call avbin_read() to read a packet of data from the file.
@@ -80,7 +80,7 @@ extern "C" {
 
 #include <stdint.h>
 
-/** 
+/**
  * Error-checked function result.
  */
 typedef enum _AVbinResult {
@@ -105,7 +105,7 @@ typedef enum _AVbinSampleFormat {
     AVBIN_SAMPLE_FORMAT_U8 = 0,
     /** Signed 16-bit integer */
     AVBIN_SAMPLE_FORMAT_S16 = 1,
-    /** Signed 24-bit integer 
+    /** Signed 24-bit integer
      *
      *  @deprecated This format is not used.
      *  */
@@ -149,10 +149,10 @@ typedef int64_t AVbinTimestamp;
  * File details.  The info struct is filled in by avbin_get_file_info.
  */
 typedef struct _AVbinFileInfo {
-    /** 
+    /**
      * Size of this structure, in bytes.  This must be filled in by the
      * application before passing to AVbin.
-     */ 
+     */
     size_t structure_size;
 
     /**
@@ -164,13 +164,13 @@ typedef struct _AVbinFileInfo {
      * Starting time of all streams.
      */
     AVbinTimestamp start_time;
-    
+
     /**
      * Duration of the file.  Does not include the time given in start_time.
      */
     AVbinTimestamp duration;
 
-    /** 
+    /**
      * @name Metadata fields
      *
      * File metadata.
@@ -193,7 +193,7 @@ typedef struct _AVbinFileInfo {
 
 /**
  * Stream details.
- * 
+ *
  * A stream is a single audio track or video.  Most audio files contain one
  * audio stream.  Most video files contain one audio stream and one video
  * stream.  More than one audio stream may indicate the presence of multiple
@@ -201,10 +201,10 @@ typedef struct _AVbinFileInfo {
  * provide language information).
  */
 typedef struct _AVbinStreamInfo {
-    /** 
+    /**
      * Size of this structure, in bytes.  This must be filled in by the
      * application before passing to AVbin.
-     */ 
+     */
     size_t structure_size;
 
     /**
@@ -236,7 +236,7 @@ typedef struct _AVbinStreamInfo {
             /** Frame rate, in frames per second.  The frame rate is given by
              * dividing frame_rate_num by frame_rate_den.
              *
-             * @version Version 8.  Requires frame_rate feature. 
+             * @version Version 8.  Requires frame_rate feature.
              */
             uint32_t frame_rate_num;
             uint32_t frame_rate_den;
@@ -271,7 +271,7 @@ typedef struct _AVbinStreamInfo {
 
 /**
  * Stream details, version 8.
- * 
+ *
  * A stream is a single audio track or video.  Most audio files contain one
  * audio stream.  Most video files contain one audio stream and one video
  * stream.  More than one audio stream may indicate the presence of multiple
@@ -279,10 +279,10 @@ typedef struct _AVbinStreamInfo {
  * provide language information).
  */
 typedef struct _AVbinStreamInfo8 {
-    /** 
+    /**
      * Size of this structure, in bytes.  This must be filled in by the
      * application before passing to AVbin.
-     */ 
+     */
     size_t structure_size;
 
     /**
@@ -314,7 +314,7 @@ typedef struct _AVbinStreamInfo8 {
             /** Frame rate, in frames per second.  The frame rate is given by
              * dividing frame_rate_num by frame_rate_den.
              *
-             * @version Version 8.  Requires frame_rate extension. 
+             * @version Version 8.  Requires frame_rate extension.
              */
             uint32_t frame_rate_num;
             uint32_t frame_rate_den;
@@ -359,7 +359,7 @@ typedef struct _AVbinPacket {
     /**
      * Size of this structure, in bytes.  This must be filled in by the
      * application before passing to AVbin.
-     */ 
+     */
     size_t structure_size;
 
     /**
@@ -469,11 +469,11 @@ typedef struct _AVbinOptions {
  * @param message The formatted message.  The message may or may not contain
  *                newline characters.
  */
-typedef void (*AVbinLogCallback)(const char *module, 
-                                 AVbinLogLevel level, 
+typedef void (*AVbinLogCallback)(const char *module,
+                                 AVbinLogLevel level,
                                  const char *message);
 
-/** 
+/**
  * @name Information about AVbin
  */
 
@@ -533,7 +533,7 @@ int32_t avbin_have_feature(const char *feature);
  */
 
 /**
- * One of the avbin_init* functions must be called before opening a file to 
+ * One of the avbin_init* functions must be called before opening a file to
  * initialize AVbin.  Check the return value for success before continuing.
  */
 
@@ -635,7 +635,7 @@ AVbinStream *avbin_open_stream(AVbinFile *file, int32_t stream_index);
 void avbin_close_stream(AVbinStream *stream);
 /*@}*/
 
-/** 
+/**
  * @name Reading and decoding functions
  */
 
@@ -647,7 +647,7 @@ void avbin_close_stream(AVbinStream *stream);
  * will be filled with a packet of data.  The actual data pointer within
  * the packet must not be freed, and is valid until the next call to
  * avbin_read.
- * 
+ *
  * Applications should examine the packet's stream index to match it with
  * an appropriate open stream handle, or discard it if none match.  The packet
  * data can then be passed to the relevant decode function.
@@ -671,7 +671,7 @@ AVbinResult avbin_read(AVbinFile *file, AVbinPacket *packet);
  *         than 0.
  *
  * @retval -1 if there was an error
- */ 
+ */
 int32_t avbin_decode_audio(AVbinStream *stream,
                        uint8_t *data_in, size_t size_in,
                        uint8_t *data_out, int *size_out);

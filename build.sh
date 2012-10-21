@@ -71,20 +71,20 @@ clean_backend() {
 build_backend() {
     config=`pwd`/$PLATFORM.configure
     common=`pwd`/common.configure
-    
+
     if [ ! $REBUILD ]; then
-	     clean_backend
+        clean_backend
     fi
-    
+
     pushd $BACKEND_DIR > /dev/null
-    
+
     # If we're not rebuilding, then we need to configure Backend
     if [ ! $REBUILD ]; then
-	     case $OSX_VERSION in
+        case $OSX_VERSION in
             "10.6") SDKPATH="\/Developer\/SDKs\/MacOSX10.6.sdk" ;;
             "10.7") SDKPATH="\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/MacOSX.platform\/Developer\/SDKs\/MacOSX10.6.sdk" ;;
             *)      SDKPATH="" ;;
-	     esac
+        esac
 
         cat $config $common | egrep -v '^#' | sed s/%%SDKPATH%%/$SDKPATH/g | xargs ./configure || fail "Failed configuring backend."
     fi
@@ -170,7 +170,7 @@ for arg in $* ; do
         "--rebuild")
             REBUILD=1;;
         "--clean")
-	         clean_backend
+            clean_backend
             rm -rf dist
             rm -rf build
             rm -f example/avbin_dump
