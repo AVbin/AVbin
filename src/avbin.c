@@ -109,7 +109,10 @@ size_t avbin_get_audio_buffer_size()
 int32_t avbin_have_feature(const char *feature)
 {
     if (strcmp(feature, "frame_rate") == 0)
-        return 1;
+    {
+        // See note on avbin_have_feature() in avbin.h
+        return 0;
+    }
     if (strcmp(feature, "options") == 0)
         return 1;
     if (strcmp(feature, "info") == 0)
@@ -292,7 +295,8 @@ int32_t avbin_stream_info(AVbinFile *file, int32_t stream_index,
     if (info->structure_size < sizeof *info)
         return AVBIN_RESULT_ERROR;
 
-    /* Version 8 adds frame_rate feature */
+    /* Version 8 adds frame_rate feature, Version 11 removes it, see note on
+       avbin_have_feature() in avbin.h */
     if (info->structure_size >= sizeof(AVbinStreamInfo8))
         info_8 = (AVbinStreamInfo8 *) info;
 
@@ -304,6 +308,8 @@ int32_t avbin_stream_info(AVbinFile *file, int32_t stream_index,
             info->video.height = context->height;
             info->video.sample_aspect_num = context->sample_aspect_ratio.num;
             info->video.sample_aspect_den = context->sample_aspect_ratio.den;
+
+/* See note on avbin_have_feature() in avbin.h
             if (info_8)
             {
                 AVRational frame_rate = \
@@ -311,13 +317,15 @@ int32_t avbin_stream_info(AVbinFile *file, int32_t stream_index,
                 info_8->video.frame_rate_num = frame_rate.num;
                 info_8->video.frame_rate_den = frame_rate.den;
 
-                /* Work around bug in Libav: if frame rate over 1000, divide
-                 * by 1000.
-                 */
+                // Work around bug in Libav: if frame rate over 1000, divide
+                // by 1000.
                 if (info_8->video.frame_rate_num /
                         info_8->video.frame_rate_den > 1000)
                     info_8->video.frame_rate_den *= 1000;
             }
+*/
+            info_8->video.frame_rate_num = 0;
+            info_8->video.frame_rate_den = 0;
             break;
         case AVMEDIA_TYPE_AUDIO:
             info->type = AVBIN_STREAM_TYPE_AUDIO;

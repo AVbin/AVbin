@@ -237,6 +237,8 @@ typedef struct _AVbinStreamInfo {
              * dividing frame_rate_num by frame_rate_den.
              *
              * @version Version 8.  Requires frame_rate feature.
+             *
+             * REMOVED IN VERSION 11 - see note on avbin_have_feature()
              */
             uint32_t frame_rate_num;
             uint32_t frame_rate_den;
@@ -518,9 +520,16 @@ size_t avbin_get_audio_buffer_size();
  * When future versions of AVbin include more functionality, that
  * functionality can be tested for by calling this function.  The following
  * features can be tested for:
- *  - "frame_rate" // AVbinStreamInfo8
+ *  - "frame_rate" // AVbinStreamInfo8, frame_rate variables.
  *  - "options"    // avbin_init_options(), AVbinOptions (multi-threading)
  *  - "info"       // avbin_get_info(), AVbinInfo
+ *
+ *
+ * NOTE: The "frame_rate" feature was available in versions 9 and 10, but
+ * removed in version 11.  Populating r_frame_rate was considered an unreliable
+ * hack upstream and removed.  If you try to access it in the upstream library,
+ * it is always {0, 0}.  Perhaps we can find a different source of frame rate
+ * and re-enable this feature in the future.
  *
  * @retval 1 The feature is present
  * @retval 0 The feature is not present
