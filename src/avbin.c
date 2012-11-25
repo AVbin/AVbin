@@ -223,8 +223,8 @@ AVbinResult avbin_seek_file(AVbinFile *file, AVbinTimestamp timestamp)
 
     if (!timestamp)
     {
-        if (av_seek_frame(file->context, -1, 0,
-                          AVSEEK_FLAG_ANY | AVSEEK_FLAG_BYTE) < 0)
+        flags = AVSEEK_FLAG_ANY | AVSEEK_FLAG_BYTE;
+        if (av_seek_frame(file->context, -1, 0, flags) < 0)
             return AVBIN_RESULT_ERROR;
     }
     else
