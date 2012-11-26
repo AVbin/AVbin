@@ -326,8 +326,11 @@ int32_t avbin_stream_info(AVbinFile *file, int32_t stream_index,
                     info_8->video.frame_rate_den *= 1000;
             }
 */
-            info_8->video.frame_rate_num = 0;
-            info_8->video.frame_rate_den = 0;
+            if (info_8)
+            {
+                info_8->video.frame_rate_num = 0;
+                info_8->video.frame_rate_den = 0;
+            }
             break;
         case AVMEDIA_TYPE_AUDIO:
             info->type = AVBIN_STREAM_TYPE_AUDIO;
