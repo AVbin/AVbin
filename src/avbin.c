@@ -336,7 +336,7 @@ int32_t avbin_stream_info(AVbinFile *file, int32_t stream_index,
             switch (context->sample_fmt)
             {
                 case AV_SAMPLE_FMT_U8:
-                    info->audio.sample_rate = AVBIN_SAMPLE_FORMAT_U8;
+                    info->audio.sample_format = AVBIN_SAMPLE_FORMAT_U8;
                     info->audio.sample_bits = 8;
                     break;
                 case AV_SAMPLE_FMT_S16:
