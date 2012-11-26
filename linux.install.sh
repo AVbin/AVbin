@@ -52,5 +52,5 @@ chmod a+rx $PREFIX/$AVBIN_LIBRARY || \
 /sbin/ldconfig || \
     echo "WARNING: Unable to update dynamic linker run-time bindings.  You may need to reboot before AVbin can be used."
 
-echo "AVbin @AVBIN_VERSION@ successfully installed."
+echo "AVbin @AVBIN_VERSION_STRING@ successfully installed."
 echo

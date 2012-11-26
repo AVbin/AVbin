@@ -40,7 +40,9 @@ dist_common() {
     if [ $PLATFORM == "linux-x86-32" -o $PLATFORM == "linux-x86-64" \
          -o $PLATFORM == "macosx-x86-32" -o $PLATFORM == "macosx-x86-64" \
          -o $PLATFORM == "macosx-universal" ]; then
-        sed s/@AVBIN_VERSION@/$AVBIN_VERSION/ $OS.install.sh > $DIR/install.sh \
+        sed s/@AVBIN_VERSION@/$AVBIN_VERSION/ $OS.install.sh \
+	    | sed s/@AVBIN_VERSION_STRING@/$AVBIN_VERSION_STRING/ \
+	    > $DIR/install.sh \
             || fail "Failed creating install.sh"
         chmod a+x $DIR/install.sh || fail "Failed making install.sh executable"
     fi
