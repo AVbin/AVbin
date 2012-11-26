@@ -11,6 +11,7 @@ STATIC_LIBS = -whole-archive \
               $(BACKEND_DIR)/libswscale/libswscale.a \
               -no-whole-archive
 
+# Statically link libbz2 since different distros name the library differently
 LIBS = -Bstatic -lbz2 -Bdynamic -lz
 
 $(LIBNAME) : $(OBJNAME) $(OUTDIR)

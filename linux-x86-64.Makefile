@@ -11,7 +11,9 @@ STATIC_LIBS = -whole-archive \
               $(BACKEND_DIR)/libswscale/libswscale.a \
               -no-whole-archive
 
-LIBS = -Bstatic -lbz2 -Bdynamic -lz
+# Unlike the 32-bit, we'll dynamically link libbz2 and hope that distros
+# have more consistent library versioning in 64-bit.
+LIBS = -lbz2 -lz
 
 $(LIBNAME) : $(OBJNAME) $(OUTDIR)
 	$(LD) $(LDFLAGS) -o $@ $< $(STATIC_LIBS) $(LIBS)
