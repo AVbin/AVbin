@@ -47,15 +47,15 @@ dist_common() {
     # Create tarball or zipfile
     pushd dist > /dev/null
     if [ $PLATFORM == "win32" -o $PLATFORM == "win64" ]; then
-        cat ../avbin.nsi | sed s/@AVBIN_VERSION@/$AVBIN_VERSION/g \
+        cat ../avbin.nsi | sed s/@AVBIN_VERSION@/$AVBIN_VERSION_STRING/g \
             | sed s/@AVBIN_LIB_FILENAME@/$AVBIN_LIB_FILENAME/g \
             | sed s/@ARCH@/$ARCH/g > avbin.nsi \
             || fail "Failed creating NSIS configuration file."
 	     makensis avbin.nsi || fail "Failed compiling windows installer."
-	     echo "Created AVbin${AVBIN_VERSION}-${ARCH}.exe"
+	     echo "Created AVbin${AVBIN_VERSION_STRING}-${ARCH}.exe"
     elif [ $PLATFORM == "linux-x86-64" -o $PLATFORM == "linux-x86-32" ]; then
         # Create binary installer for Linux
-	     makeself $BASEDIR install-$BASEDIR "AVbin $AVBIN_VERSION" \
+	     makeself $BASEDIR install-$BASEDIR "AVbin $AVBIN_VERSION_STRING" \
 	         "./install.sh" \
 		 || fail "Failed creating the Linux installer."
     fi
@@ -86,7 +86,7 @@ if [ ! "$platforms" ]; then
 fi
 
 for PLATFORM in $platforms; do
-    BASEDIR=avbin-$PLATFORM-v$AVBIN_VERSION
+    BASEDIR=avbin-$PLATFORM-v$AVBIN_VERSION_STRING
     DIR=dist/$BASEDIR
     if [ $PLATFORM == "linux-x86-32" -o $PLATFORM == "linux-x86-64" ]; then
 	     OS=linux
