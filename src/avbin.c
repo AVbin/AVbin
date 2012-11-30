@@ -188,7 +188,7 @@ AVbinFile *avbin_open_filename_with_format(const char *filename, char* format)
     AVInputFormat *avformat = NULL;
     if (format) avformat = av_find_input_format(format);
 
-    file->context = NULL;	// Zero-initialize
+    file->context = NULL;    // Zero-initialize
     if (avformat_open_input(&file->context, filename, avformat, NULL) != 0)
         goto error;
 
@@ -219,19 +219,25 @@ AVbinResult avbin_seek_file(AVbinFile *file, AVbinTimestamp timestamp)
 {
     int i;
     AVCodecContext *codec_context;
+    int flags = 0;
 
     if (!timestamp)
-        if (av_seek_frame(file->context, -1, 0,
-                          AVSEEK_FLAG_ANY | AVSEEK_FLAG_BYTE) < 0)
+    {
+        flags = AVSEEK_FLAG_ANY | AVSEEK_FLAG_BYTE;
+        if (av_seek_frame(file->context, -1, 0, flags) < 0)
             return AVBIN_RESULT_ERROR;
+    }
     else
-        if (av_seek_frame(file->context, -1, timestamp, 0) < 0)
+    {
+        flags = AVSEEK_FLAG_BACKWARD;
+        if (av_seek_frame(file->context, -1, timestamp, flags) < 0)
             return AVBIN_RESULT_ERROR;
+    }
 
     for (i = 0; i < file->context->nb_streams; i++)
     {
         codec_context = file->context->streams[i]->codec;
-        if (codec_context)
+        if (codec_context && codec_context->codec)
             avcodec_flush_buffers(codec_context);
     }
     return AVBIN_RESULT_OK;
