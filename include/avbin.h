@@ -506,8 +506,12 @@ AVbinInfo *avbin_get_info();
  *             This always returns 0 now that we use Libav from Git.  This
  *             function will be removed in AVbin 12.
  */
+#ifndef _MSC_VER
 int32_t avbin_get_ffmpeg_revision() __attribute__((deprecated));
-
+#else
+int32_t avbin_get_ffmpeg_revision();
+#pragma deprecated(avbin_get_ffmpeg_revision)
+#endif
 
 /**
  * Get the minimum audio buffer size, in bytes.
