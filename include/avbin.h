@@ -514,9 +514,11 @@ int32_t avbin_get_ffmpeg_revision();
 #endif
 
 /**
- * Get the minimum audio buffer size, in bytes.
+ * DEPRECATED.  Get the minimum audio buffer size, in bytes.
+ * Why is this even here?  It just returns the number 192000.  It has been
+ * removed upstream, so we'll remove it as well some time soon.
  */
-size_t avbin_get_audio_buffer_size();
+size_t avbin_get_audio_buffer_size() __attribute__((deprecated));;
 
 /**
  * Determine if AVbin includes a requested feature.

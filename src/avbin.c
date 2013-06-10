@@ -101,9 +101,10 @@ int32_t avbin_get_ffmpeg_revision()
     return 0;
 }
 
+// Deprecated - useless.
 size_t avbin_get_audio_buffer_size()
 {
-    return AVCODEC_MAX_AUDIO_FRAME_SIZE;
+    return 192000;
 }
 
 int32_t avbin_have_feature(const char *feature)
