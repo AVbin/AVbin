@@ -641,6 +641,8 @@ AVbinResult avbin_stream_info(AVbinFile *file, int32_t stream_index,
  * If you intend to decode audio or video from a file, you must open the
  * stream first.  The returned opaque handle should be passed to the relevant
  * decode function when a packet for that stream is read.
+ *
+ * @retval NULL if there are any problems, pointer to the AVbinStream otherwise.
  */
 AVbinStream *avbin_open_stream(AVbinFile *file, int32_t stream_index);
 
