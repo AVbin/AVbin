@@ -96,6 +96,7 @@ AVbinInfo *avbin_get_info()
     return info;
 }
 
+// Deprecated - use avbin_get_info() instead.
 int32_t avbin_get_ffmpeg_revision()
 {
     return 0;
