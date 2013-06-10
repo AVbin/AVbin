@@ -1,7 +1,8 @@
 #!/bin/bash
 #
 # build.sh
-# Copyright 2012 AVbin Team
+# Copyright 2007 Alex Holkner
+# Copyright 2011-2013 AVbin Team
 #
 # This file is part of AVbin.
 #
@@ -174,6 +175,7 @@ for arg in $* ; do
             rm -rf dist
             rm -rf build
             rm -f example/avbin_dump
+            rm -f example/minimal
             exit
             ;;
         *)
