@@ -55,15 +55,16 @@ build of AVbin 10, while get_avbin_info()->version will still return the integer
 Building for OS X
 -----------------
 
-Tested on OS X Lion (10.7)
+Tested on OS X Lion (10.7) and Mountain Lion (10.8)
 
 - Install Xcode (from Apple's App Store)
 - Open Xcode, and go to ``Preferences > Downloads > Components`` and install the
   Command Line Tools package.
-- Install yasm (You can install MacPorts and then run 'sudo port install yasm')
-- Run ./build.sh [desired options and target]
+- Install yasm (You can install HomeBrew from http://mxcl.github.io/homebrew/
+  and then run 'brew install yasm' to install yasm)
 - Obtain and install Auxiliary Tools for Xcode (from developer.apple.com > 
   Mac Dev Center > Developer Downloads)
+- Run ./build.sh [desired options and target]
 
 
 Building for Linux
