@@ -462,7 +462,7 @@ int32_t avbin_decode_audio(AVbinStream *stream,
         return AVBIN_RESULT_ERROR;
 
     // TODO: support planar formats
-    if (used >= 0 && got_frame) {
+    if (got_frame) {
       int plane_size;
       int data_size = av_samples_get_buffer_size(&plane_size,
                                        stream->codec_context->channels,
