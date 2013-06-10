@@ -445,7 +445,7 @@ int32_t avbin_decode_audio(AVbinStream *stream,
                        uint8_t *data_in, size_t size_in,
                        uint8_t *data_out, int *size_out)
 {
-    int used;
+    int bytes_used;
     if (stream->type != AVMEDIA_TYPE_AUDIO)
         return AVBIN_RESULT_ERROR;
 
@@ -456,9 +456,9 @@ int32_t avbin_decode_audio(AVbinStream *stream,
 
     AVFrame *frame = avcodec_alloc_frame();
     int got_frame = 0;
-    used = avcodec_decode_audio4(stream->codec_context, frame, &got_frame, &packet);
+    bytes_used = avcodec_decode_audio4(stream->codec_context, frame, &got_frame, &packet);
 
-    if (used < 0)
+    if (bytes_used < 0)
         return AVBIN_RESULT_ERROR;
 
     // TODO: support planar formats
@@ -479,7 +479,7 @@ int32_t avbin_decode_audio(AVbinStream *stream,
       *size_out = 0;
     }
 
-    return used;
+    return bytes_used;
 }
 
 int32_t avbin_decode_video(AVbinStream *stream,
@@ -490,7 +490,7 @@ int32_t avbin_decode_video(AVbinStream *stream,
     int got_picture;
     int width = stream->codec_context->width;
     int height = stream->codec_context->height;
-    int used;
+    int bytes_used;
 
     if (stream->type != AVMEDIA_TYPE_VIDEO)
         return AVBIN_RESULT_ERROR;
@@ -500,7 +500,7 @@ int32_t avbin_decode_video(AVbinStream *stream,
     packet.data = data_in;
     packet.size = size_in;
 
-    used = avcodec_decode_video2(stream->codec_context,
+    bytes_used = avcodec_decode_video2(stream->codec_context,
                                 stream->frame, &got_picture,
                                 &packet);
 
@@ -513,5 +513,5 @@ int32_t avbin_decode_video(AVbinStream *stream,
     img_convert_ctx = sws_getCachedContext(img_convert_ctx,width, height,stream->codec_context->pix_fmt,width, height,PIX_FMT_RGB24, SWS_FAST_BILINEAR, NULL, NULL, NULL);
     sws_scale(img_convert_ctx, (const uint8_t* const*)stream->frame->data, stream->frame->linesize,0, height, picture_rgb.data, picture_rgb.linesize);
 
-    return used;
+    return bytes_used;
 }
