@@ -393,6 +393,15 @@ AVbinStream *avbin_open_stream(AVbinFile *file, int32_t index)
     if (!codec)
         return NULL;
 
+    /* The Libav api example does this (see libav/libavcodec-api-example.c).
+     * The only explanation is "we do not send complete frames".  I tried
+     * adding it, and there seemed to be no effect either way.  I'm going to
+     * leave it here commented out just in case we find the need to enable it
+     * in the future.
+     */
+/*    if (codec->capabilities & CODEC_CAP_TRUNCATED)
+ *       codec_context->flags |= CODEC_FLAG_TRUNCATED;
+ */
     if (avbin_thread_count != 1)
         codec_context->thread_count = avbin_thread_count;
 
