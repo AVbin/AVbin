@@ -412,17 +412,15 @@ AVbinStream *avbin_open_stream(AVbinFile *file, int32_t index)
     stream->format_context = file->context;
     stream->codec_context = codec_context;
     stream->type = codec_context->codec_type;
-    if (stream->type == AVMEDIA_TYPE_VIDEO)
-        stream->frame = avcodec_alloc_frame();
-    else
-        stream->frame = NULL;
+    stream->frame = avcodec_alloc_frame();
+
     return stream;
 }
 
 void avbin_close_stream(AVbinStream *stream)
 {
     if (stream->frame)
-        avcodec_free_frame(stream->frame);
+        avcodec_free_frame(&stream->frame);
     avcodec_close(stream->codec_context);
     free(stream);
 }
