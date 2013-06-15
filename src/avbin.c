@@ -461,9 +461,8 @@ int32_t avbin_decode_audio(AVbinStream *stream,
     packet.data = data_in;
     packet.size = size_in;
 
-    AVFrame *frame = avcodec_alloc_frame();
     int got_frame = 0;
-    bytes_used = avcodec_decode_audio4(stream->codec_context, frame, &got_frame, &packet);
+    bytes_used = avcodec_decode_audio4(stream->codec_context, stream->frame, &got_frame, &packet);
 
     if (bytes_used < 0)
         return AVBIN_RESULT_ERROR;
@@ -473,14 +472,14 @@ int32_t avbin_decode_audio(AVbinStream *stream,
       int plane_size;
       int data_size = av_samples_get_buffer_size(&plane_size,
                                        stream->codec_context->channels,
-                                       frame->nb_samples,
+                                       stream->frame->nb_samples,
                                        stream->codec_context->sample_fmt, 1);
       if (*size_out < data_size) {
          av_log(stream->codec_context, AV_LOG_ERROR, "Output audio buffer is too small for current audio frame!");
          return AVBIN_RESULT_ERROR;
       }
 
-      memcpy(data_out, frame->extended_data[0], data_size);
+      memcpy(data_out, stream->frame->extended_data[0], data_size);
       *size_out = data_size;
     } else {
       *size_out = 0;
