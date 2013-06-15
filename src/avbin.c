@@ -456,9 +456,16 @@ int32_t avbin_decode_audio(AVbinStream *stream,
     if (stream->type != AVMEDIA_TYPE_AUDIO)
         return AVBIN_RESULT_ERROR;
 
+    // Some decoders read big chunks at a time, so you have to make a bigger buffer
+    uint8_t inbuf[size_in + FF_INPUT_BUFFER_PADDING_SIZE];
+    // Set the padding portion of the buffer to all zeros
+    memset(inbuf + size_in, 0, FF_INPUT_BUFFER_PADDING_SIZE);
+    // Copy the data into the padded buffer
+    memcpy(inbuf, data_in, size_in);
+
     AVPacket packet;
     av_init_packet(&packet);
-    packet.data = data_in;
+    packet.data = inbuf;
     packet.size = size_in;
 
     int got_frame = 0;
@@ -501,9 +508,16 @@ int32_t avbin_decode_video(AVbinStream *stream,
     if (stream->type != AVMEDIA_TYPE_VIDEO)
         return AVBIN_RESULT_ERROR;
 
+    // Some decoders read big chunks at a time, so you have to make a bigger buffer
+    uint8_t inbuf[size_in + FF_INPUT_BUFFER_PADDING_SIZE];
+    // Set the padding portion of the buffer to all zeros
+    memset(inbuf + size_in, 0, FF_INPUT_BUFFER_PADDING_SIZE);
+    // Copy the data into the padded buffer
+    memcpy(inbuf, data_in, size_in);
+
     AVPacket packet;
     av_init_packet(&packet);
-    packet.data = data_in;
+    packet.data = inbuf;
     packet.size = size_in;
 
     bytes_used = avcodec_decode_video2(stream->codec_context,
