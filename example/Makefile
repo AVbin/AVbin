@@ -4,7 +4,7 @@
 # platforms should be straightforward).
 
 CC=gcc
-CFLAGS=-I ../include -I ../libav
+CFLAGS=-I ../include -I ../libav -g
 LIBS=-lavbin -lm -lpthread
 
 all : minimal avbin_dump
