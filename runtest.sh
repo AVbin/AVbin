@@ -8,7 +8,6 @@
 PROBLEM_MEDIA_FILE=~/proj/AVbin10_problems/jwpIntro.mov 
 AVBIN_APPLICATION=~/proj/pyglet/examples/media_player.py 
 
-cd ..
 ./build.sh --clean || exit 3
 ./build.sh --fast macosx-x86-64 || exit 4
 ./dist.sh macosx-x86-64 || exit 5
