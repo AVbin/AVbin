@@ -125,7 +125,6 @@ int main(int argc, char** argv)
     int video_stream_index = -1;
     int audio_stream_index = -1;
     int width, height;
-    int have_frame_rate = avbin_have_feature("frame_rate");
 
     int stream_index;
     for (stream_index=0; stream_index<fileinfo.n_streams; stream_index++)
@@ -138,12 +137,6 @@ int main(int argc, char** argv)
         if (streaminfo.type == AVBIN_STREAM_TYPE_VIDEO)
         {
             printf("video stream at %d, height %d, width %d\n",stream_index,streaminfo.video.height,streaminfo.video.width);
-            if (have_frame_rate)
-                printf("frame rate %d / %d (approximately %.2f)\n", 
-                       streaminfo.video.frame_rate_num, 
-                       streaminfo.video.frame_rate_den,
-                       streaminfo.video.frame_rate_num / (float)
-                            streaminfo.video.frame_rate_den);
             width = streaminfo.video.width;
             height = streaminfo.video.height;
             video_stream_index = stream_index;
