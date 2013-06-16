@@ -7,10 +7,7 @@ CC=gcc
 CFLAGS=-I ../include -I ../libav -g
 LIBS=-lavbin -lm -lpthread
 
-all : minimal avbin_dump
-
-minimal : minimal.c
-	$(CC) $(CFLAGS) minimal.c -o minimal $(LIBS)
+all : avbin_dump
 
 avbin_dump : avbin_dump.c
 	$(CC) $(CFLAGS) avbin_dump.c -o avbin_dump $(LIBS)
