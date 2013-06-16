@@ -106,10 +106,9 @@ typedef enum _AVbinSampleFormat {
     /** Signed 16-bit integer */
     AVBIN_SAMPLE_FORMAT_S16 = 1,
     /** Signed 24-bit integer
-     *
-     *  @deprecated This format is not used.
-     *  */
-    AVBIN_SAMPLE_FORMAT_S24 = 2,
+     *  AVBIN_SAMPLE_FORMAT_S24 removed upstream.  Removed here in AVbin 11
+     */
+    AVBIN_SAMPLE_FORMAT_UNUSED = 2,
     /** Signed 32-bit integer */
     AVBIN_SAMPLE_FORMAT_S32 = 3,
     /** 32-bit IEEE floating-point */
