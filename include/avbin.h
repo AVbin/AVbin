@@ -518,7 +518,12 @@ int32_t avbin_get_ffmpeg_revision();
  * Why is this even here?  It just returns the number 192000.  It has been
  * removed upstream, so we'll remove it as well some time soon.
  */
+#ifndef _MSC_VER
 size_t avbin_get_audio_buffer_size() __attribute__((deprecated));;
+#else
+size_t avbin_get_audio_buffer_size();
+#pragma deprecated(avbin_get_audio_buffer_size)
+#endif
 
 /**
  * Determine if AVbin includes a requested feature.
