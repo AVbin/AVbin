@@ -1,3 +1,35 @@
+AVbin 11
+
+- Updated the contributor list at the bottom of the README file
+- Fixed all the copyright notices and license headers that needed fixing.
+- Removed the sample format AVBIN_SAMPLE_FORMAT_S24 which was removed upstream
+  and deprecated in AVbin 8.
+- We now pad our input buffers internally as the Libav API specifies we should.
+- Updated Livab to upstream master branch commit
+  720a1de52fb4abd8e0541cdcc7d57cb0044c7d3a
+- Fixed our AVFrame handling to conform with new upstream requirements which
+  allows us to pull in an updated version of Libav.
+- Updated the OS X section of the readme to reflect OS X 10.8 and Brew.
+- Removed AVBIN_SAMPLE_FORMAT_S24 that was deprecated in AVbin 8.
+- Deprecated avbin_get_audio_buffer_size() since it is both entirely useless
+  (it has always returned the constant 192000) and has been removed upstream.
+  It will be permanently removed in AVbin 13.
+- Installer filenames now include prerelease version information, if
+  applicable.
+- Statically linking libbz2, since it's getting crazy hard to make it
+  dynamically work for all the crazy ways different Linux distros want their
+  own version of it.
+- av_stream_info() now reports the correct sample rate for 8-bit files (a bug
+  was causing 8-bit files to always report a sample rate of 0)
+- avbin_get_ffmpeg_revision() deprecation compiler warning works in Visual
+  Studio 2010.  Thanks to Tim Sheerman-Chase.
+- av_seek_file() is now more accurate and stable.  Thanks to Tim Sheerman-Chase.
+- If av_seek_file() fails to seek, it now properly returns AVBIN_RESULT_ERROR.
+- Removed "frame_rate" feature (reflecting upstream removal).
+- Fixed a crash that could happen in the OS X installer if /usr/local/lib
+  didn't already exist.  Thanks to Jeremy Lujan.
+- Fixed the uninstaller for win32
+
 AVbin 10
 
 - Updated to Libav trunk as of 2012-08-12 (which finally fixed the .ogg decoding

@@ -1,0 +1,35 @@
+UPGRADING GUIDE
+
+Our goal is to maintain as stable an API as we can, within reason.  When a new
+version makes changes that could affect code using this library, we note it
+here.  For a more full description of changes, see the CHANGELOG.
+
+AVbin 13 (FUTURE)
+- WILL REMOVE avbin_get_audio_buffer_size()
+
+AVbin 12 (FUTURE)
+- WILL REMOVE avbin_get_ffmpeg_revision()
+
+AVbin 11
+- DEPRECATED avbin_get_audio_buffer_size() - will be removed in version 13
+- REMOVED "frame_rate" feature.  Reminder: You should always verify a feature
+  is available by first calling avbin_have_feature().
+- REMOVED AVBIN_SAMPLE_FORMAT_S24 that was deprecated in AVbin 8.
+
+AVbin 10
+- Source repository rebuilt (checkouts/clones prior to this release need to be
+  discarded)
+- ADDED      avbin_init_options() and AVbinOptions
+- ADDED      avbin_get_info() and AVbinInfo
+- DEPRECATED avbin_get_ffmpeg_revision() - will be removed in version 12
+- avbin.h should now be usable from C++
+
+AVbin 9 (internal release only)
+
+AVbin 8
+- AVBIN_SAMPLE_FORMAT_S24 removed (upstream change) - will be removed in
+  version 11.
+
+AVbin 1 through 7
+- Binary compatible
+
