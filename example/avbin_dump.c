@@ -1,5 +1,6 @@
 /* avbin_dump.c
- * Copyright 2012 AVbin Team
+ * Copyright 2008 Micah Richert, Alex Holkner
+ * Copyright 2012-2013 AVbin Team
  *
  * This file is part of AVbin.
  *

@@ -1,5 +1,6 @@
 /* avbin.h
- * Copyright 2012 AVbin Team
+ * Copyright 2007-2008 Alex Holkner
+ * Copyright 2011-2013 AVbin Team
  *
  * This file is part of AVbin.
  *

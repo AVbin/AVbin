@@ -192,8 +192,10 @@ application.
 Contributions
 -------------
 
-Nathan Stocks     - Project maintainer
-Alex Holkner      - Original author, original maintainer
-Micah Richert     - Contributed original macosx-x86-64 and win64 build scripts
-Anatoly Techtonik - C++ integration
-Jernej Virag      - C code additions and updates, build script updates
+Nathan Stocks      - Project maintainer
+Alex Holkner       - Original author, original maintainer
+Micah Richert      - Contributed original macosx-x86-64 and win64 build scripts
+Anatoly Techtonik  - C++ integration
+Jernej Virag       - C code additions and updates, build script updates
+Jeremy Lujan       - OS X install script patches.
+Tim Sheerman-Chase - avbin_seek_file() patches and Visual Studio 2010 compatibility
