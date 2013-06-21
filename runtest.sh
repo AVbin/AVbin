@@ -23,7 +23,8 @@
 # This should be supplied as an argument to 'git bisect'.
 #
 # Of course, this only works if you set these two variables correctly, and
-# you're debugging a problem on 64-bit OS X.
+# you're debugging a problem on 64-bit OS X.  The script will need to be
+# modified under any other circumstances.
 PROBLEM_MEDIA_FILE=~/proj/AVbin10_problems/jwpIntro.mov 
 AVBIN_APPLICATION=~/proj/pyglet/examples/media_player.py 
 

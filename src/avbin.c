@@ -96,13 +96,13 @@ AVbinInfo *avbin_get_info()
     return info;
 }
 
-// Deprecated - use avbin_get_info() instead.
+// Deprecated - use avbin_get_info() instead.  Will be removed in version 12.
 int32_t avbin_get_ffmpeg_revision()
 {
     return 0;
 }
 
-// Deprecated - useless.
+// Deprecated - useless.  Will be removed in version 13.
 size_t avbin_get_audio_buffer_size()
 {
     return 192000;
