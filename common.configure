@@ -3,7 +3,6 @@
 --disable-avplay
 --disable-avprobe
 --disable-avserver
---disable-avplay
 
 # Keep size down
 --disable-debug

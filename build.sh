@@ -147,7 +147,7 @@ die_usage() {
     echo
     echo "Options"
     echo "  --clean     Don't build, just clean up all generated files and directories."
-    echo "  --fast      Use 'make -j4' when compiling"
+    echo "  --fast      Use 'make -j9' when compiling"
     echo "  --help      Display this help text."
     echo "  --rebuild   Don't reconfigure, just run make again."
     echo
@@ -165,7 +165,7 @@ die_usage() {
 for arg in $* ; do
     case $arg in
         "--fast")
-            FAST="-j4" ;;
+            FAST="-j9" ;;
         "--help")
             die_usage ;;
         "--rebuild")
