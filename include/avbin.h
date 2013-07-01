@@ -398,7 +398,7 @@ typedef struct _AVbinInfo {
      * AVbin version as an integer.  This value is the same as returned by
      * the avbin_get_version() function.  Consider using version_string instead.
      */
-    int version;
+    int32_t version;
 
     /**
      * AVbin version string, including pre-release information, i.e. "10-beta1".
