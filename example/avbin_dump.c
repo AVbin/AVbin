@@ -151,18 +151,23 @@ int main(int argc, char** argv)
         }
     }
 
+    printf("got here 1\n");
     if (!verbose)
         exit(0);
 
     AVbinPacket packet;
     packet.structure_size = sizeof(packet);
+    packet.av_packet = NULL;
 
+    printf("got here 2\n");
     while (!avbin_read(file, &packet))
     {
+        printf("got here 3\n");
         if (packet.stream_index == video_stream_index)
         {
+            printf("got here 4\n");
             uint8_t* video_buffer = (uint8_t*) malloc(width*height*3);
-            if (avbin_decode_video(video_stream, packet.data, packet.size,video_buffer)<=0) printf("could not read video packet\n");
+            if (avbin_decode_video(video_stream, &packet, video_buffer)<=0) printf("could not read video packet\n");
             else printf("read video frame\n");
 
             // do something with video_buffer
@@ -176,7 +181,7 @@ int main(int argc, char** argv)
             int bytesout = bytesleft;
             int bytesread;
             uint8_t* audio_data = audio_buffer;
-            while ((bytesread = avbin_decode_audio(audio_stream, packet.data, packet.size, audio_data, &bytesout)) > 0)
+            while ((bytesread = avbin_decode_audio(audio_stream, &packet, audio_data, &bytesout)) > 0)
             {
                 packet.data += bytesread;
                 packet.size -= bytesread;

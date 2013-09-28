@@ -81,6 +81,31 @@ extern "C" {
 
 #include <stdint.h>
 
+/* (Pulled straight from libav/cmdutils.h, since I couldn't find a clean way to
+ * include it from cmdutils.o without pulling in lots of other stuff too.)
+ */
+typedef struct PtsCorrectionContext {
+    int64_t num_faulty_pts; /// Number of incorrect PTS values so far
+    int64_t num_faulty_dts; /// Number of incorrect DTS values so far
+    int64_t last_pts;       /// PTS of the last frame
+    int64_t last_dts;       /// DTS of the last frame
+} PtsCorrectionContext;
+
+/* (Pulled straight from libav/cmdutils.h, since I couldn't find a clean way to
+ * include it from cmdutils.o without pulling in lots of other stuff too.)
+ *
+ * Attempt to guess proper monotonic timestamps for decoded video frames
+ * which might have incorrect times. Input timestamps may wrap around, in
+ * which case the output will as well.
+ *
+ * @param ctx the PtsCorrectionContext carrying stream pts information
+ * @param pts the pts field of the decoded AVPacket, as passed through
+ * AVCodecContext.reordered_opaque
+ * @param dts the dts field of the decoded AVPacket
+ * @return one of the input values, may be AV_NOPTS_VALUE
+ */
+int64_t guess_correct_pts(PtsCorrectionContext *ctx, int64_t pts, int64_t dts);
+
 /**
  * Error-checked function result.
  */
@@ -357,6 +382,7 @@ typedef struct _AVbinStreamInfo8 {
  * free it.  The data will be valid until the next time you call avbin_read,
  * or until the file is closed.
  */
+//typedef struct _AVbinPacket AVbinPacket;
 typedef struct _AVbinPacket {
     /**
      * Size of this structure, in bytes.  This must be filled in by the
@@ -371,13 +397,29 @@ typedef struct _AVbinPacket {
     AVbinTimestamp timestamp;
 
     /**
-     * The stream this packet contains data for.
+     * The stream this packet contains data for. 
      */
     uint32_t stream_index;
 
+    /**
+     * The decoded image data.
+     */
     uint8_t *data;
+
+    /**
+     * The size of the decoded image data.
+     */
     size_t size;
+
+    /**
+     * The actual underlying packet.  As a user of the API, you shouldn't have
+     * to touch this directly.  It's just needed when this packet reaches the
+     * upstream library's decoding function.
+     */
+//    AVPacket *av_packet;
+    void *av_packet;
 } AVbinPacket;
+
 
 
 /**
@@ -502,9 +544,8 @@ AVbinInfo *avbin_get_info();
  *
  * This is built into AVbin as it is built.
  *
- * DEPRECATED: Use avbin_get_libav_commit or avbin_get_libav_version instead.
- *             This always returns 0 now that we use Libav from Git.  This
- *             function will be removed in AVbin 12.
+ * DEPRECATED: Use avbin_get_info() instead.  This always returns 0 now that we
+ * use Libav from Git.  This function will be removed in AVbin 12.
  */
 #ifndef _MSC_VER
 int32_t avbin_get_ffmpeg_revision() __attribute__((deprecated));
@@ -674,7 +715,7 @@ void avbin_close_stream(AVbinStream *stream);
  * an appropriate open stream handle, or discard it if none match.  The packet
  * data can then be passed to the relevant decode function.
  */
-AVbinResult avbin_read(AVbinFile *file, AVbinPacket *packet);
+AVbinResult avbin_read(AVbinFile *file, AVbinPacket *avbin_packet);
 
 /**
  * Decode some audio data.
@@ -695,7 +736,7 @@ AVbinResult avbin_read(AVbinFile *file, AVbinPacket *packet);
  * @retval -1 if there was an error
  */
 int32_t avbin_decode_audio(AVbinStream *stream,
-                       uint8_t *data_in, size_t size_in,
+                       AVbinPacket *avbin_packet,
                        uint8_t *data_out, int *size_out);
 
 /**
@@ -715,7 +756,7 @@ int32_t avbin_decode_audio(AVbinStream *stream,
  * @retval -1 if there was an error
  */
 int32_t avbin_decode_video(AVbinStream *stream,
-                       uint8_t *data_in, size_t size_in,
+                       AVbinPacket *avbin_packet,
                        uint8_t *data_out);
 
 /*@}*/

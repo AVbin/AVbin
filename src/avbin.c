@@ -32,11 +32,19 @@
 #include <libavutil/mathematics.h>
 #include <libswscale/swscale.h>
 
+/* XXX TODO XXX
+ * - Use av_find_best_stream() somehow useful.
+ *   http://libav.org/doxygen/master/group__lavf__decoding.html#gaa6fa468c922ff5c60a6021dcac09aff9
+ * - Try using avformat_seek_file() instead of av_seek_frame() for seeking.
+ *   http://libav.org/doxygen/master/group__lavf__decoding.html#ga3b40fc8d2fda6992ae6ea2567d71ba30
+ */
+
 static int32_t avbin_thread_count = 1;
 
 struct _AVbinFile {
     AVFormatContext *context;
     AVPacket *packet;
+    PtsCorrectionContext pts_correction_context;
 };
 
 struct _AVbinStream {
@@ -47,6 +55,32 @@ struct _AVbinStream {
 };
 
 static AVbinLogCallback user_log_callback = NULL;
+
+/* (Pulled straight from libav/cmdutils.c, since I couldn't find a clean way to
+ * include it from cmdutils.o without pulling in lots of other stuff too.)
+ */
+int64_t guess_correct_pts(PtsCorrectionContext *ctx, int64_t reordered_pts,
+                          int64_t dts)
+{
+    int64_t pts = AV_NOPTS_VALUE;
+
+    if (dts != AV_NOPTS_VALUE) {
+        ctx->num_faulty_dts += dts <= ctx->last_dts;
+        ctx->last_dts = dts;
+    }
+    if (reordered_pts != AV_NOPTS_VALUE) {
+        ctx->num_faulty_pts += reordered_pts <= ctx->last_pts;
+        ctx->last_pts = reordered_pts;
+    }
+    if ((ctx->num_faulty_pts<=ctx->num_faulty_dts || dts == AV_NOPTS_VALUE)
+        && reordered_pts != AV_NOPTS_VALUE)
+        pts = reordered_pts;
+    else
+        pts = dts;
+
+    return pts;
+}
+
 
 /**
  * Format log messages and call the user log callback.  Essentially a
@@ -190,7 +224,8 @@ AVbinFile *avbin_open_filename_with_format(const char *filename, char* format)
     AVInputFormat *avformat = NULL;
     if (format) avformat = av_find_input_format(format);
 
-    file->context = NULL;    // Zero-initialize
+    file->context = NULL;
+    /* file->context = avformat_alloc_context(); */
     if (avformat_open_input(&file->context, filename, avformat, NULL) != 0)
         goto error;
 
@@ -198,6 +233,11 @@ AVbinFile *avbin_open_filename_with_format(const char *filename, char* format)
       goto error;
 
     file->packet = NULL;
+    file->pts_correction_context.num_faulty_pts = 0;
+    file->pts_correction_context.num_faulty_dts = 0;
+    file->pts_correction_context.last_pts       = INT64_MIN;
+    file->pts_correction_context.last_dts       = INT64_MIN;
+
     return file;
 
 error:
@@ -425,51 +465,57 @@ void avbin_close_stream(AVbinStream *stream)
     free(stream);
 }
 
-int32_t avbin_read(AVbinFile *file, AVbinPacket *packet)
+int32_t avbin_read(AVbinFile *file, AVbinPacket *avbin_packet)
 {
-    if (packet->structure_size < sizeof *packet)
+    if (avbin_packet->structure_size < sizeof *avbin_packet)
         return AVBIN_RESULT_ERROR;
 
-    if (file->packet)
-        av_free_packet(file->packet);
+    if (avbin_packet->av_packet)
+        av_free_packet(avbin_packet->av_packet);
     else
-        file->packet = malloc(sizeof *file->packet);
+        avbin_packet->av_packet = malloc(sizeof *avbin_packet->av_packet);
 
-    if (av_read_frame(file->context, file->packet) < 0)
+    av_init_packet(avbin_packet->av_packet);
+
+    /* A packet alias for convenience... */
+/*    AVPacket *pkt = avbin_packet->av_packet; */
+
+/*    if (av_read_frame(file->context, pkt) < 0) */
+    if (av_read_frame(file->context, avbin_packet->av_packet) < 0)
         return AVBIN_RESULT_ERROR;
 
-    packet->timestamp = av_rescale_q(file->packet->dts,
-        file->context->streams[file->packet->stream_index]->time_base,
+    /* A stream alias for convenience... */
+    AVStream *stream = file->context->streams[avbin_packet->av_packet->stream_index];
+
+    /* Make a timestamp in seconds from beginning of stream */
+    avbin_packet->timestamp = av_rescale_q(
+        guess_correct_pts(
+            &file->pts_correction_context,
+            avbin_packet->av_packet->pts, avbin_packet->av_packet->dts),
+        stream->time_base,
         AV_TIME_BASE_Q);
-    packet->stream_index = file->packet->stream_index;
-    packet->data = file->packet->data;
-    packet->size = file->packet->size;
+    avbin_packet->stream_index = avbin_packet->av_packet->stream_index;
+    avbin_packet->data = avbin_packet->av_packet->data;
+    avbin_packet->size = avbin_packet->av_packet->size;
 
     return AVBIN_RESULT_OK;
 }
 
 int32_t avbin_decode_audio(AVbinStream *stream,
-                       uint8_t *data_in, size_t size_in,
+                       AVbinPacket *avbin_packet,
                        uint8_t *data_out, int *size_out)
 {
     int bytes_used;
     if (stream->type != AVMEDIA_TYPE_AUDIO)
         return AVBIN_RESULT_ERROR;
 
-    // Some decoders read big chunks at a time, so you have to make a bigger buffer
-    uint8_t inbuf[size_in + FF_INPUT_BUFFER_PADDING_SIZE];
-    // Set the padding portion of the buffer to all zeros
-    memset(inbuf + size_in, 0, FF_INPUT_BUFFER_PADDING_SIZE);
-    // Copy the data into the padded buffer
-    memcpy(inbuf, data_in, size_in);
-
-    AVPacket packet;
-    av_init_packet(&packet);
-    packet.data = inbuf;
-    packet.size = size_in;
-
     int got_frame = 0;
-    bytes_used = avcodec_decode_audio4(stream->codec_context, stream->frame, &got_frame, &packet);
+    av_frame_unref(stream->frame);
+    bytes_used = avcodec_decode_audio4(
+            stream->codec_context, 
+            stream->frame, 
+            &got_frame, 
+            avbin_packet->av_packet);
 
     if (bytes_used < 0)
         return AVBIN_RESULT_ERROR;
@@ -496,7 +542,7 @@ int32_t avbin_decode_audio(AVbinStream *stream,
 }
 
 int32_t avbin_decode_video(AVbinStream *stream,
-                       uint8_t *data_in, size_t size_in,
+                       AVbinPacket *avbin_packet,
                        uint8_t *data_out)
 {
     AVPicture picture_rgb;
@@ -508,21 +554,10 @@ int32_t avbin_decode_video(AVbinStream *stream,
     if (stream->type != AVMEDIA_TYPE_VIDEO)
         return AVBIN_RESULT_ERROR;
 
-    // Some decoders read big chunks at a time, so you have to make a bigger buffer
-    uint8_t inbuf[size_in + FF_INPUT_BUFFER_PADDING_SIZE];
-    // Set the padding portion of the buffer to all zeros
-    memset(inbuf + size_in, 0, FF_INPUT_BUFFER_PADDING_SIZE);
-    // Copy the data into the padded buffer
-    memcpy(inbuf, data_in, size_in);
-
-    AVPacket packet;
-    av_init_packet(&packet);
-    packet.data = inbuf;
-    packet.size = size_in;
-
+    av_frame_unref(stream->frame);
     bytes_used = avcodec_decode_video2(stream->codec_context,
                                 stream->frame, &got_picture,
-                                &packet);
+                                avbin_packet->av_packet);
 
     if (!got_picture)
         return AVBIN_RESULT_ERROR;
