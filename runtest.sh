@@ -28,8 +28,46 @@
 PROBLEM_MEDIA_FILE=~/proj/AVbin10_problems/jwpIntro.mov 
 AVBIN_APPLICATION=~/proj/pyglet/examples/media_player.py 
 
-./build.sh --clean || exit 3
-./build.sh --fast macosx-x86-64 || exit 4
-./dist.sh macosx-x86-64 || exit 5
-sudo cp dist/macosx-x86-64/libavbin.11.dylib /usr/local/lib/libavbin.11.dylib || exit 6
-$AVBIN_APPLICATION $PROBLEM_MEDIA_FILE || exit 7
+
+die_usage() {
+    echo "Usage: ./runtest.sh [options]"
+    echo ""
+    echo "Run a test video after (optionally) rebuilding libav and avbin."
+    echo ""
+    echo "Options:"
+    echo "    --avbin  Rebuild avbin."
+    echo "    --libav  Rebuild libav and avbin."
+    echo "    --help   Display this help message."
+    exit 3
+}
+ 
+LIBAV="no"
+AVBIN="no"
+
+for arg in $* ; do
+    case $arg in
+        "--avbin")
+            AVBIN="yes" ;;
+        "--libav")
+            LIBAV="yes" ;;
+        "--help")
+            die_usage ;;
+        *)
+            echo "'$arg' is an unsupported argument"
+            die_usage
+            ;;
+    esac
+done;
+
+if [ $LIBAV == "yes" ] ; then
+    ./build.sh --clean || exit 4
+    ./build.sh --fast macosx-x86-64 || exit 5
+    ./dist.sh macosx-x86-64 || exit 6
+    sudo cp dist/macosx-x86-64/libavbin.11.dylib /usr/local/lib/libavbin.11.dylib || exit 6
+elif [ $AVBIN == "yes" ] ; then
+    ./build.sh --rebuild --fast macosx-x86-64 || exit 7
+    ./dist.sh macosx-x86-64 || exit 8
+    sudo cp dist/macosx-x86-64/libavbin.11.dylib /usr/local/lib/libavbin.11.dylib || exit 9
+fi
+    
+$AVBIN_APPLICATION $PROBLEM_MEDIA_FILE || exit 10
