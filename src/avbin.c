@@ -477,26 +477,25 @@ int32_t avbin_read(AVbinFile *file, AVbinPacket *avbin_packet)
 
     av_init_packet(avbin_packet->av_packet);
 
-    /* A packet alias for convenience... */
-/*    AVPacket *pkt = avbin_packet->av_packet; */
+    /* A packet alias for convenience... (otherwise we have to cast every reference) */
+    AVPacket *av_packet_alias = avbin_packet->av_packet;
 
-/*    if (av_read_frame(file->context, pkt) < 0) */
-    if (av_read_frame(file->context, avbin_packet->av_packet) < 0)
+    if (av_read_frame(file->context, av_packet_alias) < 0)
         return AVBIN_RESULT_ERROR;
 
     /* A stream alias for convenience... */
-    AVStream *stream = file->context->streams[avbin_packet->av_packet->stream_index];
+    AVStream *stream = file->context->streams[av_packet_alias->stream_index];
 
     /* Make a timestamp in seconds from beginning of stream */
     avbin_packet->timestamp = av_rescale_q(
         guess_correct_pts(
             &file->pts_correction_context,
-            avbin_packet->av_packet->pts, avbin_packet->av_packet->dts),
+            av_packet_alias->pts, av_packet_alias->dts),
         stream->time_base,
         AV_TIME_BASE_Q);
-    avbin_packet->stream_index = avbin_packet->av_packet->stream_index;
-    avbin_packet->data = avbin_packet->av_packet->data;
-    avbin_packet->size = avbin_packet->av_packet->size;
+    avbin_packet->stream_index = av_packet_alias->stream_index;
+    avbin_packet->data = av_packet_alias->data;
+    avbin_packet->size = av_packet_alias->size;
 
     return AVBIN_RESULT_OK;
 }
