@@ -30,7 +30,7 @@ AVBIN_APPLICATION=~/proj/pyglet/examples/media_player.py
 
 
 die_usage() {
-    echo "Usage: ./runtest.sh [options]"
+    echo "Usage: ./runtest.sh [options] [media_file]"
     echo ""
     echo "Run a test video after (optionally) rebuilding libav and avbin."
     echo ""
@@ -53,8 +53,12 @@ for arg in $* ; do
         "--help")
             die_usage ;;
         *)
-            echo "'$arg' is an unsupported argument"
-            die_usage
+            if [[ -r "$arg" ]] ; then
+                PROBLEM_MEDIA_FILE="$arg"
+            else
+                echo "'$arg' is not a readable file"
+                die_usage
+            fi
             ;;
     esac
 done;
