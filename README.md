@@ -22,7 +22,7 @@ Clone the git repository:
 
     git clone https://github.com/AVbin/AVbin.git avbin
 
-See the header file ``include/avbin.h`` and the online API documentation at
+See the header file `include/avbin.h` and the online API documentation at
 http://avbin.github.com/AVbin/Docs.html
 
 
@@ -34,16 +34,16 @@ we encourage you to join the Pyglet mailing list (AVbin was originally created
 for the Pyglet project).  See http://pyglet.org/contribute.html
 
 AVbin is designed to be used with a particular version of Libav.  This version
-of Libav is included as a git submodule of the AVbin project under the ``libav``
+of Libav is included as a git submodule of the AVbin project under the `libav`
 directory.  Note that this version of Libav may contain AVbin-specific patches,
 though we try to get all patches accepted upstream.
 
 Use the included `build.sh` script to compile AVbin.  This takes care of
 configuring Libav correctly, compiling it, then linking it with the AVbin
-sources.  The final AVbin libraries are placed in the ``dist`` directory.
+sources.  The final AVbin libraries are placed in the `dist` directory.
 
-To build on your platform, use the included ``build.sh`` script.  See
-``build.sh --help`` for usage information.
+To build on your platform, use the included `build.sh` script.  See
+`build.sh --help` for usage information.
 
 If you are planning on distributing the self-built binary to anyone other than
 yourself, please create a `PRERELEASE` file in the root of the project directory
@@ -59,7 +59,7 @@ Building for OS X
 On OS X Lion (10.7) and Mountain Lion (10.8)
 
 - Install Xcode (from Apple's App Store)
-- Open Xcode, and go to ``Preferences > Downloads > Components`` and install the
+- Open Xcode, and go to `Preferences > Downloads > Components` and install the
   Command Line Tools package.
 - Install yasm (You can install HomeBrew from http://brew.sh and then run `brew
   install yasm` to install yasm)
@@ -98,6 +98,7 @@ Tested on Ubuntu 12.04 LTS 64-bit.
   Install nsis: `sudo apt-get install nsis nsis-doc`
 - Cross-compile zlib and install it:
 
+```bash
     wget http://zlib.net/zlib-1.2.7.tar.gz
     tar zxvf zlib-1.2.7.tar.gz
     cd zlib-1.2.7
@@ -118,9 +119,11 @@ Tested on Ubuntu 12.04 LTS 64-bit.
       INCLUDE_PATH=/usr/x86_64-w64-mingw32/include/ \
       BINARY_PATH=/dev/null \
       -f win32/Makefile.gcc install
+```
 
 - Cross-compile bzlib and install it
 
+```bash
     wget http://bzip.org/1.0.6/bzip2-1.0.6.tar.gz
     tar zxvf bzip2-1.0.6.tar.gz
     cd bzip2-1.0.6/
@@ -137,6 +140,7 @@ Tested on Ubuntu 12.04 LTS 64-bit.
       RANLIB=x86_64-w64-mingw32-ranlib PREFIX=/usr/x86_64-w64-mingw32 libbz2.a
     sudo cp libbz2.a /usr/x86_64-w64-mingw32/lib/
     sudo cp bzlib.h /usr/x86_64-w64-mingw32/include/
+```
 
 - (For creating dist zipfile) Install 7-Zip: `sudo apt-get install p7zip-full`
 
@@ -160,7 +164,7 @@ AVbin is currently known to function on the following platforms
 Creating a Distribution
 -----------------------
 
-- Using the same value for ``platform`` as the build you just did, run:
+- Using the same value for `platform` as the build you just did, run:
 
     ./dist.sh [platform]
 
@@ -170,7 +174,7 @@ Creating Documentation
 
 - Install Doxygen from http://www.stack.nl/~dimitri/doxygen/
 
-- Open/Edit ``Doxyfile`` to your liking and generate it with Doxygen.  The GUI
+- Open/Edit `Doxyfile` to your liking and generate it with Doxygen.  The GUI
   frontend seems to work just fine.
 
 
@@ -178,12 +182,12 @@ Installation and Usage
 ----------------------
 
 Run the binary installer, or place the resulting `avbin.so`, `avbin.dylib` or
-`avbin.dll` from the ``dist`` directory into the appropriate system directory.
+`avbin.dll` from the `dist` directory into the appropriate system directory.
 
 The AVbin dynamic library exports all of Libav's functions from `libavcodec`,
 `libavutil`, `libavformat`, and `libswscale`.  It also exports some higher-level
 functions which have a fixed ABI (they will not change in incompatible ways
-in future releases), documented in ``include/avbin.h``.
+in future releases), documented in `include/avbin.h`.
 
 
 License
