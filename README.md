@@ -1,7 +1,8 @@
 AVbin
 =====
 
-Home:       http://avbin.github.com
+Home: http://avbin.github.com
+
 Maintainer: Nathan Stocks <nathan.stocks@gmail.com>
 
 
@@ -19,7 +20,7 @@ AVbin is a C library following standard conventions.
 
 Clone the git repository:
 
-  git clone https://github.com/AVbin/AVbin.git avbin
+    git clone https://github.com/AVbin/AVbin.git avbin
 
 See the header file ``include/avbin.h`` and the online API documentation at
 http://avbin.github.com/AVbin/Docs.html
@@ -45,26 +46,34 @@ To build on your platform, use the included ``build.sh`` script.  See
 ``build.sh --help`` for usage information.
 
 If you are planning on distributing the self-built binary to anyone other than
-yourself, please create a "PRERELEASE" file in the root of the project directory
-containing a version modifier such as "-my-version".
-get_avbin_info()->version_string would then return "10-my-version" for a custom
-build of AVbin 10, while get_avbin_info()->version will still return the integer
-10.
+yourself, please create a `PRERELEASE` file in the root of the project directory
+containing a version modifier such as `-my-version`.
+`get_avbin_info()->version_string` would then return `10-my-version` for a custom
+build of AVbin 10, while `get_avbin_info()->version` will still return the integer
+`10`.
 
 
 Building for OS X
 -----------------
 
-Tested on OS X Lion (10.7) and Mountain Lion (10.8)
+On OS X Lion (10.7) and Mountain Lion (10.8)
 
 - Install Xcode (from Apple's App Store)
 - Open Xcode, and go to ``Preferences > Downloads > Components`` and install the
   Command Line Tools package.
-- Install yasm (You can install HomeBrew from http://mxcl.github.io/homebrew/
-  and then run 'brew install yasm' to install yasm)
-- Obtain and install Auxiliary Tools for Xcode (from developer.apple.com > 
-  Mac Dev Center > Developer Downloads)
-- Run ./build.sh [desired options and target]
+- Install yasm (You can install HomeBrew from http://brew.sh and then run `brew
+  install yasm` to install yasm)
+- Obtain and install Auxiliary Tools for Xcode (from `developer.apple.com >
+  Mac Dev Center > Developer Downloads`)
+- Run `./build.sh [desired options and target]`
+
+On OS X Mavericks (10.9)
+- Install Xcode from the App Store
+- Run `xcode-select --install` in your terminal and click `Install` on the
+  dialog that pops up.
+- Install yasm (You can install HomeBrew from http://brew.sh and then run `brew
+  install yasm` to install yasm)
+- Run `./build.sh [desired options and target]`
 
 
 Building for Linux
@@ -72,11 +81,11 @@ Building for Linux
 
 Tested on a default install of Ubuntu 12.04 LTS (both 32- and 64-bit installs).
 
-- Install yasm: sudo apt-get install yasm
-- Install libbz2-dev: sudo apt-get install libbz2-dev
+- Install yasm: `sudo apt-get install yasm`
+- Install libbz2-dev: `sudo apt-get install libbz2-dev`
 - (If you want to make the binary installer)
-  Install makeself: sudo apt-get install makeself
-- Run ./build.sh [desired options and targets]
+  Install makeself: `sudo apt-get install makeself`
+- Run `./build.sh [desired options and targets]`
 
 
 Building for Win64 or Win32 (crosscompiling on Linux)
@@ -84,54 +93,54 @@ Building for Win64 or Win32 (crosscompiling on Linux)
 
 Tested on Ubuntu 12.04 LTS 64-bit.
 
-- Install MinGW-64: sudo apt-get install mingw-64
+- Install MinGW-64: `sudo apt-get install mingw-64`
 - (If you want to make the binary installer)
-  Install nsis: sudo apt-get install nsis nsis-doc
+  Install nsis: `sudo apt-get install nsis nsis-doc`
 - Cross-compile zlib and install it:
 
-  wget http://zlib.net/zlib-1.2.7.tar.gz
-  tar zxvf zlib-1.2.7.tar.gz
-  cd zlib-1.2.7
+    wget http://zlib.net/zlib-1.2.7.tar.gz
+    tar zxvf zlib-1.2.7.tar.gz
+    cd zlib-1.2.7
 
-  # For win32...
-  make PREFIX=i686-w64-mingw32- -f win32/Makefile.gcc
-  sudo make PREFIX=i686-w64-mingw32- \
-    LIBRARY_PATH=/usr/i686-w64-mingw32/lib \
-    INCLUDE_PATH=/usr/i686-w64-mingw32/include/ \
-    BINARY_PATH=/dev/null \
-    -f win32/Makefile.gcc install
-  make -f win32/Makefile.gcc clean
+    # For win32...
+    make PREFIX=i686-w64-mingw32- -f win32/Makefile.gcc
+    sudo make PREFIX=i686-w64-mingw32- \
+      LIBRARY_PATH=/usr/i686-w64-mingw32/lib \
+      INCLUDE_PATH=/usr/i686-w64-mingw32/include/ \
+      BINARY_PATH=/dev/null \
+      -f win32/Makefile.gcc install
+    make -f win32/Makefile.gcc clean
 
-  # For win64...
-  make PREFIX=x86_64-w64-mingw32- -f win32/Makefile.gcc
-  sudo make PREFIX=x86_64-w64-mingw32- \
-    LIBRARY_PATH=/usr/x86_64-w64-mingw32/lib \
-    INCLUDE_PATH=/usr/x86_64-w64-mingw32/include/ \
-    BINARY_PATH=/dev/null \
-    -f win32/Makefile.gcc install
+    # For win64...
+    make PREFIX=x86_64-w64-mingw32- -f win32/Makefile.gcc
+    sudo make PREFIX=x86_64-w64-mingw32- \
+      LIBRARY_PATH=/usr/x86_64-w64-mingw32/lib \
+      INCLUDE_PATH=/usr/x86_64-w64-mingw32/include/ \
+      BINARY_PATH=/dev/null \
+      -f win32/Makefile.gcc install
 
 - Cross-compile bzlib and install it
 
-  wget http://bzip.org/1.0.6/bzip2-1.0.6.tar.gz
-  tar zxvf bzip2-1.0.6.tar.gz
-  cd bzip2-1.0.6/
+    wget http://bzip.org/1.0.6/bzip2-1.0.6.tar.gz
+    tar zxvf bzip2-1.0.6.tar.gz
+    cd bzip2-1.0.6/
 
-  # For win32...
-  make CC=i686-w64-mingw32-gcc AR=i686-w64-mingw32-ar \
-    RANLIB=i686-w64-mingw32-ranlib PREFIX=/usr/i686-w64-mingw32 libbz2.a
-  sudo cp libbz2.a /usr/i686-w64-mingw32/lib/
-  sudo cp bzlib.h /usr/i686-w64-mingw32/include/
-  make clean
+    # For win32...
+    make CC=i686-w64-mingw32-gcc AR=i686-w64-mingw32-ar \
+      RANLIB=i686-w64-mingw32-ranlib PREFIX=/usr/i686-w64-mingw32 libbz2.a
+    sudo cp libbz2.a /usr/i686-w64-mingw32/lib/
+    sudo cp bzlib.h /usr/i686-w64-mingw32/include/
+    make clean
 
-  # For win64...
-  make CC=x86_64-w64-mingw32-gcc AR=x86_64-w64-mingw32-ar \
-    RANLIB=x86_64-w64-mingw32-ranlib PREFIX=/usr/x86_64-w64-mingw32 libbz2.a
-  sudo cp libbz2.a /usr/x86_64-w64-mingw32/lib/
-  sudo cp bzlib.h /usr/x86_64-w64-mingw32/include/
+    # For win64...
+    make CC=x86_64-w64-mingw32-gcc AR=x86_64-w64-mingw32-ar \
+      RANLIB=x86_64-w64-mingw32-ranlib PREFIX=/usr/x86_64-w64-mingw32 libbz2.a
+    sudo cp libbz2.a /usr/x86_64-w64-mingw32/lib/
+    sudo cp bzlib.h /usr/x86_64-w64-mingw32/include/
 
-- (For creating dist zipfile) Install 7-Zip: sudo apt-get install p7zip-full
+- (For creating dist zipfile) Install 7-Zip: `sudo apt-get install p7zip-full`
 
-- Run ./build.sh [desired options and targets]
+- Run `./build.sh [desired options and targets]`
 
 
 Caveats
@@ -141,7 +150,7 @@ AVbin is currently known to function on the following platforms
 
 * Linux x86 (32- and 64-bit)
 
-* Mac OS X 10.6 - 10.7 (32- and 64-bit)
+* Mac OS X 10.6 - 10.8 (32- and 64-bit)
 
 * Windows XP (32-bit)
 
@@ -152,7 +161,8 @@ Creating a Distribution
 -----------------------
 
 - Using the same value for ``platform`` as the build you just did, run:
-  ./dist.sh [platform]
+
+    ./dist.sh [platform]
 
 
 Creating Documentation
@@ -163,14 +173,15 @@ Creating Documentation
 - Open/Edit ``Doxyfile`` to your liking and generate it with Doxygen.  The GUI
   frontend seems to work just fine.
 
+
 Installation and Usage
 ----------------------
 
-Run the binary installer, or place the resulting avbin.so, avbin.dylib or
-avbin.dll from the ``dist`` directory into the appropriate system directory.
+Run the binary installer, or place the resulting `avbin.so`, `avbin.dylib` or
+`avbin.dll` from the ``dist`` directory into the appropriate system directory.
 
-The AVbin dynamic library exports all of Libav's functions from libavcodec,
-libavutil, libavformat, and libswscale.  It also exports some higher-level
+The AVbin dynamic library exports all of Libav's functions from `libavcodec`,
+`libavutil`, `libavformat`, and `libswscale`.  It also exports some higher-level
 functions which have a fixed ABI (they will not change in incompatible ways
 in future releases), documented in ``include/avbin.h``.
 
@@ -192,10 +203,12 @@ application.
 Contributions
 -------------
 
-Nathan Stocks      - Project maintainer
-Alex Holkner       - Original author, original maintainer
-Micah Richert      - Contributed original macosx-x86-64 and win64 build scripts
-Anatoly Techtonik  - C++ integration
-Jernej Virag       - C code additions and updates, build script updates
-Jeremy Lujan       - OS X install script patches.
-Tim Sheerman-Chase - avbin_seek_file() patches and Visual Studio 2010 compatibility
+Who                | Role
+-------------------------
+Nathan Stocks      | Project maintainer
+Alex Holkner       | Original author, original maintainer
+Micah Richert      | Contributed original macosx-x86-64 and win64 build scripts
+Anatoly Techtonik  | C++ integration
+Jernej Virag       | C code additions and updates, build script updates
+Jeremy Lujan       | OS X install script patches.
+Tim Sheerman-Chase | avbin_seek_file() patches and Visual Studio 2010 compatibility
