@@ -5,6 +5,9 @@ Home: http://avbin.github.com
 
 Maintainer: Nathan Stocks <nathan.stocks@gmail.com>
 
+**NOTE:**  [Pyglet needs a new
+maintainer.](https://groups.google.com/d/msg/pyglet-users/HxJVKUPcwgE/elTwFk7MyxEJ)
+If there are any volunteers, please contact Nathan Stocks.
 
 End-User Installation
 ---------------------
