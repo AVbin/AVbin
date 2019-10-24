@@ -211,7 +211,7 @@ Contributions
 -------------
 
 Who                | Role
--------------------------
+------------------ | -----
 Nathan Stocks      | Project maintainer
 Alex Holkner       | Original author, original maintainer
 Micah Richert      | Contributed original macosx-x86-64 and win64 build scripts
