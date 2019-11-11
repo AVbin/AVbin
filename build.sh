@@ -52,6 +52,12 @@ AVBIN_BACKEND_REPO="\"`git remote show -n origin | grep Fetch | cut -b 14-`\""
 AVBIN_BACKEND_COMMIT="\"`git rev-parse HEAD`\""
 popd > /dev/null
 
+if [ "$(uname -s)" = "FreeBSD" ]; then
+    MAKE=gmake
+else
+    MAKE=make
+fi
+
 fail() {
     echo "AVbin: Fatal error: $1"
     exit 1
@@ -60,8 +66,8 @@ fail() {
 clean_backend() {
     pushd $BACKEND_DIR > /dev/null
     echo -n "Cleaning up..."
-    make clean 2> /dev/null
-    make distclean 2> /dev/null
+    $MAKE clean 2> /dev/null
+    $MAKE distclean 2> /dev/null
     echo "done"
     find . -name '*.d' -exec rm -f '{}' ';'
     find . -name '*.pc' -exec rm -f '{}' ';'
@@ -95,7 +101,7 @@ build_backend() {
     mv config.mak2 config.mak
 
     # Actually build Backend
-    make $FAST || fail "Failed to build backend."
+    $MAKE $FAST || fail "Failed to build backend."
     popd
 }
 
@@ -116,10 +122,10 @@ build_avbin() {
     export BACKEND_DIR
 
     if [ ! $REBUILD ]; then
-        make clean
+        $MAKE clean
     fi
 
-    make || fail "Failed to build AVbin."
+    $MAKE || fail "Failed to build AVbin."
 }
 
 build_macosx_universal() {
@@ -154,6 +160,8 @@ die_usage() {
     echo "Supported platforms:"
     echo "  linux-x86-32"
     echo "  linux-x86-64"
+    echo "  freebsd-x86-32"
+    echo "  freebsd-x86-64"
     echo "  macosx-x86-32"
     echo "  macosx-x86-64"
     echo "  macosx-universal (builds all supported Mac OS X architectures into one library)"
@@ -203,7 +211,7 @@ for PLATFORM in $platforms; do
             build_backend
             build_avbin
             ;;
-        "linux-x86-32" | "linux-x86-64" | "win32" | "win64")
+        "linux-x86-32" | "linux-x86-64" | "freebsd-x86-32" | "freebsd-x86-64" | "win32" | "win64")
             build_backend
             build_avbin
             ;;

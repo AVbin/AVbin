@@ -38,6 +38,7 @@ dist_common() {
     cp COPYING.LESSER $DIR || fail "Failed copying the license"
     # Get the install script
     if [ $PLATFORM == "linux-x86-32" -o $PLATFORM == "linux-x86-64" \
+         -o $PLATFORM == "freebsd-x86-32" -o $PLATFORM == "freebsd-x86-64" \
          -o $PLATFORM == "macosx-x86-32" -o $PLATFORM == "macosx-x86-64" \
          -o $PLATFORM == "macosx-universal" ]; then
         sed s/@AVBIN_VERSION@/$AVBIN_VERSION/ $OS.install.sh \
@@ -55,8 +56,9 @@ dist_common() {
             || fail "Failed creating NSIS configuration file."
 	     makensis avbin.nsi || fail "Failed compiling windows installer."
 	     echo "Created AVbin${AVBIN_VERSION_STRING}-${ARCH}.exe"
-    elif [ $PLATFORM == "linux-x86-64" -o $PLATFORM == "linux-x86-32" ]; then
-        # Create binary installer for Linux
+    elif [ $PLATFORM == "linux-x86-64" -o $PLATFORM == "linux-x86-32" \
+           -o $PLATFORM == "freebsd-x86-64" -o $PLATFORM == "freebsd-x86-32" ]; then
+        # Create binary installer for Linux / FreeBSD
 	     makeself $BASEDIR install-$BASEDIR "AVbin $AVBIN_VERSION_STRING" \
 	         "./install.sh" \
 		 || fail "Failed creating the Linux installer."
@@ -79,6 +81,8 @@ if [ ! "$platforms" ]; then
     echo "Supported platforms:"
     echo "  linux-x86-32"
     echo "  linux-x86-64"
+    echo "  freebsd-x86-32"
+    echo "  freebsd-x86-64"
     echo "  macosx-x86-32"
     echo "  macosx-x86-64"
     echo "  macosx-universal"
@@ -92,6 +96,9 @@ for PLATFORM in $platforms; do
     DIR=dist/$BASEDIR
     if [ $PLATFORM == "linux-x86-32" -o $PLATFORM == "linux-x86-64" ]; then
 	     OS=linux
+	     LIBRARY=dist/$PLATFORM/libavbin.so.$AVBIN_VERSION
+    elif [ $PLATFORM == "freebsd-x86-32" -o $PLATFORM == "freebsd-x86-64" ]; then
+	     OS=freebsd
 	     LIBRARY=dist/$PLATFORM/libavbin.so.$AVBIN_VERSION
     elif [ $PLATFORM == "macosx-universal" \
            -o $PLATFORM == "macosx-x86-32" \
